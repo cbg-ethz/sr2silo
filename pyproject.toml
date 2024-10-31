@@ -5,9 +5,9 @@ build-backend = "flit_core.buildapi"
 [project]
 name =  "py-project-toml"
 authors = [
-    {name = "Daniel Ciborowski", email = "dciborow@microsoft.com"},
+    {name = "Gordon Julian Koehn", email = "koehng@ethz.ch"},
 ]
-description = "Sample Python Project for creating a new Python Module"
+description = "Wrangling short-read sequencing data for import into SILO"
 readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -52,7 +52,7 @@ Source = "https://github.com/microsoft/python-package-template"
 Tracker = "https://github.com/microsoft/python-package-template/issues"
 
 [tool.flit.module]
-name = "python_package"
+name = "sr2silo"
 
 [tool.bandit]
 exclude_dirs = ["build","dist","tests","scripts"]
