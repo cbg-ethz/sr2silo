@@ -1,3 +1,9 @@
+"""
+Author: David Gicev  (@davidgicev / david.gicev@gmail.com)
+Supervisor:Alexander Taepper (@Taepper / alexander.taepper@bsse.ethz.ch)
+Date: 2024-10-30
+"""
+
 import sys
 
 
