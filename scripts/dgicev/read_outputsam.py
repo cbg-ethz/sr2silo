@@ -4,6 +4,10 @@ Supervisor:Alexander Taepper (@Taepper / alexander.taepper@bsse.ethz.ch)
 Date: 2024-10-30
 """
 
+# TODO:  integrate into package, with QA and testing
+# pylint: skip-file
+# flake8: noqa
+
 import sys
 import re
 
