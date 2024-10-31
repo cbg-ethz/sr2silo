@@ -9,11 +9,11 @@
 
 
 # sr2silo
-## Short-Reads to SILO
+### Wrangling Short-Read Genomic Alignments for SILO Database
 
 This project will wrangle short-read genomic aligments, for example from wastewater-sampling, into a format for easy import into the SILO sequencing database.
 
-# Python Project Layout
+## Python Project Layout
 
 This Project is based on the [Microsoft Python-Package-Template](https://github.com/microsoft/python-package-template) and follows the Python Standards declared in PEP 621. It uses a pyproject.yaml file to configure the project and Flit to simplify the build process and publish to PyPI. Flit simplifies the build and packaging process for Python projects by eliminating the need for separate setup.py and setup.cfg files. With Flit, you can manage all relevant configurations within the pyproject.toml file, streamlining development and promoting maintainability by centralizing project metadata, dependencies, and build specifications in one place.
 
