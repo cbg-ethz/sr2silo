@@ -1,6 +1,21 @@
-# Python Project Template
+[![Project Status: WIP – This project is currently under active development.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://coverage.readthedocs.io/)
+[![Pytest](https://img.shields.io/badge/tested%20with-pytest-0A9EDC.svg)](https://docs.pytest.org/en/stable/)
+[![Pylint](https://img.shields.io/badge/code%20quality-pylint-yellowgreen.svg)](https://www.pylint.org/)
+[![Pyright](https://img.shields.io/badge/type%20checked-pyright-blue.svg)](https://github.com/microsoft/pyright)
+[![Flake8](https://img.shields.io/badge/linter-flake8-blue.svg)](https://flake8.pycqa.org/en/latest/)
+[![Tox](https://img.shields.io/badge/tested%20with-tox-1C1C1C.svg)](https://tox.readthedocs.io/en/latest/)
 
-This project is a template for creating Python projects that follows the Python Standards declared in PEP 621. It uses a pyproject.yaml file to configure the project and Flit to simplify the build process and publish to PyPI. Flit simplifies the build and packaging process for Python projects by eliminating the need for separate setup.py and setup.cfg files. With Flit, you can manage all relevant configurations within the pyproject.toml file, streamlining development and promoting maintainability by centralizing project metadata, dependencies, and build specifications in one place.
+
+# sr2silo
+## Short-Reads to SILO
+
+This project will wrangle short-read genomic aligments, for example from wastewater-sampling, into a format for easy import into the SILO sequencing database.
+
+# Python Project Layout
+
+This Project is based on the [Microsoft Python-Package-Template](https://github.com/microsoft/python-package-template) and follows the Python Standards declared in PEP 621. It uses a pyproject.yaml file to configure the project and Flit to simplify the build process and publish to PyPI. Flit simplifies the build and packaging process for Python projects by eliminating the need for separate setup.py and setup.cfg files. With Flit, you can manage all relevant configurations within the pyproject.toml file, streamlining development and promoting maintainability by centralizing project metadata, dependencies, and build specifications in one place.
 
 ## Project Organization
 
@@ -9,6 +24,7 @@ This project is a template for creating Python projects that follows the Python 
 - `.devcontainer/devcontainer.json`: Contains the configuration for the development container for VSCode, including the Docker image to use, any additional VSCode extensions to install, and whether or not to mount the project directory into the container.
 - `.vscode/settings.json`: Contains VSCode settings specific to the project, such as the Python interpreter to use and the maximum line length for auto-formatting.
 - `src`: Place new source code here.
+- `scripts`: Place new source code here, temporary and intermediate works.
 - `tests`: Contains Python-based test cases to validate source code.
 - `pyproject.toml`: Contains metadata about the project and configurations for additional tools used to format, lint, type-check, and analyze Python code.
 
