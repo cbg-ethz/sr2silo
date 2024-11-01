@@ -23,8 +23,7 @@ requires-python = ">=3.8.1"
 dynamic = ["version"]
 
 dependencies = [
-    "pysam>=0.22.1",
-    "pysam-stubs"
+    "pysam>=0.22.1"
 ]
 
 [project.optional-dependencies]

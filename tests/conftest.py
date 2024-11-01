@@ -12,11 +12,16 @@ from __future__ import annotations
 
 from typing import List
 
+
 import pytest
 from _pytest.nodes import Item
 
+from pathlib import Path
 
-def pytest_collection_modifyitems(items: list[Item]):
+from sr2silo.convert import bam_to_sam
+
+
+def pytest_collection_modifyitems(items: List[Item]):
     for item in items:
         if "spark" in item.nodeid:
             item.add_marker(pytest.mark.spark)
@@ -28,3 +33,14 @@ def pytest_collection_modifyitems(items: list[Item]):
 def unit_test_mocks(monkeypatch: None):
     """Include Mocks here to execute all commands offline and fast."""
     pass
+
+
+# Define test data paths
+TEST_DATA_DIR = Path(__file__).parent / "data"
+INPUT_BAM_PATH = TEST_DATA_DIR / "REF_aln_trim_subsample.bam"
+
+
+@pytest.fixture
+def sam_data():
+    """Return a sample SAM data."""
+    return bam_to_sam(INPUT_BAM_PATH)
