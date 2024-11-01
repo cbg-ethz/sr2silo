@@ -4,6 +4,8 @@ on:
 
 jobs:
   publish:
+    # manually disabled here for now
+    if: false
     uses: microsoft/action-python/.github/workflows/publish.yml@0.7.3
     secrets:
       PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
