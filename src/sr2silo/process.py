@@ -102,17 +102,17 @@ def pair_normalize_reads(sam_data: str, output_fasta: Path, output_insertions: P
                     overlap_result = list(overlap_read1)
 
                     if overlap_result and overlap_read1 != overlap_read2:
-                        # print("", qname)
                         if len(overlap_read1) != len(overlap_read2):
                             print("overlaps don't match in size")
                         number_of_diffs = 0
-                        for i in range(len(overlap_read1)):
-                            if overlap_read1[i] != overlap_read2[i]:
+                        for i, (base1, base2) in enumerate(zip(overlap_read1, overlap_read2)):
+                            if base1 != base2:
+                                # read1 has no quality, and read2 has overlap, so we take it
                                 if overlap_qual1[i] == "-" and overlap_read2 != "-":
-                                    overlap_result[i] = overlap_read2[i]
-                                if overlap_qual1[i] > overlap_qual2[i]:
-                                    overlap_result[i] = overlap_read2[i]
-                                # print("diff in position ", i, ": ", overlap_read1[i], "/", overlap_read2[i])
+                                    overlap_result[i] = base2
+                                # read2 has better quality, so we take it
+                                elif overlap_qual1[i] > overlap_qual2[i]:
+                                    overlap_result[i] = base2
                                 number_of_diffs += 1
 
                     merged += "".join(overlap_result) + read2["RESULT_seqUENCE"][max(0, gaplen) :]
@@ -130,6 +130,6 @@ def pair_normalize_reads(sam_data: str, output_fasta: Path, output_insertions: P
 
             else:
                 unpaired[qname] = read
-        for id in unpaired:
-            fasta_file.write(f">{id}|{unpaired[id]['pos']}\n{unpaired[id]['RESULT_seqUENCE']}\n")
-            insertions_file.write(f"{id}\t{unpaired[id]['insertions']}\n")
+        for read_id, unpaired_read in unpaired.items():
+            fasta_file.write(f">{read_id}|{unpaired_read['pos']}\n{unpaired_read['RESULT_seqUENCE']}\n")
+            insertions_file.write(f"{read_id}\t{unpaired_read['insertions']}\n")
