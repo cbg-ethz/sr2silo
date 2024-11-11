@@ -17,6 +17,7 @@ import pytest
 from _pytest.nodes import Item
 
 from pathlib import Path
+import tempfile
 
 from sr2silo.convert import bam_to_sam
 
@@ -43,5 +44,11 @@ INPUT_BAM_PATH = TEST_DATA_DIR / "REF_aln_trim_subsample.bam"
 
 @pytest.fixture
 def sam_data():
-    """Return a sample SAM data."""
+    """Return a sample SAM data as a string."""
     return bam_to_sam(INPUT_BAM_PATH)
+
+
+@pytest.fixture
+def temp_dir():
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        yield Path(tmpdirname)

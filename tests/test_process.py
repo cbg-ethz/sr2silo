@@ -88,11 +88,26 @@ def test_parse_cigar(sam_data):
     assert cigars == expected_cigars, f"Expected {expected_cigars}, but got {cigars}"
 
 
-def test_pair_normalize_reads(sam_data):
+def test_pair_normalize_reads(sam_data, temp_dir):
     """Test the pair_normalize_reads function."""
 
-    # Pipe the SAM data to the function as stdin
-    result = pair_normalize_reads(sam_data)
+    out_fasta = temp_dir / "out_merged.fasta"
+    out_insertions = temp_dir / "out_insertions.txt"
 
-    print(result)
-    assert result == 0
+    # Pipe the SAM data to the function as stdin
+    pair_normalize_reads(sam_data, out_fasta, out_insertions)
+
+    # Check the output files for expected content
+    with open(out_fasta, "r") as fasta_file:
+        fasta_content = fasta_file.read()
+    with open(out_insertions, "r") as insertions_file:
+        insertions_content = insertions_file.read()
+
+    # Replace these with the actual expected content
+    expected_fasta_content = "tests/data/merged_expected.fasta"
+    expected_insertions_content = "tests/data/nuc_insertions_expected.txt"
+
+    assert fasta_content == expected_fasta_content, f"Expected {expected_fasta_content}, but got {fasta_content}"
+    assert (
+        insertions_content == expected_insertions_content
+    ), f"Expected {expected_insertions_content}, but got {insertions_content}"
