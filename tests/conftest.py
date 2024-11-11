@@ -10,20 +10,19 @@ In VSCode, Code Coverage is recorded in config.xml. Delete this file to reset re
 
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
 from typing import List
-
 
 import pytest
 from _pytest.nodes import Item
-
-from pathlib import Path
-import tempfile
 
 from sr2silo.convert import bam_to_sam
 
 
 # TODO: Add custom markers here
 def pytest_collection_modifyitems(items: List[Item]):
+    """Add custom markers to tests."""
     for item in items:
         if "spark" in item.nodeid:
             item.add_marker(pytest.mark.spark)
@@ -50,5 +49,6 @@ def sam_data():
 
 @pytest.fixture
 def temp_dir():
+    """Return a temporary directory as a Path object."""
     with tempfile.TemporaryDirectory() as tmpdirname:
         yield Path(tmpdirname)

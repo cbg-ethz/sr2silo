@@ -4,12 +4,17 @@ Supervisor:Alexander Taepper (@Taepper / alexander.taepper@bsse.ethz.ch)
 Date: 2024-10-30
 """
 
+from __future__ import annotations
+
+import re
+import sys
+
 # TODO:  integrate into package, with QA and testing
 # pylint: skip-file
 # flake8: noqa
+# fmt: off
+# interrogate: ignore
 
-import sys
-import re
 
 
 def parse_cigar(cigar):
