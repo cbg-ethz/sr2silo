@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import pysam
 import subprocess
+
+import pysam
 
 
 def bam_to_sam(bam_file):
@@ -30,5 +31,10 @@ def test_read_run_error_free():
     sam_data = bam_to_sam(input_bam)
 
     # Pipe the SAM data to the script as stdin
-    result = subprocess.run(["python", "scripts/dgicev/read.py"], input=sam_data, capture_output=True, text=True)
+    result = subprocess.run(
+        ["python", "scripts/dgicev/read.py"],
+        input=sam_data,
+        capture_output=True,
+        text=True,
+    )
     assert result.returncode == 0

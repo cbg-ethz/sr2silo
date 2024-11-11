@@ -5,6 +5,7 @@ This module contains tests for the conversion functions in the sr2silo package.
 from __future__ import annotations
 
 from pathlib import Path
+
 from sr2silo.convert import bam_to_sam
 
 # Define test data paths outside the function
@@ -20,4 +21,6 @@ def test_bam_to_sam():
         expected_data = f.read()
 
     # compare the sam_data with the expected data
-    assert sam_data == expected_data, "The converted SAM data does not match the expected SAM data"
+    assert (
+        sam_data == expected_data
+    ), "The converted SAM data does not match the expected SAM data"
