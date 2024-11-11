@@ -21,6 +21,7 @@ from pathlib import Path
 from sr2silo.convert import bam_to_sam
 
 
+# TODO: Add custom markers here
 def pytest_collection_modifyitems(items: List[Item]):
     for item in items:
         if "spark" in item.nodeid:
