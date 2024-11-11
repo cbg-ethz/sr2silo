@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from sr2silo.process import parse_cigar
-from sr2silo.process import pair_normalize_reads
 import subprocess
+
+from sr2silo.process import pair_normalize_reads, parse_cigar
 
 
 def test_parse_cigar(sam_data):
@@ -107,10 +107,14 @@ def test_pair_normalize_reads(sam_data, temp_dir):
     # Load the actual expected content from the files
     with open("tests/data/merged_expected.fasta", "r") as expected_fasta_file:
         expected_fasta_content = expected_fasta_file.read()
-    with open("tests/data/nuc_insertions_expected.txt", "r") as expected_insertions_file:
+    with open(
+        "tests/data/nuc_insertions_expected.txt", "r"
+    ) as expected_insertions_file:
         expected_insertions_content = expected_insertions_file.read()
 
-    assert fasta_content == expected_fasta_content, f"Expected {expected_fasta_content}, but got {fasta_content}"
+    assert (
+        fasta_content == expected_fasta_content
+    ), f"Expected {expected_fasta_content}, but got {fasta_content}"
     assert (
         insertions_content == expected_insertions_content
     ), f"Expected {expected_insertions_content}, but got {insertions_content}"
@@ -127,7 +131,13 @@ def test_pair_normalize_reads_to_script(sam_data, temp_dir):
     out_insertions = temp_dir / "nuc_insertions.txt"
 
     # Run the script with the SAM data as input in the temp dir
-    subprocess.run(["python", temp_dir / "read.py"], input=sam_data, capture_output=True, text=True, cwd=temp_dir)
+    subprocess.run(
+        ["python", temp_dir / "read.py"],
+        input=sam_data,
+        capture_output=True,
+        text=True,
+        cwd=temp_dir,
+    )
 
     # Check the output files for expected content
     with open(out_fasta, "r") as fasta_file:
@@ -138,10 +148,14 @@ def test_pair_normalize_reads_to_script(sam_data, temp_dir):
     # Load the actual expected content from the files
     with open("tests/data/merged_expected.fasta", "r") as expected_fasta_file:
         expected_fasta_content = expected_fasta_file.read()
-    with open("tests/data/nuc_insertions_expected.txt", "r") as expected_insertions_file:
+    with open(
+        "tests/data/nuc_insertions_expected.txt", "r"
+    ) as expected_insertions_file:
         expected_insertions_content = expected_insertions_file.read()
 
-    assert fasta_content == expected_fasta_content, f"Expected {expected_fasta_content}, but got {fasta_content}"
+    assert (
+        fasta_content == expected_fasta_content
+    ), f"Expected {expected_fasta_content}, but got {fasta_content}"
     assert (
         insertions_content == expected_insertions_content
     ), f"Expected {expected_insertions_content}, but got {insertions_content}"

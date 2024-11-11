@@ -1,10 +1,14 @@
 """Implements conversions from sam to bam and vice versa."""
 
+from __future__ import annotations
+
 import tempfile
+from pathlib import Path
+
 import pysam
 
 
-def bam_to_sam(bam_file: str) -> str:
+def bam_to_sam(bam_file: Path) -> str:
     """Converts a BAM file to SAM format and returns it as a string.
 
     Args:
@@ -15,7 +19,7 @@ def bam_to_sam(bam_file: str) -> str:
     """
 
     with tempfile.NamedTemporaryFile(delete=True) as temp_sam:
-        with pysam.AlignmentFile(bam_file, "rb") as in_bam, pysam.AlignmentFile(
+        with pysam.AlignmentFile(str(bam_file), "rb") as in_bam, pysam.AlignmentFile(
             temp_sam.name, "w", template=in_bam
         ) as out_sam:
             for read in in_bam:
