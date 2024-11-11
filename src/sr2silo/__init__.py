@@ -2,7 +2,7 @@
 #   Copyright (c) Microsoft Corporation. All rights reserved.
 #   Licensed under the MIT License. See LICENSE in project root for information.
 #   -------------------------------------------------------------
-"""Python Package Template"""
+"""sr2silo connects pairs, normalizes reads, and converts BAM to SAM files."""
 from __future__ import annotations
 
 __version__ = "0.0.2"

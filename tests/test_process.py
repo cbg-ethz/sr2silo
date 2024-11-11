@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from sr2silo.process import parse_cigar
+from sr2silo.process import pair_normalize_reads
 
 
 def test_parse_cigar(sam_data):
@@ -85,3 +86,13 @@ def test_parse_cigar(sam_data):
         [("M", 134), ("D", 26), ("M", 81), ("S", 33)],
     ]
     assert cigars == expected_cigars, f"Expected {expected_cigars}, but got {cigars}"
+
+
+def test_pair_normalize_reads(sam_data):
+    """Test the pair_normalize_reads function."""
+
+    # Pipe the SAM data to the function as stdin
+    result = pair_normalize_reads(sam_data)
+
+    print(result)
+    assert result == 0

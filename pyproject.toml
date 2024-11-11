@@ -3,7 +3,7 @@ requires = ["flit_core >=2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name =  "sr2silo"
+name =  "py-project-toml"
 authors = [
     {name = "Gordon Julian Koehn", email = "koehng@ethz.ch"},
 ]
@@ -117,7 +117,7 @@ executionEnvironments = [
 [tool.pytest.ini_options]
 addopts = "--cov-report xml:coverage.xml --cov src --cov-fail-under 0 --cov-append -m 'not integration'"
 pythonpath = [
-  "src/sr2silo",
+  "src/",
 ]
 testpaths = "tests"
 junit_family = "xunit2"
