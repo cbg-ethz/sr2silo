@@ -5,9 +5,9 @@ build-backend = "flit_core.buildapi"
 [project]
 name =  "py-project-toml"
 authors = [
-    {name = "Daniel Ciborowski", email = "dciborow@microsoft.com"},
+    {name = "Gordon Julian Koehn", email = "koehng@ethz.ch"},
 ]
-description = "Sample Python Project for creating a new Python Module"
+description = "Wrangling short-read sequencing data for import into SILO"
 readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -21,6 +21,10 @@ classifiers = [
 ]
 requires-python = ">=3.8.1"
 dynamic = ["version"]
+
+dependencies = [
+    "pysam>=0.22.1"
+]
 
 [project.optional-dependencies]
 spark = [
@@ -113,7 +117,7 @@ executionEnvironments = [
 [tool.pytest.ini_options]
 addopts = "--cov-report xml:coverage.xml --cov src --cov-fail-under 0 --cov-append -m 'not integration'"
 pythonpath = [
-  "src"
+  "src",
 ]
 testpaths = "tests"
 junit_family = "xunit2"
@@ -165,7 +169,8 @@ extension-pkg-whitelist= [
     "pydantic",
     "ciso8601",
     "netcdf4",
-    "scipy"
+    "scipy",
+    "pysam"
 ]
 ignore="CVS"
 ignore-patterns="test.*?py,conftest.py"
