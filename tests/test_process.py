@@ -103,9 +103,11 @@ def test_pair_normalize_reads(sam_data, temp_dir):
     with open(out_insertions, "r") as insertions_file:
         insertions_content = insertions_file.read()
 
-    # Replace these with the actual expected content
-    expected_fasta_content = "tests/data/merged_expected.fasta"
-    expected_insertions_content = "tests/data/nuc_insertions_expected.txt"
+    # Load the actual expected content from the files
+    with open("tests/data/merged_expected.fasta", "r") as expected_fasta_file:
+        expected_fasta_content = expected_fasta_file.read()
+    with open("tests/data/nuc_insertions_expected.txt", "r") as expected_insertions_file:
+        expected_insertions_content = expected_insertions_file.read()
 
     assert fasta_content == expected_fasta_content, f"Expected {expected_fasta_content}, but got {fasta_content}"
     assert (
