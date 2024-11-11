@@ -24,7 +24,7 @@ def bam_to_sam(bam_file):
         return temp_sam.read().decode()
 
 
-def test_read():
+def test_read_run_error_free():
     """Test the read.py script by piping SAM data to it."""
     input_bam = "tests/data/REF_aln_trim_subsample.bam"
     sam_data = bam_to_sam(input_bam)
