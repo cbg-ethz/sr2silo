@@ -1,8 +1,9 @@
 """This module contains the main functions for processing the data.
 """
 
-import re
+from __future__ import annotations
 
+import re
 from pathlib import Path
 
 
@@ -15,11 +16,14 @@ def parse_cigar(cigar: str) -> list[tuple[str, int]]:
     return [(op, int(length)) for length, op in parsed_cigar]
 
 
-def pair_normalize_reads(sam_data: str, output_fasta: Path, output_insertions: Path) -> None:
+def pair_normalize_reads(
+    sam_data: str, output_fasta: Path, output_insertions: Path
+) -> None:
     """
     Pair and normalize all reads in a SAM file.
 
-    Note that the input SAM file must be read in its entirety before calling this function,
+    Note that the input SAM file must be read in
+    its entirety before calling this function,
     whilst the output files can be written incrementally.
 
     Args:
@@ -30,7 +34,9 @@ def pair_normalize_reads(sam_data: str, output_fasta: Path, output_insertions: P
     """
     unpaired = dict()
 
-    with output_fasta.open("w") as fasta_file, output_insertions.open("w") as insertions_file:
+    with output_fasta.open("w") as fasta_file, output_insertions.open(
+        "w"
+    ) as insertions_file:
         for line in sam_data.splitlines():
             if line.startswith("@"):
                 continue
@@ -84,7 +90,9 @@ def pair_normalize_reads(sam_data: str, output_fasta: Path, output_insertions: P
 
                 index = read1["pos"]
                 read1len = len(read1["RESULT_seqUENCE"])
-                merged = read1["RESULT_seqUENCE"][: min(read1len, read2["pos"] - read1["pos"])]
+                merged = read1["RESULT_seqUENCE"][
+                    : min(read1len, read2["pos"] - read1["pos"])
+                ]
 
                 # do deletions cause a problem here?
                 gaplen = read1["pos"] + read1len - read2["pos"]
@@ -92,7 +100,9 @@ def pair_normalize_reads(sam_data: str, output_fasta: Path, output_insertions: P
                     merged += "N" * (-gaplen)
                     merged += read2["RESULT_seqUENCE"]
                 else:
-                    overlap_read1 = read1["RESULT_seqUENCE"][read2["pos"] - read1["pos"] :]
+                    overlap_read1 = read1["RESULT_seqUENCE"][
+                        read2["pos"] - read1["pos"] :
+                    ]
                     overlap_read2 = read2["RESULT_seqUENCE"][0 : max(0, gaplen)]
 
                     overlap_qual1 = read1["RESULT_qual"][read2["pos"] - read1["pos"] :]
@@ -105,9 +115,12 @@ def pair_normalize_reads(sam_data: str, output_fasta: Path, output_insertions: P
                         if len(overlap_read1) != len(overlap_read2):
                             print("overlaps don't match in size")
                         number_of_diffs = 0
-                        for i, (base1, base2) in enumerate(zip(overlap_read1, overlap_read2)):
+                        for i, (base1, base2) in enumerate(
+                            zip(overlap_read1, overlap_read2)
+                        ):
                             if base1 != base2:
-                                # read1 has no quality, and read2 has overlap, so we take it
+                                # read1 has no quality, and
+                                #  read2 has overlap, so we take it
                                 if overlap_qual1[i] == "-" and overlap_read2 != "-":
                                     overlap_result[i] = base2
                                 # read2 has better quality, so we take it
@@ -115,21 +128,33 @@ def pair_normalize_reads(sam_data: str, output_fasta: Path, output_insertions: P
                                     overlap_result[i] = base2
                                 number_of_diffs += 1
 
-                    merged += "".join(overlap_result) + read2["RESULT_seqUENCE"][max(0, gaplen) :]
+                    merged += (
+                        "".join(overlap_result)
+                        + read2["RESULT_seqUENCE"][max(0, gaplen) :]
+                    )
 
-                if len(merged) != read2["pos"] + len(read2["RESULT_seqUENCE"]) - read1["pos"]:
+                if (
+                    len(merged)
+                    != read2["pos"] + len(read2["RESULT_seqUENCE"]) - read1["pos"]
+                ):
                     raise Exception("Length mismatch")
 
                 fasta_file.write(f">{qname}|{read1['pos']}\n{merged}\n")
 
                 merged_insertions = read1["insertions"].copy()
                 insertion_index = read1["pos"] + read1len
-                merged_insertions += [insert for insert in read2["insertions"] if insert[0] > insertion_index]
+                merged_insertions += [
+                    insert
+                    for insert in read2["insertions"]
+                    if insert[0] > insertion_index
+                ]
 
                 insertions_file.write(f"{qname}\t{merged_insertions}\n")
 
             else:
                 unpaired[qname] = read
         for read_id, unpaired_read in unpaired.items():
-            fasta_file.write(f">{read_id}|{unpaired_read['pos']}\n{unpaired_read['RESULT_seqUENCE']}\n")
+            fasta_file.write(
+                f">{read_id}|{unpaired_read['pos']}\n{unpaired_read['RESULT_seqUENCE']}\n"
+            )
             insertions_file.write(f"{read_id}\t{unpaired_read['insertions']}\n")

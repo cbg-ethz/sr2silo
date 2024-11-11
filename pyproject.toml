@@ -4,10 +4,10 @@ version = "0.1.0"
 description = "short-read to silo"
 authors = ["Gordon Julian Koehn <gordon.koehn@dbsse.ethz.ch>"]
 readme = "README.md"
-packages = [{include = "sr2silo", from = "src"}]
+packages = [{ include = "sr2silo", from = "src" }]
 
 [tool.poetry.dependencies]
-python = "^3.11.2"
+python = "^3.12.6"
 pysam = "^0.22.1"
 
 
@@ -21,7 +21,7 @@ pre-commit = "^3.1.0"
 interrogate = "^1.5.0"
 pyright = "^1.1.309"
 mkdocs-material = "^9.1.6"
-mkdocstrings = {extras = ["python"], version = "^0.21.2"}
+mkdocstrings = { extras = ["python"], version = "^0.21.2" }
 mkdocs-gen-files = "^0.4.0"
 mkdocs-literate-nav = "^0.6.0"
 setuptools = "^74.1.2"
@@ -47,10 +47,11 @@ color = true
 
 [tool.pyright]
 include = ["src"]
-exclude = ["**/node_modules",
+exclude = [
+    "**/node_modules",
     "**/__pycache__",
     "src/experimental",
-    "src/typestubs"
+    "src/typestubs",
 ]
 
 [tool.snakefmt]
