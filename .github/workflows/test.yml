@@ -48,6 +48,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-poetry-${{ matrix.poetry-version }}-
 
+      - name: Activate Conda environment
+        shell: bash -l {0}
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate myenv
+
       - name: Set Python version for Poetry
         run: poetry env use $(which python)
 
