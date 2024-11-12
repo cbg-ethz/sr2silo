@@ -35,8 +35,8 @@ jobs:
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
+          virtualenvs-create: false
+          virtualenvs-in-project: false
           version: ${{ matrix.poetry-version }}
 
       - name: Cache dependencies
