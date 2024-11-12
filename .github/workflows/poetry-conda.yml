@@ -14,6 +14,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Run black formatting check
+        uses: psf/black@stable
+
       - name: Set up Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -39,3 +42,24 @@ jobs:
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate myenv
           poetry run pytest
+
+      - name: Run unit tests
+        run: poetry run pytest
+
+      - name: Run Ruff
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate myenv
+          poetry run ruff check .
+
+      - name: Run interrogate
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate myenv
+          poetry run interrogate src
+
+      - name: Run Pyright (type checking)
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate myenv
+          poetry run pyright
