@@ -25,11 +25,25 @@ install, and whether or not to mount the project directory into the container.
 To build the package and maintain dependencies, we use [Poetry](https://python-poetry.org/).
 In particular, it's good to install it and become familiar with its basic functionalities by reading the documentation.
 
-To set up the environment (together with development tools), run:
-```bash
-$ poetry install --with dev
-$ poetry run pre-commit install
-```
+
+### Setting up the Development Environment
+
+1. Create and activate the conda environment:
+  ```bash
+  conda create -n myenv python=3.9
+  conda activate myenv
+  ```
+
+  Install Nextclade:
+  ```bash
+  conda install -c bioconda nextclade
+  ```
+
+2. Set up the environment with development tools:
+  ```bash
+  poetry install --with dev
+  poetry run pre-commit install
+  ```
 
 Then, you will be able to run tests:
 ```bash
