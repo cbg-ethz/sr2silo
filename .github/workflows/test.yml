@@ -52,9 +52,6 @@ jobs:
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate myenv
 
-      - name: Set Python version for Poetry
-        run: poetry env use $(which python)
-
       - name: Install the dependencies
         run: poetry install --no-interaction --no-root --with dev
         if: steps.cache-deps.outputs.cache-hit != 'true'
