@@ -18,19 +18,24 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
-          channels: conda-forge
-
+          channels: conda-forge, bioconda
           environment-file: environment.yml
           activate-environment: myenv
 
-      #- name: Install Poetry
-      #  uses: snok/install-poetry@v1
-      #  with:
-      #    virtualenvs-create: true
-      #    virtualenvs-in-project: true
+      - name: Install Poetry
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate myenv
+          conda install -c conda-forge poetry
 
       - name: Install the module
-        run: poetry install --with dev --no-interaction
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate myenv
+          poetry install --with dev --no-interaction
 
       - name: Run unit tests
-        run: poetry run pytest
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate myenv
+          poetry run pytest
