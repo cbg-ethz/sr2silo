@@ -8,5 +8,7 @@ from sr2silo.translation import translate
 
 def test_translate():
     """Test the translation function."""
-    translate("tests/data/merged_expected.fasta", "output/", "data/sars-cov-2")
+    translate(
+        "tests/data/merged_expected.fasta", "output/", "nextstrain/sars-cov-2/XBB"
+    )
     assert True
