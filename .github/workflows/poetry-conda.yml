@@ -1,0 +1,30 @@
+name: Poetry in Conda
+
+on:
+  push:
+    branches: [ main ]  # Or your main branch name
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          channels: conda-forge
+
+          environment-file: environment.yml
+          activate-environment: myenv
+
+      - name: Install the module
+        run: poetry install --with dev --no-interaction
+
+      - name: Run unit tests
+        run: poetry run pytest

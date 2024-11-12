@@ -52,10 +52,6 @@ jobs:
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate myenv
 
-      - name: Install the dependencies
-        run: poetry install --no-interaction --no-root --with dev
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-
       - name: Install the module
         run: poetry install --with dev --no-interaction
 
