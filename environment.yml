@@ -1,4 +1,4 @@
-name: myenv
+name: sr2silo
 channels:
   - defaults
   - conda-forge
