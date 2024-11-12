@@ -71,7 +71,6 @@ We are using:
   * [Pyright](https://github.com/microsoft/pyright) to check the types.
   * [Pytest](https://docs.pytest.org/) to run the unit tests code and workflows.
   * [Interrogate](https://interrogate.readthedocs.io/) to check the documentation.
-  * [Snakefmt](https://github.com/snakemake/snakefmt) to format snakemake workflows.
 
 
 ## Contributing
