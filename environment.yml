@@ -1,7 +1,8 @@
 name: myenv
 channels:
-  - bioconda
+  - defaults
   - conda-forge
+  - bioconda
 dependencies:
-  - python=3.12.6
+  - python=3.10
   - nextclade
