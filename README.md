@@ -34,12 +34,6 @@ In particular, it's good to install it and become familiar with its basic functi
   conda activate sr2silo
   ```
 
-  Install Nextclade:
-  ```bash
-  conda install -c bioconda nextclade
-  ```
-  ```
-
 2. Set up the environment with development tools:
   ```bash
   poetry install --with dev
