@@ -1,0 +1,5 @@
+{
+    "base_dir": "/cluster/project/pangolin/gordon_samples",
+    "result_dir": "/cluster/project/pangolin/sr2silo/",
+    "timeline_file": "/cluster/project/pangolin/work-vp-test/variants/timeline.tsv"
+}
