@@ -39,10 +39,10 @@ plugins:
             show_root_heading: true
 
 nav:
-  # - Home: index.md
-  # - Contributing: contributing.md
-  # - Tutorial: tutorial/index.md
-  # - API: api/index.md
+  - Home: index.md
+  - Contributing: contributing.md
+  - API: api/index.md
+
 
 watch:
   - src/sr2silo
