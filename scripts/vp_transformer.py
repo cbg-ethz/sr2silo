@@ -8,6 +8,8 @@ import json
 import logging
 from pathlib import Path
 
+import click
+
 from sr2silo.convert import bam_to_sam
 from sr2silo.process import pair_normalize_reads
 from sr2silo.translation import translate
@@ -17,9 +19,17 @@ logging.basicConfig(level=logging.DEBUG)
 
 def load_config(config_file: Path) -> dict:
     """Load configuration from a JSON file."""
-    with config_file.open() as f:
-        config = json.load(f)
-    return config
+    try:
+        with config_file.open() as f:
+            config = json.load(f)
+        logging.debug(f"Loaded config: {config}")
+        return config
+    except FileNotFoundError:
+        logging.error(f"Config file {config_file} not found.")
+        raise
+    except json.JSONDecodeError as e:
+        logging.error(f"Error decoding JSON from config file {config_file}: {e}")
+        raise
 
 
 def process_directory(
@@ -63,6 +73,10 @@ def read_timeline(timeline_file: Path) -> list[Path]:
     return directories
 
 
+@click.command()
+@click.option(
+    "--config", default="vp_transformer_config.json", help="Path to the config file."
+)
 def main(config_file: Path) -> None:
     """Main function to process all subdirectories."""
     config = load_config(config_file)
@@ -79,8 +93,4 @@ def main(config_file: Path) -> None:
 
 if __name__ == "__main__":
     config_file = Path("vp_transformer_config.json")
-    if not config_file.exists():
-        logging.error(f"Config file {config_file} does not exist.")
-    else:
-        main(config_file)
     main(config_file)
