@@ -79,4 +79,8 @@ def main(config_file: Path) -> None:
 
 if __name__ == "__main__":
     config_file = Path("vp_transformer_config.json")
+    if not config_file.exists():
+        logging.error(f"Config file {config_file} does not exist.")
+    else:
+        main(config_file)
     main(config_file)
