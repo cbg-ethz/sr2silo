@@ -49,7 +49,7 @@ def sample_id_decoder(sample_id: str) -> dict:
     # Assign components to meaningful variable names
     well_position = components[0]  # A1
     location_code = components[1]  # 10
-    sampling_date = f"{components[2]}_{components[3]}_{components[4]}"  # 2024_09_30
+    sampling_date = f"{components[2]}-{components[3]}-{components[4]}"  # 2024-09-30
     return {
         "sequencing_well_position": well_position,
         "location_code": location_code,
@@ -71,7 +71,9 @@ def batch_id_decoder(batch_id: str) -> dict:
     """
     components = batch_id.split("_")
     # Assign components to meaningful variable names
-    sequencing_date = components[0]  # 20241018
+    sequencing_date = (
+        f"{components[0][:4]}-{components[0][4:6]}-{components[0][6:]}"  # 2024-10-18
+    )
     flow_cell_serial_number = components[1]  # AAG55WNM5
     return {
         "sequencing_date": sequencing_date,
@@ -122,9 +124,11 @@ def get_metadata(directory: Path, timeline: Path) -> dict:
                 metadata["read_length"] = row[2]
                 metadata["primer_protocol"] = row[3]
                 metadata["location_name"] = row[6]
+                # Convert sampling_date to ISO format for comparison
+                timeline_sampling_date = f"{row[5][:4]}-{row[5][4:6]}-{row[5][6:]}"
                 if (
                     metadata["location_code"] != row[4]
-                    or metadata["sampling_date"] != row[5]
+                    or metadata["sampling_date"] != timeline_sampling_date
                 ):
                     logging.warning(
                         f"Mismatch in location code or sampling date for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
@@ -141,9 +145,21 @@ def process_directory(
     input_dir: Path,
     result_dir: Path,
     nextclade_reference: str,
+    timeline_file: Path,
     file_name: str = "REF_aln_trim.bam",
 ) -> None:
-    """Process all files in a given directory."""
+    """Process all files in a given directory.
+
+    Args:
+        input_dir (Path): The directory to process.
+        result_dir (Path): The directory to save the results.
+        nextclade_reference (str): The reference to use for nextclade.
+        timeline_file (Path): The timeline file to cross-reference the metadata.
+        file_name (str): The name of the file to process
+
+    Returns:
+        None (writes results to the result_dir)
+    """
 
     # check that one was given a directory and not a file and it exists
     if not input_dir.is_dir():
@@ -154,23 +170,31 @@ def process_directory(
     logging.info(f"Assuming the input file is: {file_name}")
 
     # Get Sample and Batch metadata and write to a file
-    metadata = get_metadata(input_dir)
+    metadata = get_metadata(input_dir, timeline_file)
+    # add nextclade reference to metadata
+    metadata["nextclade_reference"] = nextclade_reference
     metadata_file = result_dir / "metadata.json"
     result_dir.mkdir(parents=True, exist_ok=True)
     with metadata_file.open("w") as f:
         json.dump(metadata, f, indent=4)
+    logging.info(f"Metadata saved to: {metadata_file}")
 
     # Convert BAM to SAM
+    logging.info(f"Converting BAM to SAM")
     bam_file = input_dir / file_name
     sam_data = bam_to_sam(bam_file)
 
     # Process SAM to FASTA
+    logging.info(f"Processing SAM to FASTA (pair, merge, and normalize reads)")
     fasta_file = result_dir / "reads.fasta"
     insertions_file = result_dir / "insertions.txt"
     pair_normalize_reads(sam_data, fasta_file, insertions_file)
 
     # Translate nucleotides to amino acids
+    logging.info(f"Aliging and translating sequences")
     translate([fasta_file], result_dir, nextclade_reference)
+
+    logging.info(f"Results saved to: {result_dir}")
 
 
 # TODO: Implement the read_timeline function

@@ -28,8 +28,8 @@ def test_get_metadata():
         "batch_id": "20241024_2411515907",
         "sequencing_well_position": "A1",
         "location_code": "05",
-        "sampling_date": "2024_10_08",
-        "sequencing_date": "20241024",
+        "sampling_date": "2024-10-08",
+        "sequencing_date": "2024-10-24",
         "flow_cell_serial_number": "2411515907",
         "read_length": "250",
         "primer_protocol": "v532",
@@ -45,5 +45,6 @@ def test_process_directory():
         Path("tests/data/samples/A1_05_2024_10_08/20241024_2411515907"),
         Path("tests/output"),
         "nextstrain/sars-cov-2/wuhan-hu-1/orfs",
+        Path("tests/data/samples/timeline_A1_05_2024_10_08.tsv"),
     )
     assert True
