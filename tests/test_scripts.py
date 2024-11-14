@@ -17,8 +17,11 @@ from vp_transformer import process_directory  # noqa: E402 # pyright: ignore
 def test_get_metadata():
     """Test the get_metadata function."""
     metadata = get_metadata(
-        Path("tests/data/samples/A1_05_2024_10_08/20241024_2411515907")
+        directory=Path("tests/data/samples/A1_05_2024_10_08/20241024_2411515907"),
+        timeline=Path("tests/data/samples/timeline_A1_05_2024_10_08.tsv"),
     )
+
+    print(metadata)
 
     expected_metadata = {
         "sample_id": "A1_05_2024_10_08",
@@ -28,6 +31,9 @@ def test_get_metadata():
         "sampling_date": "2024_10_08",
         "sequencing_date": "20241024",
         "flow_cell_serial_number": "2411515907",
+        "read_length": "250",
+        "primer_protocol": "v532",
+        "location_name": "Lugano (TI)",
     }
 
     assert metadata == expected_metadata

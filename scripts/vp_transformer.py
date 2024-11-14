@@ -79,8 +79,18 @@ def batch_id_decoder(batch_id: str) -> dict:
     }
 
 
-def get_metadata(directory: Path) -> dict:
-    """Get metadata from the directory name."""
+def get_metadata(directory: Path, timeline: Path) -> dict:
+    """
+    Get metadata for a given sample and batch directory.
+    Cross-references the directory with the timeline file to get the metadata.
+
+    Args:
+        directory (Path): The directory to extract metadata from.
+        timeline (Path): The timeline file to cross-reference the metadata.
+
+    Returns:
+        dict: A dictionary containing the metadata.
+    """
 
     # Extract sample and batch IDs from the directory name
     # samples/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam
@@ -95,6 +105,35 @@ def get_metadata(directory: Path) -> dict:
     logging.info(f"Decoding batch_id: {metadata['batch_id']}")
     batch_id = metadata["batch_id"]
     metadata.update(batch_id_decoder(batch_id))
+
+    # Read the timeline file to get additional metadata
+    # find row with matching sample_id and batch_id
+    # timline has headers:
+    #  sample_id	batch_id	read_length	primer_protocol	location_code	sampling_date	location_name
+    # get read length, primer protocol, location name
+    # double checl if location code and location code are the same
+    with timeline.open() as f:
+        reader = csv.reader(f, delimiter="\t")
+        for row in reader:
+            if row[0] == metadata["sample_id"] and row[1] == metadata["batch_id"]:
+                logging.info(
+                    f"Enriching metadata with timeline data e.g. read_length, primer_protocol, location_name"
+                )
+                metadata["read_length"] = row[2]
+                metadata["primer_protocol"] = row[3]
+                metadata["location_name"] = row[6]
+                if (
+                    metadata["location_code"] != row[4]
+                    or metadata["sampling_date"] != row[5]
+                ):
+                    logging.warning(
+                        f"Mismatch in location code or sampling date for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
+                    )
+                break
+        else:
+            raise ValueError(
+                f"No matching entry found in timeline for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
+            )
     return metadata
 
 
