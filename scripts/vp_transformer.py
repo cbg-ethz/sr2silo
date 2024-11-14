@@ -19,6 +19,7 @@ logging.basicConfig(level=logging.INFO)
 
 def load_config(config_file: Path) -> dict:
     """Load configuration from a JSON file."""
+    return NotImplementedError
     try:
         with config_file.open() as f:
             config = json.load(f)
