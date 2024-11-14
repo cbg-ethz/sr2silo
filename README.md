@@ -28,15 +28,11 @@ In particular, it's good to install it and become familiar with its basic functi
 
 ### Setting up the Development Environment
 
-1. Create and activate the conda environment:
+1. Create and activate the conda environment from the `environment.yml` file:
   ```bash
-  conda create -n myenv python=3.9
-  conda activate myenv
+  conda env create -f environment.yml
+  conda activate sr2silo
   ```
-
-  Install Nextclade:
-  ```bash
-  conda install -c bioconda nextclade
   ```
 
 2. Set up the environment with development tools:
