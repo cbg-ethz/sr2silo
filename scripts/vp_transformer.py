@@ -14,7 +14,7 @@ from sr2silo.convert import bam_to_sam
 from sr2silo.process import pair_normalize_reads
 from sr2silo.translation import translate
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def load_config(config_file: Path) -> dict:
@@ -32,37 +32,105 @@ def load_config(config_file: Path) -> dict:
         raise
 
 
+def sample_id_decoder(sample_id: str) -> dict:
+    """Decode the sample ID into individual components.
+
+    Args:
+        sample_id (str): The sample ID to decode.
+
+    Returns:
+        dict: A dictionary containing the decoded components.
+              containing the following keys:
+                - sequencing_well_position (str : sequencing well position)
+                - location_code (int : code of the location)
+                - sampling_date (str : date of the sampling)
+    """
+    components = sample_id.split("_")
+    # Assign components to meaningful variable names
+    well_position = components[0]  # A1
+    location_code = components[1]  # 10
+    sampling_date = f"{components[2]}_{components[3]}_{components[4]}"  # 2024_09_30
+    return {
+        "sequencing_well_position": well_position,
+        "location_code": location_code,
+        "sampling_date": sampling_date,
+    }
+
+
+def batch_id_decoder(batch_id: str) -> dict:
+    """Decode the batch ID into individual components.
+
+    Args:
+        batch_id (str): The batch ID to decode.
+
+    Returns:
+        dict: A dictionary containing the decoded components.
+              containing the following keys:
+                - sequencing_date (str : date of the sequencing)
+                - flow_cell_serial_number (str : serial number of the flow cell)
+    """
+    components = batch_id.split("_")
+    # Assign components to meaningful variable names
+    sequencing_date = components[0]  # 20241018
+    flow_cell_serial_number = components[1]  # AAG55WNM5
+    return {
+        "sequencing_date": sequencing_date,
+        "flow_cell_serial_number": flow_cell_serial_number,
+    }
+
+
+def get_metadata(directory: Path) -> dict:
+    """Get metadata from the directory name."""
+
+    # Extract sample and batch IDs from the directory name
+    # samples/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam
+    metadata = {}
+    metadata["sample_id"] = directory.parent.name
+    metadata["batch_id"] = directory.name
+
+    # Decompose the ids into individual components
+    logging.info(f"Decoding sample_id: {metadata['sample_id']}")
+    sample_id = metadata["sample_id"]
+    metadata.update(sample_id_decoder(sample_id))
+    logging.info(f"Decoding batch_id: {metadata['batch_id']}")
+    batch_id = metadata["batch_id"]
+    metadata.update(batch_id_decoder(batch_id))
+    return metadata
+
+
 def process_directory(
-    directory: Path, result_dir: Path, nextclade_reference: str
+    input_dir: Path,
+    result_dir: Path,
+    nextclade_reference: str,
+    file_name: str = "REF_aln_trim.bam",
 ) -> None:
     """Process all files in a given directory."""
-    logging.info(f"Processing directory: {directory}")
+    logging.info(f"Processing directory: {input_dir}")
 
-    # Read metadata from JSON file
-    metadata_file = directory / "metadata.json"
-    with metadata_file.open() as f:
-        metadata = json.load(f)
+    # Get Sample and Batch metadata and write to a file
+    metadata = get_metadata(input_dir)
+    metadata_file = result_dir / "metadata.json"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    with metadata_file.open("w") as f:
+        json.dump(metadata, f, indent=4)
 
     # Convert BAM to SAM
-    bam_file = directory / "reads.bam"
+    bam_file = input_dir / file_name
     sam_data = bam_to_sam(bam_file)
 
     # Process SAM to FASTA
-    fasta_file = directory / "reads.fasta"
-    insertions_file = directory / "insertions.txt"
+    fasta_file = input_dir / "reads.fasta"
+    insertions_file = input_dir / "insertions.txt"
     pair_normalize_reads(sam_data, fasta_file, insertions_file)
 
     # Translate nucleotides to amino acids
     translate([fasta_file], result_dir, nextclade_reference)
 
-    # Save metadata and results
-    result_metadata_file = result_dir / f"{directory.name}_metadata.json"
-    with result_metadata_file.open("w") as f:
-        json.dump(metadata, f, indent=4)
 
-
+# TODO: Implement the read_timeline function
 def read_timeline(timeline_file: Path) -> list[Path]:
     """Read the timeline.tsv file and return a list of directory paths to process."""
+    return NotImplementedError
     directories = []
     with timeline_file.open() as f:
         reader = csv.DictReader(f, delimiter="\t")
@@ -73,12 +141,14 @@ def read_timeline(timeline_file: Path) -> list[Path]:
     return directories
 
 
+# TODO: Implement the main function
 @click.command()
 @click.option(
     "--config", default="vp_transformer_config.json", help="Path to the config file."
 )
 def main(config_file: Path) -> None:
     """Main function to process all subdirectories."""
+    return NotImplementedError
     config = load_config(config_file)
     base_dir = Path(config["base_dir"])
     result_dir = Path(config["result_dir"])
@@ -93,4 +163,11 @@ def main(config_file: Path) -> None:
 
 if __name__ == "__main__":
     config_file = Path("vp_transformer_config.json")
-    main(config_file)
+    # main(config_file)
+
+    # process a directory: batch / sample
+    process_directory(
+        Path("../../../data/sr2silo/samples/A1_05_2024_10_08/20241024_2411515907"),
+        Path("results"),
+        "nextstrain/sars-cov-2/wuhan-hu-1/orfs",
+    )
