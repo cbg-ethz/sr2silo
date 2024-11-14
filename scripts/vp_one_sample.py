@@ -5,7 +5,6 @@ from pathlib import Path
 
 import click
 
-import sr2silo as ss
 from sr2silo.convert import bam_to_sam
 from sr2silo.process import pair_normalize_reads
 from sr2silo.translation import translate
@@ -27,6 +26,16 @@ logging.basicConfig(level=logging.INFO)
     help="Directory to save the output files.",
 )
 def process_file(file_path, output_dir):
+    """Process a single BAM file.
+
+    Args:
+        file_path: Path to the input BAM file.
+        output_dir: Directory to save the output files.
+
+    Returns:
+        Full output of nextclade translation.
+        and currently the insertions and normalised reads.
+    """
     directory = Path(file_path).parent
     result_dir = Path(output_dir)
     result_dir.mkdir(parents=True, exist_ok=True)
@@ -39,13 +48,13 @@ def process_file(file_path, output_dir):
 
     # Process SAM to FASTA
     logging.info(f"Processing SAM to FASTA: {file_path}")
-    fasta_file = result_dir / "reads.fasta"
-    insertions_file = result_dir / "insertions.txt"
+    fasta_file = result_dir / "normalized_reads.fasta"
+    insertions_file = result_dir / "normalized_insertions.txt"
     pair_normalize_reads(sam_data, fasta_file, insertions_file)
 
     # Translate nucleotides to amino acids
     logging.info(f"Translating nucleotides to amino acids: {file_path}")
-    nextclade_reference = "nextstrain/sars-cov-2"
+    nextclade_reference = "nextstrain/sars-cov-2/wuhan-hu-1/orfs"
     translate([fasta_file], result_dir, nextclade_reference)
 
 
