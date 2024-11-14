@@ -105,7 +105,14 @@ def process_directory(
     file_name: str = "REF_aln_trim.bam",
 ) -> None:
     """Process all files in a given directory."""
+
+    # check that one was given a directory and not a file and it exists
+    if not input_dir.is_dir():
+        logging.error(f"Input directory not found, is it a directory?: {input_dir}")
+        return
+
     logging.info(f"Processing directory: {input_dir}")
+    logging.info(f"Assuming the input file is: {file_name}")
 
     # Get Sample and Batch metadata and write to a file
     metadata = get_metadata(input_dir)
@@ -119,8 +126,8 @@ def process_directory(
     sam_data = bam_to_sam(bam_file)
 
     # Process SAM to FASTA
-    fasta_file = input_dir / "reads.fasta"
-    insertions_file = input_dir / "insertions.txt"
+    fasta_file = result_dir / "reads.fasta"
+    insertions_file = result_dir / "insertions.txt"
     pair_normalize_reads(sam_data, fasta_file, insertions_file)
 
     # Translate nucleotides to amino acids

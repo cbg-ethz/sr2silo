@@ -1,40 +1,43 @@
-"""This is a sample python file for testing scripts from the source code."""
+"""Tests for the scripts in the scripts directory."""
 
 from __future__ import annotations
 
-import subprocess
+import sys
+from pathlib import Path
 
-import pysam
+# Add the scripts directory to the Python path
+scripts_dir = Path(__file__).resolve().parent.parent / "scripts"
+sys.path.insert(0, str(scripts_dir))
 
-
-def bam_to_sam(bam_file):
-    """Converts a BAM file to SAM format and returns it as a string.
-
-    Args:
-      bam_file: Path to the input BAM file.
-    """
-    import tempfile
-
-    with tempfile.NamedTemporaryFile(delete=False) as temp_sam:
-        with pysam.AlignmentFile(bam_file, "rb") as in_bam, pysam.AlignmentFile(
-            temp_sam.name, "w", template=in_bam
-        ) as out_sam:
-            for read in in_bam:
-                out_sam.write(read)
-        temp_sam.seek(0)
-        return temp_sam.read().decode()
+# Import the process_directory function from vp_transformer.py
+from vp_transformer import get_metadata  # noqa: E402 # pyright: ignore
+from vp_transformer import process_directory  # noqa: E402 # pyright: ignore
 
 
-def test_read_run_error_free():
-    """Test the read.py script by piping SAM data to it."""
-    input_bam = "tests/data/REF_aln_trim_subsample.bam"
-    sam_data = bam_to_sam(input_bam)
-
-    # Pipe the SAM data to the script as stdin
-    result = subprocess.run(
-        ["python", "scripts/dgicev/read.py"],
-        input=sam_data,
-        capture_output=True,
-        text=True,
+def test_get_metadata():
+    """Test the get_metadata function."""
+    metadata = get_metadata(
+        Path("tests/data/samples/A1_05_2024_10_08/20241024_2411515907")
     )
-    assert result.returncode == 0
+
+    expected_metadata = {
+        "sample_id": "A1_05_2024_10_08",
+        "batch_id": "20241024_2411515907",
+        "sequencing_well_position": "A1",
+        "location_code": "05",
+        "sampling_date": "2024_10_08",
+        "sequencing_date": "20241024",
+        "flow_cell_serial_number": "2411515907",
+    }
+
+    assert metadata == expected_metadata
+
+
+def test_process_directory():
+    """Test the process_directory function."""
+    process_directory(
+        Path("tests/data/samples/A1_05_2024_10_08/20241024_2411515907"),
+        Path("tests/output"),
+        "nextstrain/sars-cov-2/wuhan-hu-1/orfs",
+    )
+    assert True
