@@ -21,19 +21,8 @@ logging.basicConfig(
 
 
 def load_config(config_file: Path) -> dict:
-    """Load configuration from a JSON file."""
-    return NotImplementedError
-    try:
-        with config_file.open() as f:
-            config = json.load(f)
-        logging.debug(f"Loaded config: {config}")
-        return config
-    except FileNotFoundError:
-        logging.error(f"Config file {config_file} not found.")
-        raise
-    except json.JSONDecodeError as e:
-        logging.error(f"Error decoding JSON from config file {config_file}: {e}")
-        raise
+    with config_file.open() as f:
+        return json.load(f)
 
 
 def sample_id_decoder(sample_id: str) -> dict:
@@ -139,25 +128,25 @@ def get_metadata(directory: Path, timeline: Path) -> dict:
                 timeline_sampling_date = convert_to_iso_date(row[5])
                 if int(metadata["location_code"]) != int(row[4]):
                     # output both location codes for comparison and their types for debugging
+                    logging.warning(
+                        f"Mismatch in location code for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
+                    )
                     logging.debug(
                         f"Location code mismatch: {metadata['location_code']} (sample_id) vs {row[4]} (timeline)"
                     )
                     logging.debug(
                         f"Location code types: {type(metadata['location_code'])} (sample_id) vs {type(row[4])} (timeline)"
                     )
-                    logging.warning(
-                        f"Mismatch in location code for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
-                    )
                 if metadata["sampling_date"] != timeline_sampling_date:
                     # output both sampling dates for comparison and their types for debugging
+                    logging.warning(
+                        f"Mismatch in sampling date for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
+                    )
                     logging.debug(
                         f"Sampling date mismatch: {metadata['sampling_date']} (sample_id) vs {timeline_sampling_date} (timeline)"
                     )
                     logging.debug(
                         f"Sampling date types: {type(metadata['sampling_date'])} (sample_id) vs {type(timeline_sampling_date)} (timeline)"
-                    )
-                    logging.warning(
-                        f"Mismatch in sampling date for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
                     )
                 break
         else:
@@ -223,41 +212,10 @@ def process_directory(
     logging.info(f"Results saved to: {result_dir}")
 
 
-# TODO: Implement the read_timeline function
-def read_timeline(timeline_file: Path) -> list[Path]:
-    """Read the timeline.tsv file and return a list of directory paths to process."""
-    return NotImplementedError
-    directories = []
-    with timeline_file.open() as f:
-        reader = csv.DictReader(f, delimiter="\t")
-        for row in reader:
-            # Assuming the directory path is constructed from metadata in the row
-            directory = Path(row["base_dir"]) / row["sub_dir"]
-            directories.append(directory)
-    return directories
-
-
-# TODO: Implement the main function
-@click.command()
-@click.option(
-    "--config", default="vp_transformer_config.json", help="Path to the config file."
-)
-def main(config_file: Path) -> None:
-    """Main function to process all subdirectories."""
-    return NotImplementedError
-    config = load_config(config_file)
-    base_dir = Path(config["base_dir"])
-    result_dir = Path(config["result_dir"])
-    timeline_file = Path(config["timeline_file"])
-
-    directories = read_timeline(timeline_file)
-    for subdir in directories:
-        if subdir.is_dir():
-            logging.debug(f"Processing directory: {subdir}")
-            # process_directory(subdir, result_dir)
-
-
 if __name__ == "__main__":
+    logging.info("Starting the V-PIPE transformer script")
+    logging.info("For testing purposes, we will process a single directory")
+    logging.info("Loading the configuration")
     # Load the configuration
     config = load_config(Path("scripts/vp_config.json"))
 
