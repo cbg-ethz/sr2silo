@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import datetime
 import json
 import logging
 from pathlib import Path
@@ -14,7 +15,9 @@ from sr2silo.convert import bam_to_sam
 from sr2silo.process import pair_normalize_reads
 from sr2silo.translation import translate
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def load_config(config_file: Path) -> dict:
@@ -82,6 +85,13 @@ def batch_id_decoder(batch_id: str) -> dict:
     }
 
 
+def convert_to_iso_date(date: str) -> str:
+    # Parse the date string
+    date_obj = datetime.datetime.strptime(date, "%Y-%m-%d")
+    # Format the date as ISO 8601 (date only)
+    return date_obj.date().isoformat()
+
+
 def get_metadata(directory: Path, timeline: Path) -> dict:
     """
     Get metadata for a given sample and batch directory.
@@ -126,13 +136,28 @@ def get_metadata(directory: Path, timeline: Path) -> dict:
                 metadata["primer_protocol"] = row[3]
                 metadata["location_name"] = row[6]
                 # Convert sampling_date to ISO format for comparison
-                timeline_sampling_date = f"{row[5][:4]}-{row[5][4:6]}-{row[5][6:]}"
-                if (
-                    metadata["location_code"] != row[4]
-                    or metadata["sampling_date"] != timeline_sampling_date
-                ):
+                timeline_sampling_date = convert_to_iso_date(row[5])
+                if int(metadata["location_code"]) != int(row[4]):
+                    # output both location codes for comparison and their types for debugging
+                    logging.debug(
+                        f"Location code mismatch: {metadata['location_code']} (sample_id) vs {row[4]} (timeline)"
+                    )
+                    logging.debug(
+                        f"Location code types: {type(metadata['location_code'])} (sample_id) vs {type(row[4])} (timeline)"
+                    )
                     logging.warning(
-                        f"Mismatch in location code or sampling date for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
+                        f"Mismatch in location code for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
+                    )
+                if metadata["sampling_date"] != timeline_sampling_date:
+                    # output both sampling dates for comparison and their types for debugging
+                    logging.debug(
+                        f"Sampling date mismatch: {metadata['sampling_date']} (sample_id) vs {timeline_sampling_date} (timeline)"
+                    )
+                    logging.debug(
+                        f"Sampling date types: {type(metadata['sampling_date'])} (sample_id) vs {type(timeline_sampling_date)} (timeline)"
+                    )
+                    logging.warning(
+                        f"Mismatch in sampling date for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
                     )
                 break
         else:

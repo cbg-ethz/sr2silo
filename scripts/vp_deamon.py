@@ -38,7 +38,9 @@ import schedule
 
 from vp_transformer import process_directory  # noqa: F401 # isort:skip
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 DATABASE_FILE = "processed_files.db"
 
@@ -100,7 +102,9 @@ def process_new_samples(
         if not is_sample_processed(sample_id, batch_id):
             logging.info(f"Processing new sample: {sample_id}, batch: {batch_id}")
             file_path = construct_file_path(sample_dir, sample_id, batch_id)
-            process_directory(file_path, result_dir, nextclade_reference, timeline_file)
+            output_dir = result_dir / sample_id / batch_id
+            output_dir.mkdir(parents=True, exist_ok=True)
+            process_directory(file_path, output_dir, nextclade_reference, timeline_file)
             mark_sample_as_processed(sample_id, batch_id)
 
 
@@ -111,6 +115,7 @@ def load_config(config_file: Path) -> dict:
 
 def main():
     # Load the configuration
+    logging.info("Loading configuration...")
     config = load_config(Path("scripts/vp_config.json"))
 
     sample_dir = Path(config["sample_dir"])
@@ -118,14 +123,19 @@ def main():
     result_dir = Path(config["result_dir"])
     nextclade_reference = config["nextclade_reference"]
 
+    logging.info("Initializing database...")
     initialize_database()
+
+    logging.info("Scheduling the sample processing job...")
     schedule.every(1).minutes.do(
         process_new_samples, sample_dir, timeline_file, result_dir, nextclade_reference
     )
 
+    logging.info("Starting the scheduler...")
     while True:
         schedule.run_pending()
-        time.sleep(1)
+        logging.info("Waiting for the next scheduled task...")
+        time.sleep(10)
 
 
 if __name__ == "__main__":
