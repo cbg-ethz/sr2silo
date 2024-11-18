@@ -1,12 +1,4 @@
-# sr2silo <img src="resources/logo.svg" alt="Project Logo" width="100"/>
-
-<style>
-  @media (prefers-color-scheme: dark) {
-    img[alt="Project Logo"] {
-      filter: invert(1);
-    }
-  }
-</style>
+# sr2silo <img src="resources/logo.svg" alt="Project Logo" width="100" style="vertical-align: middle;"/>
 
 [![Project Status: WIP – This project is currently under active development.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![CI/CD](https://github.com/gordonkoehn/UsefulGnom/actions/workflows/test.yml/badge.svg)](https://github.com/gordonkoehn/UsefulGnom/actions/workflows/test.yml)
@@ -82,3 +74,11 @@ We are using:
 ## Contributing
 
 This project welcomes contributions and suggestions. For details, visit the repository's [Contributor License Agreement (CLA)](https://cla.opensource.microsoft.com) and [Code of Conduct](https://opensource.microsoft.com/codeofconduct/) pages.
+
+<style>
+  @media (prefers-color-scheme: dark) {
+    img[alt="Project Logo"] {
+      filter: invert(1);
+    }
+  }
+</style>
