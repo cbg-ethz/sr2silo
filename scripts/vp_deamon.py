@@ -15,6 +15,7 @@ from pathlib import Path
 
 import click
 import schedule
+from pydantic import BaseModel, Field, ValidationError
 
 from vp_transformer import process_directory  # noqa: F401 # isort:skip
 
@@ -89,15 +90,47 @@ def process_new_samples(
             output_dir = result_dir / sample_id / batch_id
             output_dir.mkdir(parents=True, exist_ok=True)
             try:
-                process_directory(file_path, output_dir, nextclade_reference, timeline_file)
+                process_directory(
+                    file_path, output_dir, nextclade_reference, timeline_file
+                )
                 mark_sample_as_processed(database_file, sample_id, batch_id)
             except Exception as e:
-                logging.error(f"Error processing sample {sample_id}, batch {batch_id}: {e}")
+                logging.error(
+                    f"Error processing sample {sample_id}, batch {batch_id}: {e}"
+                )
 
 
-def load_config(config_file: Path) -> dict:
+class Config(BaseModel):
+    """Configuration for the sr2silo daemon.
+
+    Args:
+
+        sample_dir (str): The directory where the samples are stored.
+        timeline_file (str): The path to the timeline file.
+        result_dir (str): The directory where the results are stored.
+        nextclade_reference (str): The reference to use for nextclade.
+        database_file (str): The path to the database file.
+        backup_dir (str): The directory where the backups are stored.
+        deamon_interval_m (int): The interval in minutes to run the daemon.
+    """
+
+    sample_dir: str
+    timeline_file: str
+    result_dir: str
+    nextclade_reference: str
+    database_file: str
+    backup_dir: str
+    deamon_interval_m: int
+
+
+def load_config(config_file: Path) -> Config:
     with config_file.open() as f:
-        return json.load(f)
+        config_data = json.load(f)
+    try:
+        return Config(**config_data)
+    except ValidationError as e:
+        logging.error(f"Configuration validation error: {e}")
+        raise
 
 
 def backup_database(database_file: Path, backup_dir: Path):
@@ -108,23 +141,31 @@ def backup_database(database_file: Path, backup_dir: Path):
     logging.info(f"Database backed up to: {backup_file}")
 
 
-def main():
+@click.command()
+@click.option(
+    "--config",
+    type=click.Path(exists=True),
+    help="Path to the configuration file.",
+    default="scripts/vp_config.json",
+)
+def main(config):
     # Load the configuration
     logging.info("Loading configuration...")
-    config = load_config(Path("scripts/vp_config.json"))
+    config = load_config(Path(config))
 
-    sample_dir = Path(config["sample_dir"])
-    timeline_file = Path(config["timeline_file"])
-    result_dir = Path(config["result_dir"])
-    nextclade_reference = config["nextclade_reference"]
-    database_file = Path(config["database_file"])
-    backup_dir = Path(config["backup_dir"])
+    sample_dir = Path(config.sample_dir)
+    timeline_file = Path(config.timeline_file)
+    result_dir = Path(config.result_dir)
+    nextclade_reference = config.nextclade_reference
+    database_file = Path(config.database_file)
+    backup_dir = Path(config.backup_dir)
+    deamon_interval_m = config.deamon_interval_m
 
     logging.info("Initializing database...")
     initialize_database()
 
     logging.info("Scheduling the sample processing job...")
-    schedule.every(1).minutes.do(
+    schedule.every(deamon_interval_m).minutes.do(
         process_new_samples,
         database_file,
         sample_dir,
@@ -140,7 +181,7 @@ def main():
     while True:
         schedule.run_pending()
         logging.debug("Waiting for the next scheduled task...")
-        time.sleep(10)
+        time.sleep(deamon_interval_m * 60)
 
 
 if __name__ == "__main__":

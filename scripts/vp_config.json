@@ -4,5 +4,6 @@
     "timeline_file": "../../../data/sr2silo/deamon_test/timeline.tsv",
     "nextclade_reference": "sars-cov-2",
     "database_file": "processed_files.db",
-    "backup_dir": "backups/"
+    "backup_dir": "backups/",
+    "deamon_interval_m": 1
 }
