@@ -10,7 +10,6 @@ packages = [{ include = "sr2silo", from = "src" }]
 python = "^3.10"
 pysam = "^0.22.1"
 click = "^8.0.0"
-watchdog = "^6.0.0"
 schedule = "^1.2.2"
 
 [tool.poetry.group.dev.dependencies]

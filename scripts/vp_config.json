@@ -1,5 +1,6 @@
 {
-    "base_dir": "/cluster/project/pangolin/gordon_samples",
-    "result_dir": "/cluster/project/pangolin/sr2silo/",
-    "timeline_file": "/cluster/project/pangolin/work-vp-test/variants/timeline.tsv"
+    "sample_dir": "../../../data/sr2silo/deamon_test/samples/",
+    "result_dir": "deamon_test/results/",
+    "timeline_file": "../../../data/sr2silo/deamon_test/timeline.tsv",
+    "nextclade_reference": "sars-cov-2"
 }

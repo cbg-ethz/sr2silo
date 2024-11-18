@@ -234,7 +234,7 @@ def main(config_file: Path) -> None:
 
 if __name__ == "__main__":
     # Load the configuration
-    config = load_config("vp_config.json")
+    config = load_config(Path("scripts/vp_config.json"))
 
     timeline_file = Path(config["timeline_file"])
     result_dir = Path(config["result_dir"])
