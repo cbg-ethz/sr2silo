@@ -1,3 +1,13 @@
+# sr2silo <img src="resources/logo.svg" alt="Project Logo" width="100"/>
+
+<style>
+  @media (prefers-color-scheme: dark) {
+    img[alt="Project Logo"] {
+      filter: invert(1);
+    }
+  }
+</style>
+
 [![Project Status: WIP – This project is currently under active development.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![CI/CD](https://github.com/gordonkoehn/UsefulGnom/actions/workflows/test.yml/badge.svg)](https://github.com/gordonkoehn/UsefulGnom/actions/workflows/test.yml)
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -5,7 +15,7 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/charliermarsh/ruff)
 [![Pyright](https://img.shields.io/badge/type%20checked-pyright-blue.svg)](https://github.com/microsoft/pyright)
 
-# sr2silo
+
 ### Wrangling Short-Read Genomic Alignments for SILO Database
 
 This project will wrangle short-read genomic alignments, for example from wastewater-sampling, into a format for easy import into the SILO sequencing database.
