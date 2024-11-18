@@ -88,8 +88,11 @@ def process_new_samples(
             file_path = construct_file_path(sample_dir, sample_id, batch_id)
             output_dir = result_dir / sample_id / batch_id
             output_dir.mkdir(parents=True, exist_ok=True)
-            process_directory(file_path, output_dir, nextclade_reference, timeline_file)
-            mark_sample_as_processed(database_file, sample_id, batch_id)
+            try:
+                process_directory(file_path, output_dir, nextclade_reference, timeline_file)
+                mark_sample_as_processed(database_file, sample_id, batch_id)
+            except Exception as e:
+                logging.error(f"Error processing sample {sample_id}, batch {batch_id}: {e}")
 
 
 def load_config(config_file: Path) -> dict:

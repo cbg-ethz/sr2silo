@@ -179,10 +179,14 @@ def process_directory(
     # check that one was given a directory and not a file and it exists
     if not input_dir.is_dir():
         logging.error(f"Input directory not found, is it a directory?: {input_dir}")
-        return
+        raise FileNotFoundError(f"Directory not found: {input_dir}")
 
     logging.info(f"Processing directory: {input_dir}")
     logging.info(f"Assuming the input file is: {file_name}")
+    # check that the file exists and also it's .bai file
+    if not (input_dir / file_name).exists():
+        logging.error(f"Input file not found: {input_dir / file_name}")
+        raise FileNotFoundError(f"Input file not found: {input_dir / file_name}")
 
     # Get Sample and Batch metadata and write to a file
     metadata = get_metadata(input_dir, timeline_file)
