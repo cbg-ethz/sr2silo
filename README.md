@@ -21,6 +21,9 @@
 
 This project will wrangle short-read genomic alignments, for example from wastewater-sampling, into a format for easy import into the SILO sequencing database.
 
+### Usage of the V-Pipe Deamon
+`sr2silo` provides a daemon to process files as they arrive. See `scripts/README.md` for details.
+
 ## Project Organization
 
 - `.github/workflows`: Contains GitHub Actions used for building, testing, and publishing.

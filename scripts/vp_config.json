@@ -1,7 +1,7 @@
 {
-    "sample_dir": "../../../data/sr2silo/deamon_test/samples/",
-    "result_dir": "deamon_test/results/",
-    "timeline_file": "../../../data/sr2silo/deamon_test/timeline.tsv",
+    "sample_dir": "/app/samples",
+    "result_dir": "daemon_test/results/",
+    "timeline_file": "/app/timeline.tsv",
     "nextclade_reference": "sars-cov-2",
     "database_file": "processed_files.db",
     "backup_dir": "backups/",
