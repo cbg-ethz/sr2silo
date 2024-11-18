@@ -233,7 +233,13 @@ def main(config_file: Path) -> None:
 
 
 if __name__ == "__main__":
-    config_file = Path("vp_transformer_config.json")
+    # Load the configuration
+    config = load_config("vp_config.json")
+
+    timeline_file = Path(config["timeline_file"])
+    result_dir = Path(config["result_dir"])
+    nextclade_reference = config["nextclade_reference"]
+
     # main(config_file)
 
     # process a directory: batch / sample
