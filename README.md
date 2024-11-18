@@ -75,6 +75,7 @@ We are using:
 
 This project welcomes contributions and suggestions. For details, visit the repository's [Contributor License Agreement (CLA)](https://cla.opensource.microsoft.com) and [Code of Conduct](https://opensource.microsoft.com/codeofconduct/) pages.
 
+<!--
 <style>
   @media (prefers-color-scheme: dark) {
     img[alt="Project Logo"] {
@@ -82,3 +83,4 @@ This project welcomes contributions and suggestions. For details, visit the repo
     }
   }
 </style>
+-->
