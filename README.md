@@ -33,7 +33,7 @@ In particular, it's good to install it and become familiar with its basic functi
   conda env create -f environment.yml
   conda activate sr2silo
   ```
-  ```
+
 
 2. Set up the environment with development tools:
   ```bash

@@ -9,6 +9,7 @@ packages = [{ include = "sr2silo", from = "src" }]
 [tool.poetry.dependencies]
 python = "^3.10"
 pysam = "^0.22.1"
+click = "^8.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.1"
@@ -37,7 +38,7 @@ ignore-private = true
 ignore-property-decorators = false
 ignore-module = false
 fail-under = 95
-exclude = ["setup.py", "docs", "build", "scripts"]
+exclude = ["setup.py", "docs", "build", "scripts/dgicev"]
 ignore-regex = ["^get$", "^mock_.*", ".*BaseClass.*"]
 verbose = 2
 quiet = false
