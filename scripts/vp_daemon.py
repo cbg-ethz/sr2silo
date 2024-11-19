@@ -23,11 +23,9 @@ logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-DATABASE_FILE = "processed_files.db"
 
-
-def initialize_database():
-    conn = sqlite3.connect(DATABASE_FILE)
+def initialize_database(database_file):
+    conn = sqlite3.connect(database_file)
     cursor = conn.cursor()
     cursor.execute(
         """
@@ -162,7 +160,10 @@ def main(config):
     deamon_interval_m = config.deamon_interval_m
 
     logging.info("Initializing database...")
-    initialize_database()
+    logging.debug(f"Database file: {database_file}")
+    # show me the current directory
+    logging.debug(f"Current directory: {Path.cwd()}")
+    initialize_database(database_file)
 
     logging.info("Scheduling the sample processing job...")
     schedule.every(deamon_interval_m).minutes.do(

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   sr2silo:
     build: .
@@ -8,6 +6,7 @@ services:
       - ${TIMELINE_FILE}:/app/timeline.tsv
       - ${DATABASE_DIR}:/app/database
       - ${BACKUP_DIR}:/app/backups
+      - ${RESULTS_DIR}:/app/results
       - ./scripts/vp_config.json:/app/scripts/vp_config.json
     environment:
       - PYTHONUNBUFFERED=1
@@ -20,3 +19,4 @@ services:
 volumes:
   database:
   backups:
+  results:
