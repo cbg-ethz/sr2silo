@@ -2,13 +2,15 @@ services:
   sr2silo:
     build: .
     volumes:
-      - ${SAMPLE_DIR}:/app/samples
+      - ${SAMPLE_DIR}:/app/sample
       - ${TIMELINE_FILE}:/app/timeline.tsv
       - ${RESULTS_DIR}:/app/results
       - ./scripts/vp_config.json:/app/scripts/vp_config.json
     environment:
       - PYTHONUNBUFFERED=1
       - SAMPLE_DIR=${SAMPLE_DIR}
+      - SAMPLE_ID=${SAMPLE_ID}
+      - BATCH_ID=${BATCH_ID}
       - TIMELINE_FILE=${TIMELINE_FILE}
       - RESULTS_DIR=${RESULTS_DIR}
 

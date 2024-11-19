@@ -23,4 +23,4 @@ RUN pip install -e .
 ENV NAME sr2silo
 
 # Run vp_transformer.py when the container launches
-CMD ["bash", "-c", "source activate sr2silo && python scripts/vp_transformer.py --config scripts/vp_transformer_config.json"]
+CMD ["bash", "-c", "source activate sr2silo && python scripts/vp_transformer.py"]

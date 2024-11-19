@@ -88,24 +88,24 @@ def convert_to_iso_date(date: str) -> str:
     return date_obj.date().isoformat()
 
 
-def get_metadata(directory: Path, timeline: Path) -> dict:
+def get_metadata(sample_id: str, batch_id :str, timeline: Path) -> dict:
     """
     Get metadata for a given sample and batch directory.
     Cross-references the directory with the timeline file to get the metadata.
 
     Args:
-        directory (Path): The directory to extract metadata from.
+        sample_id (str): The sample ID to use for metadata.
+        batch_id (str): The batch ID to use for metadata.
         timeline (Path): The timeline file to cross-reference the metadata.
 
     Returns:
         dict: A dictionary containing the metadata.
+
     """
 
-    # Extract sample and batch IDs from the directory name
-    # samples/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam
     metadata = {}
-    metadata["sample_id"] = directory.parent.name
-    metadata["batch_id"] = directory.name
+    metadata["sample_id"] = sample_id
+    metadata["batch_id"] = batch_id
 
     # Decompose the ids into individual components
     logging.info(f"Decoding sample_id: {metadata['sample_id']}")
@@ -165,6 +165,8 @@ def get_metadata(directory: Path, timeline: Path) -> dict:
 
 def process_directory(
     input_dir: Path,
+    sample_id: str,
+    batch_id: str,
     result_dir: Path,
     nextclade_reference: str,
     timeline_file: Path,
@@ -173,7 +175,8 @@ def process_directory(
     """Process all files in a given directory.
 
     Args:
-        input_dir (Path): The directory to process.
+        input_dir (Path): The directory to process. i.e. the directory containing the BAM file.
+                          to reach samples/A1_05_2024_10_08/20241024_2411515907/alignments/
         result_dir (Path): The directory to save the results.
         nextclade_reference (str): The reference to use for nextclade.
         timeline_file (Path): The timeline file to cross-reference the metadata.
@@ -191,12 +194,13 @@ def process_directory(
     logging.info(f"Processing directory: {input_dir}")
     logging.info(f"Assuming the input file is: {file_name}")
     # check that the file exists and also it's .bai file
-    if not (input_dir / file_name).exists():
-        logging.error(f"Input file not found: {input_dir / file_name}")
-        raise FileNotFoundError(f"Input file not found: {input_dir / file_name}")
+    sample_fp = input_dir / file_name
+    if not sample_fp.exists():
+        logging.error(f"Input file not found: {sample_fp}")
+        raise FileNotFoundError(f"Input file not found: {sample_fp}")
 
     # Get Sample and Batch metadata and write to a file
-    metadata = get_metadata(input_dir, timeline_file)
+    metadata = get_metadata(sample_id, batch_id, timeline_file)
     # add nextclade reference to metadata
     metadata["nextclade_reference"] = nextclade_reference
     metadata_file = result_dir / "metadata.json"
@@ -207,7 +211,7 @@ def process_directory(
 
     # Convert BAM to SAM
     logging.info(f"Converting BAM to SAM")
-    bam_file = input_dir / file_name
+    bam_file = sample_fp
     sam_data = bam_to_sam(bam_file)
 
     # Process SAM to FASTA
@@ -225,19 +229,37 @@ def process_directory(
 
 @click.command()
 @click.option(
-    "--config", default="scripts/vp_transformer_config.json", help="Path to the config file."
+    "--sample_dir", envvar="SAMPLE_DIR", help="Path to the sample directory."
 )
-def main(config):
-    config_file = Path(config)
-    logging.info(f"Loading config from: {config_file}")
-    config_data = load_config(config_file)
+@click.option(
+    "--sample_id", envvar="SAMPLE_ID", help="sample_id to use for metadata."
+)
+@click.option(
+    "--batch_id", envvar="BATCH_ID", help="batch_id to use for metadata."
+)
+@click.option(
+    "--result_dir", envvar="RESULTS_DIR", help="Path to the results directory."
+)
+@click.option(
+    "--timeline_file", envvar="TIMELINE_FILE", help="Path to the timeline file."
+)
+@click.option(
+    "--nextclade_reference", envvar="NEXTCLADE_REFERENCE", default="sars-cov-2", help="Nextclade reference."
+)
+def main(sample_dir,sample_id, batch_id, result_dir, timeline_file, nextclade_reference):
+    logging.info(f"Processing sample directory: {sample_dir}")
+    logging.info(f"Saving results to: {result_dir}")
+    logging.info(f"Using timeline file: {timeline_file}")
+    logging.info(f"Using Nextclade reference: {nextclade_reference}")
+    logging.info(f"Using sample_id: {sample_id}")
+    logging.info(f"Using batch_id: {batch_id}")
 
-    sample_dir = Path(config_data["sample_dir"])
-    result_dir = Path(config_data["result_dir"])
-    timeline_file = Path(config_data["timeline_file"])
-    nextclade_reference = config_data["nextclade_reference"]
-
-    process_directory(sample_dir, result_dir, nextclade_reference, timeline_file)
+    process_directory(input_dir=Path("sample"),
+                      sample_id=sample_id,
+                      batch_id=batch_id,
+                      result_dir=Path("results"),
+                      timeline_file=Path("timeline.tsv"),
+                      nextclade_reference=nextclade_reference)
 
 if __name__ == "__main__":
     main()
