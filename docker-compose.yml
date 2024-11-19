@@ -4,19 +4,13 @@ services:
     volumes:
       - ${SAMPLE_DIR}:/app/samples
       - ${TIMELINE_FILE}:/app/timeline.tsv
-      - ${DATABASE_DIR}:/app/database
-      - ${BACKUP_DIR}:/app/backups
       - ${RESULTS_DIR}:/app/results
       - ./scripts/vp_config.json:/app/scripts/vp_config.json
     environment:
       - PYTHONUNBUFFERED=1
       - SAMPLE_DIR=${SAMPLE_DIR}
       - TIMELINE_FILE=${TIMELINE_FILE}
-      - DATABASE_FILE=/app/database/processed_files.db
-      - BACKUP_DIR=${BACKUP_DIR}
-    command: python scripts/vp_daemon.py --config /app/scripts/vp_config.json
+      - RESULTS_DIR=${RESULTS_DIR}
 
 volumes:
-  database:
-  backups:
   results:

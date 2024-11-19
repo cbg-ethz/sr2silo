@@ -19,11 +19,8 @@ COPY . /app
 # Install the sr2silo package
 RUN pip install -e .
 
-# Make port 80 available to the world outside this container
-EXPOSE 80
-
 # Define environment variable
 ENV NAME sr2silo
 
-# Ensure the environment is activated and run vp_deamon.py when the container launches
-ENTRYPOINT ["bash", "-c", "source activate sr2silo && python scripts/vp_daemon.py --config /app/scripts/vp_config.json"]
+# Run vp_transformer.py when the container launches
+CMD ["bash", "-c", "source activate sr2silo && python scripts/vp_transformer.py --config scripts/vp_transformer_config.json"]

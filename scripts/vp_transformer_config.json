@@ -1,0 +1,6 @@
+{
+    "sample_dir": "/app/samples",
+    "result_dir": "/app/results",
+    "timeline_file": "/app/timeline.tsv",
+    "nextclade_reference": "sars-cov-2"
+}

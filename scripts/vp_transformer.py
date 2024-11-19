@@ -21,8 +21,15 @@ logging.basicConfig(
 
 
 def load_config(config_file: Path) -> dict:
-    with config_file.open() as f:
-        return json.load(f)
+    try:
+        with config_file.open() as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logging.error(f"Config file not found: {config_file}")
+        raise
+    except json.JSONDecodeError as e:
+        logging.error(f"Error decoding JSON from config file: {config_file} - {e}")
+        raise
 
 
 def sample_id_decoder(sample_id: str) -> dict:
@@ -216,22 +223,21 @@ def process_directory(
     logging.info(f"Results saved to: {result_dir}")
 
 
+@click.command()
+@click.option(
+    "--config", default="scripts/vp_transformer_config.json", help="Path to the config file."
+)
+def main(config):
+    config_file = Path(config)
+    logging.info(f"Loading config from: {config_file}")
+    config_data = load_config(config_file)
+
+    sample_dir = Path(config_data["sample_dir"])
+    result_dir = Path(config_data["result_dir"])
+    timeline_file = Path(config_data["timeline_file"])
+    nextclade_reference = config_data["nextclade_reference"]
+
+    process_directory(sample_dir, result_dir, nextclade_reference, timeline_file)
+
 if __name__ == "__main__":
-    logging.info("Starting the V-PIPE transformer script")
-    logging.info("For testing purposes, we will process a single directory")
-    logging.info("Loading the configuration")
-    # Load the configuration
-    config = load_config(Path("scripts/vp_config.json"))
-
-    timeline_file = Path(config["timeline_file"])
-    result_dir = Path(config["result_dir"])
-    nextclade_reference = config["nextclade_reference"]
-
-    # main(config_file)
-
-    # process a directory: batch / sample
-    process_directory(
-        Path("../../../data/sr2silo/samples/A1_05_2024_10_08/20241024_2411515907"),
-        Path("results"),
-        "nextstrain/sars-cov-2/wuhan-hu-1/orfs",
-    )
+    main()
