@@ -21,6 +21,7 @@ logging.basicConfig(
 
 
 def load_config(config_file: Path) -> dict:
+    """Load a JSON configuration file."""
     try:
         with config_file.open() as f:
             return json.load(f)
@@ -82,13 +83,14 @@ def batch_id_decoder(batch_id: str) -> dict:
 
 
 def convert_to_iso_date(date: str) -> str:
+    """Convert a date string to ISO 8601 format (date only)."""
     # Parse the date string
     date_obj = datetime.datetime.strptime(date, "%Y-%m-%d")
     # Format the date as ISO 8601 (date only)
     return date_obj.date().isoformat()
 
 
-def get_metadata(sample_id: str, batch_id :str, timeline: Path) -> dict:
+def get_metadata(sample_id: str, batch_id: str, timeline: Path) -> dict:
     """
     Get metadata for a given sample and batch directory.
     Cross-references the directory with the timeline file to get the metadata.
@@ -228,15 +230,9 @@ def process_directory(
 
 
 @click.command()
-@click.option(
-    "--sample_dir", envvar="SAMPLE_DIR", help="Path to the sample directory."
-)
-@click.option(
-    "--sample_id", envvar="SAMPLE_ID", help="sample_id to use for metadata."
-)
-@click.option(
-    "--batch_id", envvar="BATCH_ID", help="batch_id to use for metadata."
-)
+@click.option("--sample_dir", envvar="SAMPLE_DIR", help="Path to the sample directory.")
+@click.option("--sample_id", envvar="SAMPLE_ID", help="sample_id to use for metadata.")
+@click.option("--batch_id", envvar="BATCH_ID", help="batch_id to use for metadata.")
 @click.option(
     "--result_dir", envvar="RESULTS_DIR", help="Path to the results directory."
 )
@@ -244,9 +240,15 @@ def process_directory(
     "--timeline_file", envvar="TIMELINE_FILE", help="Path to the timeline file."
 )
 @click.option(
-    "--nextclade_reference", envvar="NEXTCLADE_REFERENCE", default="sars-cov-2", help="Nextclade reference."
+    "--nextclade_reference",
+    envvar="NEXTCLADE_REFERENCE",
+    default="sars-cov-2",
+    help="Nextclade reference.",
 )
-def main(sample_dir,sample_id, batch_id, result_dir, timeline_file, nextclade_reference):
+def main(
+    sample_dir, sample_id, batch_id, result_dir, timeline_file, nextclade_reference
+):
+    """Process a sample directory."""
     logging.info(f"Processing sample directory: {sample_dir}")
     logging.info(f"Saving results to: {result_dir}")
     logging.info(f"Using timeline file: {timeline_file}")
@@ -254,12 +256,15 @@ def main(sample_dir,sample_id, batch_id, result_dir, timeline_file, nextclade_re
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
 
-    process_directory(input_dir=Path("sample"),
-                      sample_id=sample_id,
-                      batch_id=batch_id,
-                      result_dir=Path("results"),
-                      timeline_file=Path("timeline.tsv"),
-                      nextclade_reference=nextclade_reference)
+    process_directory(
+        input_dir=Path("sample"),
+        sample_id=sample_id,
+        batch_id=batch_id,
+        result_dir=Path("results"),
+        timeline_file=Path("timeline.tsv"),
+        nextclade_reference=nextclade_reference,
+    )
+
 
 if __name__ == "__main__":
     main()

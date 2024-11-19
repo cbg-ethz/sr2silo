@@ -1,5 +1,7 @@
 """Daemon script that processes new samples from the timeline file
    and stores the processed samples in the result directory.
+
+   NOT in use in the current version of the project.
    """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ logging.basicConfig(
 
 
 def initialize_database(database_file):
+    """Initialize the database file."""
     conn = sqlite3.connect(database_file)
     cursor = conn.cursor()
     cursor.execute(
@@ -41,6 +44,7 @@ def initialize_database(database_file):
 
 
 def mark_sample_as_processed(database_file: Path, sample_id, batch_id):
+    """Mark a sample as processed in the database."""
     conn = sqlite3.connect(database_file)
     cursor = conn.cursor()
     cursor.execute(
@@ -52,6 +56,7 @@ def mark_sample_as_processed(database_file: Path, sample_id, batch_id):
 
 
 def is_sample_processed(database_file: Path, sample_id, batch_id):
+    """Check if a sample is already processed."""
     conn = sqlite3.connect(database_file)
     cursor = conn.cursor()
     cursor.execute(
@@ -64,6 +69,7 @@ def is_sample_processed(database_file: Path, sample_id, batch_id):
 
 
 def read_timeline(timeline_file: Path):
+    """Read the timeline file."""
     with timeline_file.open() as f:
         reader = csv.reader(f, delimiter="\t")
         for row in reader:
@@ -71,6 +77,7 @@ def read_timeline(timeline_file: Path):
 
 
 def construct_file_path(sample_dir: Path, sample_id: str, batch_id: str) -> Path:
+    """Construct the file path for a sample."""
     return sample_dir / sample_id / batch_id
 
 
@@ -81,6 +88,7 @@ def process_new_samples(
     result_dir: Path,
     nextclade_reference: str,
 ):
+    """Process new samples from the timeline file."""
     for sample_id, batch_id in read_timeline(timeline_file):
         if not is_sample_processed(database_file, sample_id, batch_id):
             logging.info(f"Processing new sample: {sample_id}, batch: {batch_id}")
@@ -122,6 +130,7 @@ class Config(BaseModel):
 
 
 def load_config(config_file: Path) -> Config:
+    """Load the configuration from a JSON file."""
     with config_file.open() as f:
         config_data = json.load(f)
     try:
@@ -132,6 +141,7 @@ def load_config(config_file: Path) -> Config:
 
 
 def backup_database(database_file: Path, backup_dir: Path):
+    """Backup the database file."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_file = backup_dir / f"processed_files_{timestamp}.db"
     backup_dir.mkdir(parents=True, exist_ok=True)
@@ -147,6 +157,7 @@ def backup_database(database_file: Path, backup_dir: Path):
     default="scripts/vp_config.json",
 )
 def main(config):
+    """Main function for the sr2silo daemon."""
     # Load the configuration
     logging.info("Loading configuration...")
     config = load_config(Path(config))
