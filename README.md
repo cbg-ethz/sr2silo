@@ -20,6 +20,9 @@
 ### Wrangling Short-Read Genomic Alignments for SILO Database
 
 This project will wrangle short-read genomic alignments, for example from wastewater-sampling, into a format for easy import into the SILO sequencing database.
+### Usage of the V-Pipe Docker
+
+The V-Pipe Docker is designed to process a single `.bam` file and upload the results to SILO.
 
 ## Project Organization
 

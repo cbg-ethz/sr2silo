@@ -2,18 +2,12 @@
     "version": "0.1.0",
     "configurations": [
         {
-            "name": "Python: Debug Tests",
-            "type": "python",
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "purpose": [
-                "debug-test"
-            ],
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "env": {
-                "PYTEST_ADDOPTS": "--no-cov -n0 --dist no"
-            }
-        }
-    ]
+            "console": "integratedTerminal"
+        },
+    }
+]
 }
