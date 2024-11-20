@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import datetime
 import json
 import logging
 from pathlib import Path
@@ -14,22 +15,21 @@ from sr2silo.convert import bam_to_sam
 from sr2silo.process import pair_normalize_reads
 from sr2silo.translation import translate
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def load_config(config_file: Path) -> dict:
-    """Load configuration from a JSON file."""
-    return NotImplementedError
+    """Load a JSON configuration file."""
     try:
         with config_file.open() as f:
-            config = json.load(f)
-        logging.debug(f"Loaded config: {config}")
-        return config
+            return json.load(f)
     except FileNotFoundError:
-        logging.error(f"Config file {config_file} not found.")
+        logging.error(f"Config file not found: {config_file}")
         raise
     except json.JSONDecodeError as e:
-        logging.error(f"Error decoding JSON from config file {config_file}: {e}")
+        logging.error(f"Error decoding JSON from config file: {config_file} - {e}")
         raise
 
 
@@ -82,24 +82,32 @@ def batch_id_decoder(batch_id: str) -> dict:
     }
 
 
-def get_metadata(directory: Path, timeline: Path) -> dict:
+def convert_to_iso_date(date: str) -> str:
+    """Convert a date string to ISO 8601 format (date only)."""
+    # Parse the date string
+    date_obj = datetime.datetime.strptime(date, "%Y-%m-%d")
+    # Format the date as ISO 8601 (date only)
+    return date_obj.date().isoformat()
+
+
+def get_metadata(sample_id: str, batch_id: str, timeline: Path) -> dict:
     """
     Get metadata for a given sample and batch directory.
     Cross-references the directory with the timeline file to get the metadata.
 
     Args:
-        directory (Path): The directory to extract metadata from.
+        sample_id (str): The sample ID to use for metadata.
+        batch_id (str): The batch ID to use for metadata.
         timeline (Path): The timeline file to cross-reference the metadata.
 
     Returns:
         dict: A dictionary containing the metadata.
+
     """
 
-    # Extract sample and batch IDs from the directory name
-    # samples/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam
     metadata = {}
-    metadata["sample_id"] = directory.parent.name
-    metadata["batch_id"] = directory.name
+    metadata["sample_id"] = sample_id
+    metadata["batch_id"] = batch_id
 
     # Decompose the ids into individual components
     logging.info(f"Decoding sample_id: {metadata['sample_id']}")
@@ -126,13 +134,28 @@ def get_metadata(directory: Path, timeline: Path) -> dict:
                 metadata["primer_protocol"] = row[3]
                 metadata["location_name"] = row[6]
                 # Convert sampling_date to ISO format for comparison
-                timeline_sampling_date = f"{row[5][:4]}-{row[5][4:6]}-{row[5][6:]}"
-                if (
-                    metadata["location_code"] != row[4]
-                    or metadata["sampling_date"] != timeline_sampling_date
-                ):
+                timeline_sampling_date = convert_to_iso_date(row[5])
+                if int(metadata["location_code"]) != int(row[4]):
+                    # output both location codes for comparison and their types for debugging
                     logging.warning(
-                        f"Mismatch in location code or sampling date for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
+                        f"Mismatch in location code for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
+                    )
+                    logging.debug(
+                        f"Location code mismatch: {metadata['location_code']} (sample_id) vs {row[4]} (timeline)"
+                    )
+                    logging.debug(
+                        f"Location code types: {type(metadata['location_code'])} (sample_id) vs {type(row[4])} (timeline)"
+                    )
+                if metadata["sampling_date"] != timeline_sampling_date:
+                    # output both sampling dates for comparison and their types for debugging
+                    logging.warning(
+                        f"Mismatch in sampling date for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
+                    )
+                    logging.debug(
+                        f"Sampling date mismatch: {metadata['sampling_date']} (sample_id) vs {timeline_sampling_date} (timeline)"
+                    )
+                    logging.debug(
+                        f"Sampling date types: {type(metadata['sampling_date'])} (sample_id) vs {type(timeline_sampling_date)} (timeline)"
                     )
                 break
         else:
@@ -144,6 +167,8 @@ def get_metadata(directory: Path, timeline: Path) -> dict:
 
 def process_directory(
     input_dir: Path,
+    sample_id: str,
+    batch_id: str,
     result_dir: Path,
     nextclade_reference: str,
     timeline_file: Path,
@@ -152,7 +177,8 @@ def process_directory(
     """Process all files in a given directory.
 
     Args:
-        input_dir (Path): The directory to process.
+        input_dir (Path): The directory to process. i.e. the directory containing the BAM file.
+                          to reach samples/A1_05_2024_10_08/20241024_2411515907/alignments/
         result_dir (Path): The directory to save the results.
         nextclade_reference (str): The reference to use for nextclade.
         timeline_file (Path): The timeline file to cross-reference the metadata.
@@ -165,13 +191,18 @@ def process_directory(
     # check that one was given a directory and not a file and it exists
     if not input_dir.is_dir():
         logging.error(f"Input directory not found, is it a directory?: {input_dir}")
-        return
+        raise FileNotFoundError(f"Directory not found: {input_dir}")
 
     logging.info(f"Processing directory: {input_dir}")
     logging.info(f"Assuming the input file is: {file_name}")
+    # check that the file exists and also it's .bai file
+    sample_fp = input_dir / file_name
+    if not sample_fp.exists():
+        logging.error(f"Input file not found: {sample_fp}")
+        raise FileNotFoundError(f"Input file not found: {sample_fp}")
 
     # Get Sample and Batch metadata and write to a file
-    metadata = get_metadata(input_dir, timeline_file)
+    metadata = get_metadata(sample_id, batch_id, timeline_file)
     # add nextclade reference to metadata
     metadata["nextclade_reference"] = nextclade_reference
     metadata_file = result_dir / "metadata.json"
@@ -182,7 +213,7 @@ def process_directory(
 
     # Convert BAM to SAM
     logging.info(f"Converting BAM to SAM")
-    bam_file = input_dir / file_name
+    bam_file = sample_fp
     sam_data = bam_to_sam(bam_file)
 
     # Process SAM to FASTA
@@ -198,47 +229,42 @@ def process_directory(
     logging.info(f"Results saved to: {result_dir}")
 
 
-# TODO: Implement the read_timeline function
-def read_timeline(timeline_file: Path) -> list[Path]:
-    """Read the timeline.tsv file and return a list of directory paths to process."""
-    return NotImplementedError
-    directories = []
-    with timeline_file.open() as f:
-        reader = csv.DictReader(f, delimiter="\t")
-        for row in reader:
-            # Assuming the directory path is constructed from metadata in the row
-            directory = Path(row["base_dir"]) / row["sub_dir"]
-            directories.append(directory)
-    return directories
-
-
-# TODO: Implement the main function
 @click.command()
+@click.option("--sample_dir", envvar="SAMPLE_DIR", help="Path to the sample directory.")
+@click.option("--sample_id", envvar="SAMPLE_ID", help="sample_id to use for metadata.")
+@click.option("--batch_id", envvar="BATCH_ID", help="batch_id to use for metadata.")
 @click.option(
-    "--config", default="vp_transformer_config.json", help="Path to the config file."
+    "--result_dir", envvar="RESULTS_DIR", help="Path to the results directory."
 )
-def main(config_file: Path) -> None:
-    """Main function to process all subdirectories."""
-    return NotImplementedError
-    config = load_config(config_file)
-    base_dir = Path(config["base_dir"])
-    result_dir = Path(config["result_dir"])
-    timeline_file = Path(config["timeline_file"])
+@click.option(
+    "--timeline_file", envvar="TIMELINE_FILE", help="Path to the timeline file."
+)
+@click.option(
+    "--nextclade_reference",
+    envvar="NEXTCLADE_REFERENCE",
+    default="sars-cov-2",
+    help="Nextclade reference.",
+)
+def main(
+    sample_dir, sample_id, batch_id, result_dir, timeline_file, nextclade_reference
+):
+    """Process a sample directory."""
+    logging.info(f"Processing sample directory: {sample_dir}")
+    logging.info(f"Saving results to: {result_dir}")
+    logging.info(f"Using timeline file: {timeline_file}")
+    logging.info(f"Using Nextclade reference: {nextclade_reference}")
+    logging.info(f"Using sample_id: {sample_id}")
+    logging.info(f"Using batch_id: {batch_id}")
 
-    directories = read_timeline(timeline_file)
-    for subdir in directories:
-        if subdir.is_dir():
-            logging.debug(f"Processing directory: {subdir}")
-            # process_directory(subdir, result_dir)
+    process_directory(
+        input_dir=Path("sample"),
+        sample_id=sample_id,
+        batch_id=batch_id,
+        result_dir=Path("results"),
+        timeline_file=Path("timeline.tsv"),
+        nextclade_reference=nextclade_reference,
+    )
 
 
 if __name__ == "__main__":
-    config_file = Path("vp_transformer_config.json")
-    # main(config_file)
-
-    # process a directory: batch / sample
-    process_directory(
-        Path("../../../data/sr2silo/samples/A1_05_2024_10_08/20241024_2411515907"),
-        Path("results"),
-        "nextstrain/sars-cov-2/wuhan-hu-1/orfs",
-    )
+    main()
