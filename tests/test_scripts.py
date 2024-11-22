@@ -20,6 +20,7 @@ def test_get_metadata():
         sample_id="A1_05_2024_10_08",
         batch_id="20241024_2411515907",
         timeline=Path("tests/data/samples/timeline_A1_05_2024_10_08.tsv"),
+        primers=Path("tests/data/samples/primers.yaml"),
     )
 
     print(metadata)
@@ -35,6 +36,8 @@ def test_get_metadata():
         "read_length": "250",
         "primer_protocol": "v532",
         "location_name": "Lugano (TI)",
+        "primer_protocol_name": "SARS-CoV-2 ARTIC V5.3.2",
+        "nextclade_reference": "sars-cov-2",
     }
 
     assert metadata == expected_metadata
