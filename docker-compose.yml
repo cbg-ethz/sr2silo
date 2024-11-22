@@ -4,6 +4,7 @@ services:
     volumes:
       - ${SAMPLE_DIR}:/app/sample
       - ${TIMELINE_FILE}:/app/timeline.tsv
+      - ${PRIMER_FILE}:/app/primers.yaml
       - ${RESULTS_DIR}:/app/results
       - ./scripts/vp_config.json:/app/scripts/vp_config.json
     environment:
@@ -12,6 +13,7 @@ services:
       - SAMPLE_ID=${SAMPLE_ID}
       - BATCH_ID=${BATCH_ID}
       - TIMELINE_FILE=${TIMELINE_FILE}
+      - PRIMER_FILE=${PRIMER_FILE}
       - RESULTS_DIR=${RESULTS_DIR}
 
 volumes:

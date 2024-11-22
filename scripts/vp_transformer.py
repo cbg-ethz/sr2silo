@@ -10,6 +10,7 @@ import logging
 from pathlib import Path
 
 import click
+import yaml
 
 from sr2silo.convert import bam_to_sam
 from sr2silo.process import pair_normalize_reads
@@ -90,7 +91,7 @@ def convert_to_iso_date(date: str) -> str:
     return date_obj.date().isoformat()
 
 
-def get_metadata(sample_id: str, batch_id: str, timeline: Path) -> dict:
+def get_metadata(sample_id: str, batch_id: str, timeline: Path, primers: Path) -> dict:
     """
     Get metadata for a given sample and batch directory.
     Cross-references the directory with the timeline file to get the metadata.
@@ -99,6 +100,7 @@ def get_metadata(sample_id: str, batch_id: str, timeline: Path) -> dict:
         sample_id (str): The sample ID to use for metadata.
         batch_id (str): The batch ID to use for metadata.
         timeline (Path): The timeline file to cross-reference the metadata.
+        primers (Path): The primers file to cross-reference the metadata.
 
     Returns:
         dict: A dictionary containing the metadata.
@@ -165,6 +167,28 @@ def get_metadata(sample_id: str, batch_id: str, timeline: Path) -> dict:
             raise ValueError(
                 f"No matching entry found in timeline for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
             )
+    # Read the primers yaml to get additional metadata
+    # find the key with matching primer_protocol and ge the "name" value
+    # as the canonical name of the primer protocol
+    if not primers.is_file():
+        logging.error(f"Primers file not found or is not a file: {primers}")
+        raise FileNotFoundError(f"Primers file not found or is not a file: {primers}")
+    # Load YAML file
+    with open(primers, "r") as file:
+        primers = yaml.safe_load(file)
+    logging.debug(f"Primers: {primers}")
+    logging.debug(f" Type of primers: {type(primers)}")
+    for primer in primers.keys():
+        if primer == metadata["primer_protocol"]:
+            logging.info(
+                f"Enriching metadata with primer data e.g. primer_protocol_name"
+            )
+            metadata["primer_protocol_name"] = primers[primer]["name"]
+            break
+    else:
+        raise ValueError(
+            f"No matching entry found in primers for primer_protocol {metadata['primer_protocol']}"
+        )
     return metadata
 
 
@@ -175,6 +199,7 @@ def process_directory(
     result_dir: Path,
     nextclade_reference: str,
     timeline_file: Path,
+    primers_file: Path,
     file_name: str = "REF_aln_trim.bam",
 ) -> None:
     """Process all files in a given directory.
@@ -185,6 +210,7 @@ def process_directory(
         result_dir (Path): The directory to save the results.
         nextclade_reference (str): The reference to use for nextclade.
         timeline_file (Path): The timeline file to cross-reference the metadata.
+        primers_file (Path): The primers file to cross-reference the metadata.
         file_name (str): The name of the file to process
 
     Returns:
@@ -205,7 +231,7 @@ def process_directory(
         raise FileNotFoundError(f"Input file not found: {sample_fp}")
 
     # Get Sample and Batch metadata and write to a file
-    metadata = get_metadata(sample_id, batch_id, timeline_file)
+    metadata = get_metadata(sample_id, batch_id, timeline_file, primers_file)
     # add nextclade reference to metadata
     metadata["nextclade_reference"] = nextclade_reference
     metadata_file = result_dir / "metadata.json"
@@ -242,6 +268,7 @@ def process_directory(
 @click.option(
     "--timeline_file", envvar="TIMELINE_FILE", help="Path to the timeline file."
 )
+@click.option("--primer_file", envvar="PRIMER_FILE", help="Path to the primers file.")
 @click.option(
     "--nextclade_reference",
     envvar="NEXTCLADE_REFERENCE",
@@ -249,12 +276,19 @@ def process_directory(
     help="Nextclade reference.",
 )
 def main(
-    sample_dir, sample_id, batch_id, result_dir, timeline_file, nextclade_reference
+    sample_dir,
+    sample_id,
+    batch_id,
+    result_dir,
+    timeline_file,
+    primer_file,
+    nextclade_reference,
 ):
     """Process a sample directory."""
     logging.info(f"Processing sample directory: {sample_dir}")
     logging.info(f"Saving results to: {result_dir}")
     logging.info(f"Using timeline file: {timeline_file}")
+    logging.info(f"Using primers file: {primer_file}")
     logging.info(f"Using Nextclade reference: {nextclade_reference}")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
@@ -265,6 +299,7 @@ def main(
         batch_id=batch_id,
         result_dir=Path("results"),
         timeline_file=Path("timeline.tsv"),
+        primers_file=Path("primers.yaml"),
         nextclade_reference=nextclade_reference,
     )
 
