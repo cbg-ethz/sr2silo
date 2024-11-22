@@ -43,7 +43,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and test Docker image
-        run: docker-compose --env-file .env up --build --exit-code-from sr2silo
+        run: docker-compose --env-file docker-compose.env up --build --exit-code-from sr2silo
 
       - name: Push to DockerHub
         if: github.ref == 'refs/heads/main'
