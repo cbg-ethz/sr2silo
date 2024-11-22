@@ -49,5 +49,6 @@ def test_process_directory():
         Path("tests/output"),
         "nextstrain/sars-cov-2/wuhan-hu-1/orfs",
         Path("tests/data/samples/timeline_A1_05_2024_10_08.tsv"),
+        Path("tests/data/samples/primers.yaml"),
     )
     assert True
