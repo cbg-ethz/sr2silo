@@ -37,7 +37,6 @@ def test_get_metadata():
         "primer_protocol": "v532",
         "location_name": "Lugano (TI)",
         "primer_protocol_name": "SARS-CoV-2 ARTIC V5.3.2",
-        "nextclade_reference": "sars-cov-2",
     }
 
     assert metadata == expected_metadata
