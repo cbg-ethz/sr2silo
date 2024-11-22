@@ -168,7 +168,7 @@ def get_metadata(sample_id: str, batch_id: str, timeline: Path, primers: Path) -
                 f"No matching entry found in timeline for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
             )
     # Read the primers yaml to get additional metadata
-    # find the key with matching primer_protocol and ge the "name" value
+    # find the key with matching primer_protocol and get the "name" value
     # as the canonical name of the primer protocol
     if not primers.is_file():
         logging.error(f"Primers file not found or is not a file: {primers}")
