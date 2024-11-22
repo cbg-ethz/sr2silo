@@ -122,7 +122,10 @@ def get_metadata(sample_id: str, batch_id: str, timeline: Path) -> dict:
     # timline has headers:
     #  sample_id	batch_id	read_length	primer_protocol	location_code	sampling_date	location_name
     # get read length, primer protocol, location name
-    # double checl if location code and location code are the same
+    # double check if location code and location code are the same
+    if not timeline.is_file():
+        logging.error(f"Timeline file not found or is not a file: {timeline}")
+        raise FileNotFoundError(f"Timeline file not found or is not a file: {timeline}")
     with timeline.open() as f:
         reader = csv.reader(f, delimiter="\t")
         for row in reader:
