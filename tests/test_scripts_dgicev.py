@@ -6,6 +6,7 @@ from __future__ import annotations
 import subprocess
 
 import pysam
+import pytest
 
 
 def bam_to_sam(bam_file):
@@ -26,6 +27,7 @@ def bam_to_sam(bam_file):
         return temp_sam.read().decode()
 
 
+@pytest.mark.optional
 def test_read_run_error_free():
     """Test the read.py script by piping SAM data to it."""
     input_bam = "tests/data/REF_aln_trim_subsample.bam"
