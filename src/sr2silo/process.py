@@ -17,7 +17,8 @@ def parse_cigar(cigar: str) -> list[tuple[str, int]]:
         A list of tuples where the first element is the operation
         type and the second is the length of the operation.
 
-    Credits: adapted from David Gicev"""
+    Credits: adapted from David Gicev @davidgicev
+    """
     pattern = re.compile(r"(\d+)([MIDNSHP=X])")
 
     parsed_cigar = pattern.findall(cigar)
@@ -41,7 +42,7 @@ def pair_normalize_reads(
         A string with merged, normalized reads in FASTA format.
         TODO: annotate the output format
 
-    Credits: adapted from David Gicev
+    Credits: adapted from David Gicev @davidgicev
     """
     unpaired = dict()
 
