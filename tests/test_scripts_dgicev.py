@@ -9,6 +9,7 @@ import pysam
 import pytest
 
 
+@pytest.mark.optional
 def bam_to_sam(bam_file):
     """Converts a BAM file to SAM format and returns it as a string.
 
