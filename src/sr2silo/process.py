@@ -30,7 +30,8 @@ def pair_normalize_reads(
     sam_data: str, output_fasta: Path, output_insertions: Path
 ) -> None:
     """
-    Pair and normalize all reads in a SAM file.
+    Pair and normalize (to clear text sequence using CIGAR)
+    all reads in a SAM file output FASTA and insertions files.
 
     Note that the input SAM file must be read in
     its entirety before calling this function,
