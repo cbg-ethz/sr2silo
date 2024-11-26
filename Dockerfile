@@ -4,6 +4,9 @@ FROM continuumio/miniconda3
 # Set the working directory in the container
 WORKDIR /app
 
+# Install build-essential package for gcc and other build tools - required for the Rust project
+RUN apt-get update && apt-get install -y build-essential
+
 # Copy the environment.yml file into the container at /app
 COPY environment.yml /app/environment.yml
 
@@ -15,6 +18,9 @@ SHELL ["conda", "run", "-n", "sr2silo", "/bin/bash", "-c"]
 
 # Copy the current directory contents into the container at /app
 COPY . /app
+
+# Build the Rust project
+RUN cd silo-input-transformer && cargo build --release
 
 # Install the sr2silo package
 RUN pip install -e .

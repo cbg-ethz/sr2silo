@@ -1,0 +1,3 @@
+[submodule "silo-input-transformer"]
+	path = silo-input-transformer
+	url = https://github.com/fengelniederhammer/silo-input-transformer.git
