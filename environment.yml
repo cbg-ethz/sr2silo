@@ -10,3 +10,4 @@ dependencies:
   - pydantic
   - click
   - rust
+  - maturin
