@@ -247,6 +247,27 @@ def wrangle_for_transformer(
         f.write(header + "\n")
         for read_id in read_ids:
             f.write(read_id + "\t" + "\t".join(["[]" for _ in gene_names]) + "\n")
+    # with (input_dir / "nextclade.tsv").open() as f:
+    #     reader = csv.DictReader(f, delimiter="\t")
+    #     aa_insertions_data = {read_id: {gene: [] for gene in gene_names} for read_id in read_ids}
+    #     for row in reader:
+    #         read_id = row["seqName"]
+    #         aa_insertions = row["aaInsertions"]
+    #         if aa_insertions:
+    #             for insertion in aa_insertions.split(","):
+    #                 gene, details = insertion.split(":")
+    #                 new_amino_acid, position = details[0], details[1:]
+    #                 formatted_insertion = f"{position}:{new_amino_acid}"
+    #                 if gene in aa_insertions_data[read_id]:
+    #                     aa_insertions_data[read_id][gene].append(formatted_insertion)
+    #                 else:
+    #                     logging.warning(f"Gene {gene} not found in gene names for read_id {read_id}")
+
+    # with aa_insertions.open("w") as f:
+    #     f.write(header + "\n")
+    #     for read_id in read_ids:
+    #         row_data = [",".join(aa_insertions_data[read_id][gene]) for gene in gene_names]
+    #         f.write(read_id + "\t" + "\t".join(row_data) + "\n")
 
     # make metadata per read_id
     # get the metadata from the metadata.json file
