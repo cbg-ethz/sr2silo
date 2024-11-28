@@ -355,6 +355,7 @@ def transform_to_ndjson(
         "batch_size": batch_size,
     }
     trafo_config_fp = output_dir / "trafo_config.yaml"
+    output_dir.mkdir(parents=True, exist_ok=True)  # Ensure the output directory exists
     with trafo_config_fp.open("w") as f:
         yaml.dump(trafo_config, f)
     logging.info(f"Trafo config saved to: {trafo_config_fp}")
