@@ -274,7 +274,7 @@ def wrangle_for_transformer(
 
     with metadata_tsv.open("w") as f:
         writer = csv.writer(f, delimiter="\t")
-        writer.writerow(metadata.keys())
+        writer.writerow(["read_id"] + list(metadata.keys()))
         for read_id in read_ids:
             f.write(
                 read_id
