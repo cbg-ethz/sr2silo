@@ -1,3 +1,4 @@
-[submodule "silo-input-transformer"]
-	path = silo-input-transformer
-	url = https://github.com/fengelniederhammer/silo-input-transformer.git
+[submodule "silo_input_transformer"]
+    path = silo_input_transformer
+    url = https://github.com/fengelniederhammer/silo-input-transformer.git
+    branch = feature/shared_lib
