@@ -201,6 +201,7 @@ def process_directory(
     timeline_file: Path,
     primers_file: Path,
     file_name: str = "REF_aln_trim.bam",
+    database_config: Path = Path("scripts/database_config.yaml"),
 ) -> None:
     """Process all files in a given directory.
 
@@ -255,6 +256,53 @@ def process_directory(
     logging.info(f"Aliging and translating sequences")
     translate([fasta_file], result_dir, nextclade_reference)
 
+    # Wrangle to Nextclade format
+    logging.info(f"Wrangling sequences to Nextclade format")
+    # make a directory for the nextclade-like results
+    nextclade_dir = result_dir / "nextcladeish"
+    nextclade_dir.mkdir(parents=True, exist_ok=True)
+    # copy over the nucleotide sequnecefile and name nuc_main.fasta
+    nuc_main = nextclade_dir / "nuc_main.fasta"
+    fasta_file.replace(nuc_main)
+    # copy over the amino acids sequences and name them gene_ and keep the file ending and last part of the name
+    # e.g. nextclade.cds_translation.ORF1a.fasta -> gene_ORF1a.fasta
+    for file in result_dir.glob("nextclade.cds_translation.*.fasta"):
+        gene_name = file.name.split(".")[2]
+        gene_file = nextclade_dir / f"gene_{gene_name}.fasta"
+        file.replace(gene_file)
+    # copy over the nucoletide insertions file and name it nucolotide_insertions.tsv
+    # add a header of "read_id  | main" to the file
+    nuc_insertions = nextclade_dir / "nucleotide_insertions.tsv"
+    with insertions_file.open() as f:
+        insertions = f.read()
+    with nuc_insertions.open("w") as f:
+        f.write("read_id\tmain\n")
+        f.write(insertions)
+    # get amino acid insertions from the nextclade.tsv file column "aaInsertions"
+    # and write it to aa_inerstions.tsv with the header "read_id" and the gene names
+    # TODO: aa_insertions.tsv (in out test data we have no aa insertions.. so hard to test this)
+
+    # get the database_config.yaml file and write it to the nextclade directory
+    # copy over the scripts/database_config.yaml file to the nextclade directory
+    nextclade_database_config = nextclade_dir / "database_config.yaml"
+    with database_config.open() as f:
+        database_config = f.read()
+    with nextclade_database_config.open("w") as f:
+        f.write(database_config)
+
+    # get the reference sequence and write it to the nextclade directory
+    # TODO: check if reference genome is really used by silo-input-transformer
+    # if so the file should be extracted from the nexclade translation used, see metadata for the reference$
+    # for now we just copy the reference genome from the scripts directory
+    reference_genome = nextclade_dir / "reference_genomes.json"
+
+    # get the reference genome from the scripts directory
+    reference_genome_source = Path("scripts/reference_genomes.json")
+    with reference_genome_source.open() as f:
+        reference_genome_data = f.read()
+    with reference_genome.open("w") as f:
+        f.write(reference_genome_data)
+
     logging.info(f"Results saved to: {result_dir}")
 
 
@@ -283,6 +331,7 @@ def main(
     timeline_file,
     primer_file,
     nextclade_reference,
+    database_config: Path = Path("scripts/database_config.yaml"),
 ):
     """Process a sample directory."""
     logging.info(f"Processing sample directory: {sample_dir}")
@@ -292,6 +341,7 @@ def main(
     logging.info(f"Using Nextclade reference: {nextclade_reference}")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
+    logging.info(f"Using database_config: {database_config}")
 
     process_directory(
         input_dir=Path("sample"),
@@ -301,6 +351,7 @@ def main(
         timeline_file=Path("timeline.tsv"),
         primers_file=Path("primers.yaml"),
         nextclade_reference=nextclade_reference,
+        database_config=Path("scripts/database_config.yaml"),
     )
 
 
