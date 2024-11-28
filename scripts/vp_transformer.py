@@ -303,6 +303,14 @@ def process_directory(
     with reference_genome.open("w") as f:
         f.write(reference_genome_data)
 
+    # get unaliged_main.tsv // which is just the same as the nuc_main.fasta file ?
+    # copy over the nuc_main.fasta file and name it unaligned_main.tsv
+    unaligned_main = nextclade_dir / "unaligned_main.tsv"
+    with nuc_main.open() as f:
+        nuc_main_data = f.read()
+    with unaligned_main.open("w") as f:
+        f.write(nuc_main_data)
+
     logging.info(f"Results saved to: {result_dir}")
 
 
