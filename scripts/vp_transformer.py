@@ -266,8 +266,10 @@ def process_directory(
     fasta_file.replace(nuc_main)
     # copy over the amino acids sequences and name them gene_ and keep the file ending and last part of the name
     # e.g. nextclade.cds_translation.ORF1a.fasta -> gene_ORF1a.fasta
+    gene_names = []
     for file in result_dir.glob("nextclade.cds_translation.*.fasta"):
         gene_name = file.name.split(".")[2]
+        gene_names.append(gene_name)
         gene_file = nextclade_dir / f"gene_{gene_name}.fasta"
         file.replace(gene_file)
     # copy over the nucoletide insertions file and name it nucolotide_insertions.tsv
@@ -279,8 +281,58 @@ def process_directory(
         f.write("read_id\tmain\n")
         f.write(insertions)
     # get amino acid insertions from the nextclade.tsv file column "aaInsertions"
-    # and write it to aa_inerstions.tsv with the header "read_id" and the gene names
+    # and write it to aa_inerstions.tsv with the header "read_id" and the{gene_name}
     # TODO: aa_insertions.tsv (in out test data we have no aa insertions.. so hard to test this)
+    # for now just make file with header read_id and {gene_name}
+    # make a line of each read_id add an empty [] for each gene name
+    aa_insertions = nextclade_dir / "aa_insertions.tsv"
+    # build header
+    header = "read_id" + "\t" + "\t".join([f"{gene_name}" for gene_name in gene_names])
+    # read from nextclade.tsv file,  colunm is "seqName"
+    read_ids = []
+    with (result_dir / "nextclade.tsv").open() as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
+            read_ids.append(row["seqName"])
+    with aa_insertions.open("w") as f:
+        f.write(header + "\n")
+        for read_id in read_ids:
+            f.write(read_id + "\t" + "\t".join(["[]" for _ in gene_names]) + "\n")
+
+    # make metadata per read_id
+    # get the metadata from the metadata.json file
+    # and write it to the metadata.tsv file
+    metadata_tsv = nextclade_dir / "metadata.tsv"
+    with metadata_file.open() as f:
+        metadata = json.load(f)
+    # validate that the meatdata keys are the same as defined in the database_config.yaml file as schema /metadata /name
+    # if not raise an error
+    with database_config.open() as f:
+        database_schema = yaml.safe_load(f)
+    metadata_keys = set(metadata.keys())
+    schema_keys = set([item["name"] for item in database_schema["schema"]["metadata"]])
+    # exclude the read_id from the schema keys
+    schema_keys.remove("read_id")
+    logging.debug(f"Metadata keys: {metadata_keys}")
+    logging.debug(f"Schema keys: {schema_keys}")
+    if metadata_keys != schema_keys:
+        logging.error(
+            f"Metadata keys do not match schema keys: {metadata_keys} != {schema_keys}"
+        )
+        raise ValueError(
+            f"Metadata keys do not match schema keys: {metadata_keys} != {schema_keys}"
+        )
+
+    with metadata_tsv.open("w") as f:
+        writer = csv.writer(f, delimiter="\t")
+        writer.writerow(metadata.keys())
+        for read_id in read_ids:
+            f.write(
+                read_id
+                + "\t"
+                + "\t".join([str(metadata[key]) for key in metadata.keys()])
+                + "\n"
+            )
 
     # get the database_config.yaml file and write it to the nextclade directory
     # copy over the scripts/database_config.yaml file to the nextclade directory
