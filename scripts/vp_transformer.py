@@ -201,6 +201,34 @@ def wrangle_for_transformer(
     metadata_file: Path,
     database_config: Path,
 ) -> dict[str, Path]:
+    """Wrangle the sequences to the format required by the silo_input_transformer.
+
+    Args:
+        input_dir (Path): The directory containing the sequences to wrangle.
+                                aa_insertions.tsv, gene_*.fasta, metadata.json,
+                                nuc_main.fasta, nucleotide_insertions.tsv,
+                                reference_genomes.json, unaligned_main.fasta
+        output_dir (Path): The empty working and output directory to save
+                            intermediate files and results i.e. `ndjson` file.
+        fasta_file (Path): The FASTA file containing the unaligned nuclotide
+                            sequences.
+        insertions_file (Path): The tsv file containing the nucleotide insertions.
+        metadata_file (Path): The metadata json file containing the per sequencing run metadata,
+                              that is copied for each read_id in the output.
+        database_config (Path): The database configuration file containing the
+                                schema for the metadata, has to match the
+                                metadata keys in the metadata.json file but the
+                                read_id key is not in the schema.
+
+    Returns:
+        dict[str, Path]: A dictionary containing the paths to the files
+                         created during the wrangling process.
+
+                         metadata_fp: metadata.tsv
+                         database_config_fp: database_config.yaml
+                         reference_genomes_fp: reference_genomes.json
+    """
+
     logging.info(f"Wrangling sequences to Nextclade format")
     # make a directory for the nextclade-like results
     output_dir.mkdir(parents=True, exist_ok=True)
