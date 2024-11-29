@@ -327,7 +327,7 @@ def wrangle_for_transformer(
 
     # get unaliged_main.tsv // which is just the same as the nuc_main.fasta file ?
     # copy over the nuc_main.fasta file and name it unaligned_main.tsv
-    unaligned_main = output_dir / "unaligned_main.tsv"
+    unaligned_main = output_dir / "unaligned_main.fasta"
     with nuc_main.open() as f:
         nuc_main_data = f.read()
     with unaligned_main.open("w") as f:
@@ -350,6 +350,7 @@ def wrangle_for_transformer(
 
 def transform_to_ndjson(
     sequence_file_directory: Path,
+    trafo_config_fp: Path,
     output_dir: Path,
     metadata_fp: Path,
     database_config_fp: Path,
@@ -359,7 +360,7 @@ def transform_to_ndjson(
         "nucleotide_sequence": "nuc_",
         "unaligned_nucleotide_sequence": "unaligned_",
     },
-    batch_size: int = 10,
+    batch_size: int = 1000,
 ) -> None:
     """Transforms the sequences to NDJSON format for SILO database."""
 
@@ -375,7 +376,6 @@ def transform_to_ndjson(
         "output_dir": str(output_dir),
         "batch_size": batch_size,
     }
-    trafo_config_fp = output_dir / "trafo_config.yaml"
     output_dir.mkdir(parents=True, exist_ok=True)  # Ensure the output directory exists
     with trafo_config_fp.open("w") as f:
         yaml.dump(trafo_config, f)
@@ -473,6 +473,7 @@ def process_directory(
     logging.debug(f"output_dir: {result_dir_transformed}")
     transform_to_ndjson(
         sequence_file_directory=result_dir_wrangled,
+        trafo_config_fp=result_dir / "trafo_config.yaml",
         output_dir=result_dir_transformed,
         metadata_fp=path_to_files["metadata_fp"],
         database_config_fp=path_to_files["database_config_fp"],
