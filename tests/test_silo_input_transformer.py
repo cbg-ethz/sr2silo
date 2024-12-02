@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 
+import pytest
+
 import silo_input_transformer
 
 logging.basicConfig(level=logging.INFO)
@@ -11,6 +13,9 @@ logging.basicConfig(level=logging.INFO)
 config_path = "silo_input_transformer/config.yaml"
 
 
+@pytest.mark.skip(
+    reason="silo_input_transformer is not public and added as a submodule currently"
+)
 def test_transform():
     """Test to run Rust based Silo input transformer, fail for error."""
     result = silo_input_transformer.run_with_config(config_path)  # type: ignore
