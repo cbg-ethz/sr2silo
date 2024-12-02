@@ -1,9 +1,0 @@
-schema:
-  instanceName: Wastewater
-  metadata:
-    - name: seqName
-      type: string
-      generateIndex: false
-  primaryKey: seqName
-  opennessLevel: OPEN
-  features: []
