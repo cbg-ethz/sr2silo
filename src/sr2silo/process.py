@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 
@@ -45,6 +46,12 @@ def pair_normalize_reads(
 
     Credits: adapted from David Gicev @davidgicev
     """
+
+    logging.warning(
+        "pair_normalize_reads: Nuliotide Insertions are not yet implemented, "
+        "{output_insertions} will be empty."
+    )
+
     unpaired = dict()
 
     with output_fasta.open("w") as fasta_file, output_insertions.open(
