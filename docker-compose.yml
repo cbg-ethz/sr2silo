@@ -6,7 +6,8 @@ services:
       - ${TIMELINE_FILE}:/app/timeline.tsv
       - ${PRIMER_FILE}:/app/primers.yaml
       - ${RESULTS_DIR}:/app/results
-      - ./scripts/vp_config.json:/app/scripts/vp_config.json
+      - ./scripts/database_config.yaml:/app/scripts/database_config.yaml
+      - ./scripts/reference_genomes.json:/app/scripts/- ./scripts/database_config.yaml:/app/scripts/reference_genomes.json
     environment:
       - PYTHONUNBUFFERED=1
       - SAMPLE_DIR=${SAMPLE_DIR}

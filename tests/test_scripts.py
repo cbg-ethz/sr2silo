@@ -5,17 +5,23 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add the scripts directory to the Python path
 scripts_dir = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(scripts_dir))
 
-# Import the process_directory function from vp_transformer.py
-from vp_transformer import get_metadata  # noqa: E402 # pyright: ignore
-from vp_transformer import process_directory  # noqa: E402 # pyright: ignore
 
-
+# TODO: refactor the metadata formatter out of the scripts
+@pytest.mark.skip(
+    reason="Won't run on GitHub Actions, as it requires the rust extension"
+)
 def test_get_metadata():
     """Test the get_metadata function."""
+
+    # Import the process_directory function from vp_transformer.py
+    from vp_transformer import get_metadata  # noqa: E402 # pyright: ignore
+
     metadata = get_metadata(
         sample_id="A1_05_2024_10_08",
         batch_id="20241024_2411515907",
@@ -42,8 +48,18 @@ def test_get_metadata():
     assert metadata == expected_metadata
 
 
+# TODO: refactor the function outside of the scripts
+@pytest.mark.skip(
+    reason="Won't run on GitHub Actions, as it requires the rust extension"
+)
 def test_process_directory():
     """Test the process_directory function."""
+
+    # Import the process_directory function from vp_transformer.py
+    from vp_transformer import (
+        process_directory,
+    )  # noqa: E402 # pyright: ignore # pylint: disable=all, isort:skip, black:skip
+
     process_directory(
         Path("tests/data/samples/A1_05_2024_10_08/20241024_2411515907/alignments"),
         "A1_05_2024_10_08",

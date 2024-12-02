@@ -12,6 +12,7 @@ from pathlib import Path
 import click
 import yaml
 
+import silo_input_transformer
 from sr2silo.convert import bam_to_sam
 from sr2silo.process import pair_normalize_reads
 from sr2silo.translation import translate
@@ -192,6 +193,236 @@ def get_metadata(sample_id: str, batch_id: str, timeline: Path, primers: Path) -
     return metadata
 
 
+def wrangle_for_transformer(
+    input_dir: Path,
+    output_dir: Path,
+    fasta_file: Path,
+    insertions_file: Path,
+    metadata_file: Path,
+    database_config: Path,
+) -> dict[str, Path]:
+    """Wrangle the sequences to the format required by the silo_input_transformer.
+
+    Args:
+        input_dir (Path): The directory containing the sequences to wrangle.
+                                aa_insertions.tsv, gene_*.fasta, metadata.json,
+                                nuc_main.fasta, nucleotide_insertions.tsv,
+                                reference_genomes.json, unaligned_main.fasta
+        output_dir (Path): The empty working and output directory to save
+                            intermediate files and results i.e. `ndjson` file.
+        fasta_file (Path): The FASTA file containing the unaligned nuclotide
+                            sequences.
+        insertions_file (Path): The tsv file containing the nucleotide insertions.
+        metadata_file (Path): The metadata json file containing the per sequencing run metadata,
+                              that is copied for each read_id in the output.
+        database_config (Path): The database configuration file containing the
+                                schema for the metadata, has to match the
+                                metadata keys in the metadata.json file but the
+                                read_id key is not in the schema.
+
+    Returns:
+        dict[str, Path]: A dictionary containing the paths to the files
+                         created during the wrangling process.
+
+                         metadata_fp: metadata.tsv
+                         database_config_fp: database_config.yaml
+                         reference_genomes_fp: reference_genomes.json
+    """
+
+    logging.info(f"Wrangling sequences to Nextclade format")
+    # make a directory for the nextclade-like results
+    output_dir.mkdir(parents=True, exist_ok=True)
+    # copy over the nucleotide sequnecefile and name nuc_main.fasta
+    nuc_main = output_dir / "nuc_main.fasta"
+    with fasta_file.open() as f:
+        nuc_main_data = f.read()
+    with nuc_main.open("w") as f:
+        f.write(nuc_main_data)
+    # copy over the amino acids sequences and name them gene_ and keep the file ending and last part of the name
+    # e.g. nextclade.cds_translation.ORF1a.fasta -> gene_ORF1a.fasta
+    gene_names = []
+    for file in input_dir.glob("nextclade.cds_translation.*.fasta"):
+        gene_name = file.name.split(".")[2]
+        gene_names.append(gene_name)
+        gene_file = output_dir / f"gene_{gene_name}.fasta"
+        with file.open() as f:
+            gene_data = f.read()
+        with gene_file.open("w") as f:
+            f.write(gene_data)
+    # copy over the nucoletide insertions file and name it nucolotide_insertions.tsv
+    # add a header of "read_id  | main" to the file
+    nuc_insertions = output_dir / "nucleotide_insertions.tsv"
+    with insertions_file.open() as f:
+        insertions = f.read()
+    with nuc_insertions.open("w") as f:
+        f.write("read_id\tmain\n")
+        f.write(insertions)
+    # get amino acid insertions from the nextclade.tsv file column "aaInsertions"
+    # and write it to aa_inerstions.tsv with the header "read_id" and the{gene_name}
+    # TODO: aa_insertions.tsv (in out test data we have no aa insertions.. so hard to test this)
+    # for now just make file with header read_id and {gene_name}
+    # make a line of each read_id add an empty [] for each gene name
+    aa_insertions_f = output_dir / "aa_insertions.tsv"
+    # build header
+    header = "read_id" + "\t" + "\t".join([f"{gene_name}" for gene_name in gene_names])
+    # read from nextclade.tsv file,  colunm is "seqName"
+    read_ids = []
+    with (input_dir / "nextclade.tsv").open() as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
+            read_ids.append(row["seqName"])
+    with aa_insertions_f.open("w") as f:
+        f.write(header + "\n")
+        for read_id in read_ids:
+            f.write(read_id + "\t" + "\t".join(["[]" for _ in gene_names]) + "\n")
+    # amino acid insertions look like ORF1b:814:D ,S:214:EPE
+
+    with (input_dir / "nextclade.tsv").open() as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        aa_insertions_data = {
+            read_id: {gene: [] for gene in gene_names} for read_id in read_ids
+        }
+        for row in reader:
+            read_id = row["seqName"]
+            aa_insertions = row["aaInsertions"]
+            if aa_insertions:
+                for insertion in aa_insertions.split(","):
+                    gene, position, new_amino_acid = insertion.split(":")
+                    formatted_insertion = f"{position}:{new_amino_acid}"
+                    if gene in aa_insertions_data[read_id]:
+                        aa_insertions_data[read_id][gene].append(formatted_insertion)
+                    else:
+                        logging.warning(
+                            f"Gene {gene} not found in gene names for read_id {read_id}"
+                        )
+
+    with aa_insertions_f.open("w") as f:
+        f.write(header + "\n")
+        for read_id in read_ids:
+            row_data = [
+                ",".join(aa_insertions_data[read_id][gene]) for gene in gene_names
+            ]
+            f.write(read_id + "\t" + "\t".join(row_data) + "\n")
+
+    # make metadata per read_id
+    # get the metadata from the metadata.json file
+    # and write it to the metadata.tsv file
+    metadata_tsv = output_dir / "metadata.tsv"
+    with metadata_file.open() as f:
+        metadata = json.load(f)
+    # validate that the meatdata keys are the same as defined in the database_config.yaml file as schema /metadata /name
+    # if not raise an error
+    with database_config.open() as f:
+        database_schema = yaml.safe_load(f)
+    metadata_keys = set(metadata.keys())
+    schema_keys = set([item["name"] for item in database_schema["schema"]["metadata"]])
+    # exclude the read_id from the schema keys
+    schema_keys.remove("read_id")
+    logging.debug(f"Metadata keys: {metadata_keys}")
+    logging.debug(f"Schema keys: {schema_keys}")
+    if metadata_keys != schema_keys:
+        logging.error(
+            f"Metadata keys do not match schema keys: {metadata_keys} != {schema_keys}"
+        )
+        raise ValueError(
+            f"Metadata keys do not match schema keys: {metadata_keys} != {schema_keys}"
+        )
+
+    with metadata_tsv.open("w") as f:
+        writer = csv.writer(f, delimiter="\t")
+        writer.writerow(["read_id"] + list(metadata.keys()))
+        for read_id in read_ids:
+            f.write(
+                read_id
+                + "\t"
+                + "\t".join([str(metadata[key]) for key in metadata.keys()])
+                + "\n"
+            )
+
+    # get the database_config.yaml file and write it to the nextclade directory
+    # copy over the scripts/database_config.yaml file to the nextclade directory
+    nextclade_database_config = output_dir / "database_config.yaml"
+    with database_config.open() as f:
+        database_config = f.read()
+    with nextclade_database_config.open("w") as f:
+        f.write(database_config)
+
+    # get the reference sequence and write it to the nextclade directory
+    # TODO: check if reference genome is really used by silo-input-transformer
+    # if so the file should be extracted from the nexclade translation used, see metadata for the reference$
+    # for now we just copy the reference genome from the scripts directory
+    reference_genome = output_dir / "reference_genomes.json"
+
+    # get the reference genome from the scripts directory
+    reference_genome_source = Path("scripts/reference_genomes.json")
+    with reference_genome_source.open() as f:
+        reference_genome_data = f.read()
+    with reference_genome.open("w") as f:
+        f.write(reference_genome_data)
+
+    # get unaliged_main.tsv // which is just the same as the nuc_main.fasta file ?
+    # copy over the nuc_main.fasta file and name it unaligned_main.tsv
+    unaligned_main = output_dir / "unaligned_main.fasta"
+    with nuc_main.open() as f:
+        nuc_main_data = f.read()
+    with unaligned_main.open("w") as f:
+        f.write(nuc_main_data)
+
+    logging.info(f"Results saved to: {output_dir}")
+    # return the paths to
+    #    metadata_fp=metadata_tsv,
+    #    database_config_fp=nextclade_database_config,
+    #    reference_genomes_fp=reference_genome,
+
+    path_to_files = {
+        "metadata_fp": metadata_tsv,
+        "database_config_fp": nextclade_database_config,
+        "reference_genomes_fp": reference_genome,
+    }
+
+    return path_to_files
+
+
+def transform_to_ndjson(
+    sequence_file_directory: Path,
+    trafo_config_fp: Path,
+    output_dir: Path,
+    metadata_fp: Path,
+    database_config_fp: Path,
+    reference_genomes_fp: Path,
+    file_prefixes: dict = {
+        "amino_acid_sequence": "gene_",
+        "nucleotide_sequence": "nuc_",
+        "unaligned_nucleotide_sequence": "unaligned_",
+    },
+    batch_size: int = 1000,
+) -> None:
+    """Transforms the sequences to NDJSON format for SILO database."""
+
+    # make a trafo_config.yaml file
+    trafo_config = {
+        "file_inputs": {
+            "metadata": str(metadata_fp),
+            "database_config": str(database_config_fp),
+            "reference_genomes": str(reference_genomes_fp),
+            "sequence_file_directory": str(sequence_file_directory),
+        },
+        "file_prefixes": file_prefixes,
+        "output_dir": str(output_dir),
+        "batch_size": batch_size,
+    }
+    output_dir.mkdir(parents=True, exist_ok=True)  # Ensure the output directory exists
+    with trafo_config_fp.open("w") as f:
+        yaml.dump(trafo_config, f)
+    logging.info(f"Trafo config saved to: {trafo_config_fp}")
+
+    # run the silo_input_transformer with the trafo_config.yaml file
+    logging.info(f"Running silo_input_transformer with config: {trafo_config_fp}")
+    silo_input_transformer.run_with_config(str(trafo_config_fp))
+    logging.info(f"Results saved to: {output_dir}")
+    return None
+
+
 def process_directory(
     input_dir: Path,
     sample_id: str,
@@ -201,6 +432,7 @@ def process_directory(
     timeline_file: Path,
     primers_file: Path,
     file_name: str = "REF_aln_trim.bam",
+    database_config: Path = Path("scripts/database_config.yaml"),
 ) -> None:
     """Process all files in a given directory.
 
@@ -253,9 +485,37 @@ def process_directory(
 
     # Translate nucleotides to amino acids
     logging.info(f"Aliging and translating sequences")
-    translate([fasta_file], result_dir, nextclade_reference)
+    results_dir_translated = result_dir / "translated"
+    translate([fasta_file], results_dir_translated, nextclade_reference)
 
-    logging.info(f"Results saved to: {result_dir}")
+    logging.info(f"Results saved to: {results_dir_translated}")
+
+    # Wrangle to Nextclade format // silo_input_transformer inputs
+    result_dir_wrangled = result_dir / "wrangled"
+    path_to_files = wrangle_for_transformer(
+        input_dir=results_dir_translated,
+        output_dir=result_dir_wrangled,
+        fasta_file=fasta_file,
+        insertions_file=insertions_file,
+        metadata_file=metadata_file,
+        database_config=database_config,
+    )
+
+    # Transform to NDJSON
+    result_dir_transformed = result_dir / "transformed"
+    logging.debug(f"Transforming to NDJSON")
+    logging.debug(f"sequence_file_directory: {result_dir_wrangled}")
+    logging.debug(f"output_dir: {result_dir_transformed}")
+    transform_to_ndjson(
+        sequence_file_directory=result_dir_wrangled,
+        trafo_config_fp=result_dir / "trafo_config.yaml",
+        output_dir=result_dir_transformed,
+        metadata_fp=path_to_files["metadata_fp"],
+        database_config_fp=path_to_files["database_config_fp"],
+        reference_genomes_fp=path_to_files["reference_genomes_fp"],
+    )
+
+    # NEED A WORKDIR FOR THIS ALL TO RUN IN A DOCKER CONTAINER
 
 
 @click.command()
@@ -283,6 +543,7 @@ def main(
     timeline_file,
     primer_file,
     nextclade_reference,
+    database_config: Path = Path("scripts/database_config.yaml"),
 ):
     """Process a sample directory."""
     logging.info(f"Processing sample directory: {sample_dir}")
@@ -292,6 +553,7 @@ def main(
     logging.info(f"Using Nextclade reference: {nextclade_reference}")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
+    logging.info(f"Using database_config: {database_config}")
 
     process_directory(
         input_dir=Path("sample"),
@@ -301,6 +563,7 @@ def main(
         timeline_file=Path("timeline.tsv"),
         primers_file=Path("primers.yaml"),
         nextclade_reference=nextclade_reference,
+        database_config=Path("scripts/database_config.yaml"),
     )
 
 

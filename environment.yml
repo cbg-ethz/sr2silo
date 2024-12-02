@@ -9,3 +9,5 @@ dependencies:
   - poetry
   - pydantic
   - click
+  - rust
+  - maturin

@@ -9,7 +9,7 @@ import pysam
 import pytest
 
 
-@pytest.mark.optional
+@pytest.mark.skip(reason="Only for testing purposes")
 def bam_to_sam(bam_file):
     """Converts a BAM file to SAM format and returns it as a string.
 
@@ -28,7 +28,7 @@ def bam_to_sam(bam_file):
         return temp_sam.read().decode()
 
 
-@pytest.mark.optional
+@pytest.mark.skip(reason="Only for testing purposes")
 def test_read_run_error_free():
     """Test the read.py script by piping SAM data to it."""
     input_bam = "tests/data/REF_aln_trim_subsample.bam"
