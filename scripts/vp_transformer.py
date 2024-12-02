@@ -262,7 +262,7 @@ def wrangle_for_transformer(
     # TODO: aa_insertions.tsv (in out test data we have no aa insertions.. so hard to test this)
     # for now just make file with header read_id and {gene_name}
     # make a line of each read_id add an empty [] for each gene name
-    aa_insertions = output_dir / "aa_insertions.tsv"
+    aa_insertions_f = output_dir / "aa_insertions.tsv"
     # build header
     header = "read_id" + "\t" + "\t".join([f"{gene_name}" for gene_name in gene_names])
     # read from nextclade.tsv file,  colunm is "seqName"
@@ -271,7 +271,7 @@ def wrangle_for_transformer(
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
             read_ids.append(row["seqName"])
-    with aa_insertions.open("w") as f:
+    with aa_insertions_f.open("w") as f:
         f.write(header + "\n")
         for read_id in read_ids:
             f.write(read_id + "\t" + "\t".join(["[]" for _ in gene_names]) + "\n")
@@ -296,7 +296,7 @@ def wrangle_for_transformer(
                             f"Gene {gene} not found in gene names for read_id {read_id}"
                         )
 
-    with aa_insertions.open("w") as f:
+    with aa_insertions_f.open("w") as f:
         f.write(header + "\n")
         for read_id in read_ids:
             row_data = [
