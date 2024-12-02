@@ -92,7 +92,7 @@ pub fn merge_batches(
 
 fn process_sequence_files(
     amino_acid_sequence_files: &mut HashMap<String, SortedSequencesReader>,
-    metadata_primary_key: &str,
+    metadata_primary_key: &String,
     target_map: &mut HashMap<String, Option<String>>,
 ) -> Result<()> {
     for (sequence_name, sequence_file_reader) in amino_acid_sequence_files {

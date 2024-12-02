@@ -4,8 +4,8 @@ use crate::config::reference_genomes::{ReferenceGenomes, ReferenceSequence};
 use crate::types::batch::{Batch, BatchId};
 use crate::types::sequence::Sequence;
 use crate::util::create_new_file;
+use anyhow::bail;
 use anyhow::Result;
-use anyhow::{bail, Context};
 use csv::ReaderBuilder;
 use std::collections::HashMap;
 use std::fs::File;
@@ -17,8 +17,8 @@ pub fn split_data_into_batches(config: &Config) -> Result<HashMap<BatchId, Batch
     std::fs::create_dir_all(&batches_path)?;
 
     let (primary_key_to_batch, batch_id_to_batch) =
-        split_metadata_into_batches(config, &batches_path)?;
-    split_sequence_files_into_batches(&primary_key_to_batch, config, &batch_id_to_batch)?;
+        split_metadata_into_batches(&config, &batches_path)?;
+    split_sequence_files_into_batches(&primary_key_to_batch, &config, &batch_id_to_batch)?;
 
     let primary_key_to_batch_file =
         create_new_file(&batches_path.join("primary_key_to_batch_id.json"))?;
@@ -51,8 +51,7 @@ fn split_sequence_files_into_batches(
     for (sequence_type, sequences) in sequences_and_type {
         for sequence in sequences {
             let sequence_file_path = config.get_sequence_file(sequence_type, &sequence.name);
-            let mut fasta_reader = needletail::parse_fastx_file(&sequence_file_path)
-                .with_context(|| format!("Reading sequence file {:?}", sequence_file_path))?;
+            let mut fasta_reader = needletail::parse_fastx_file(&sequence_file_path)?;
 
             let batch_id_to_sequence_file =
                 get_batch_id_to_sequence_file_map(batch_id_to_batch, sequence_type, &sequence)?;
@@ -112,8 +111,7 @@ fn split_metadata_into_batches(
 
     let mut tsv_reader = ReaderBuilder::new()
         .delimiter(b'\t')
-        .from_path(&config.file_inputs.metadata)
-        .with_context(|| format!("Reading metadata file {}", config.file_inputs.metadata))?;
+        .from_path(&config.file_inputs.metadata)?;
 
     let mut current_batch = 0;
     let mut entries_in_current_batch = 0;
@@ -164,9 +162,9 @@ fn insert_new_batch(
         current_batch.into(),
         Batch::new(
             &batches_path.join(current_batch.to_string()),
-            reference_genomes,
+            &reference_genomes,
         )?,
     );
     let metadata_file_path = &batch_id_to_batch[&current_batch.into()].metadata_file;
-    create_new_file(metadata_file_path)
+    Ok(create_new_file(&metadata_file_path)?)
 }

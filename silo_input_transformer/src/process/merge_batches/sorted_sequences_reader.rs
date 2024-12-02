@@ -41,7 +41,7 @@ impl SortedSequencesReader {
     fn get_next_sequence(&mut self) -> Option<Result<Sequence>> {
         self.sequence_buffer.clear();
         match self.sequence_file.read_line(&mut self.sequence_buffer) {
-            Ok(0) => None,
+            Ok(ready_bytes) if ready_bytes == 0 => None,
             Ok(_) => Some(serde_json::from_str(&self.sequence_buffer).context(format!(
                 "Failed to parse sequence: {}",
                 self.sequence_buffer

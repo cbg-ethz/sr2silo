@@ -21,7 +21,7 @@ pub struct Batch {
 
 impl Batch {
     pub fn new(path: &Path, reference_genomes: &ReferenceGenomes) -> anyhow::Result<Self> {
-        std::fs::create_dir_all(path)?;
+        std::fs::create_dir_all(&path)?;
 
         Ok(Batch {
             metadata_file: path.join("metadata.ndjson"),

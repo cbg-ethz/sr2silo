@@ -75,7 +75,7 @@ fn zip_sequence_files(
 fn sort_file_by_key(
     unsorted_file_path: &PathBuf,
     key: &str,
-    target_file_path: &Path,
+    target_file_path: &PathBuf,
 ) -> Result<()> {
     let mut deserialized_lines = fs::read_to_string(unsorted_file_path)?
         .lines()
@@ -84,7 +84,7 @@ fn sort_file_by_key(
 
     deserialized_lines.sort_by(|a, b| a[key].cmp(&b[key]));
 
-    let mut target_file = create_new_file(target_file_path)?;
+    let mut target_file = create_new_file(&target_file_path)?;
     for deserialized_line in deserialized_lines {
         serde_json::to_writer(&target_file, &deserialized_line)?;
         target_file.write_all(b"\n")?;
