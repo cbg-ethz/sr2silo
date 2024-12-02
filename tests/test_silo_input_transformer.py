@@ -6,8 +6,6 @@ import logging
 
 import pytest
 
-import silo_input_transformer
-
 logging.basicConfig(level=logging.INFO)
 
 config_path = "silo_input_transformer/config.yaml"
@@ -18,6 +16,9 @@ config_path = "silo_input_transformer/config.yaml"
 )
 def test_transform():
     """Test to run Rust based Silo input transformer, fail for error."""
+
+    import silo_input_transformer
+
     result = silo_input_transformer.run_with_config(config_path)  # type: ignore
     logging.info(f"Result from Rust: {result}")
     return result
