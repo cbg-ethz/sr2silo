@@ -449,6 +449,8 @@ def process_directory(
         None (writes results to the result_dir)
     """
 
+    # TODO: absolb all these intermediary files into a temporary directory
+
     # check that one was given a directory and not a file and it exists
     if not input_dir.is_dir():
         logging.error(f"Input directory not found, is it a directory?: {input_dir}")
@@ -515,7 +517,9 @@ def process_directory(
         reference_genomes_fp=path_to_files["reference_genomes_fp"],
     )
 
-    # NEED A WORKDIR FOR THIS ALL TO RUN IN A DOCKER CONTAINER
+    # Upload ndjson to S3 bucket
+
+    # TODO: upload to S3 bucket
 
 
 @click.command()
