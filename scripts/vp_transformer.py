@@ -515,7 +515,11 @@ def process_directory(
         reference_genomes_fp=path_to_files["reference_genomes_fp"],
     )
 
-    # NEED A WORKDIR FOR THIS ALL TO RUN IN A DOCKER CONTAINER
+    # PLACEHOLDER: for uploading S3 reference to SILO
+
+    # Submit S3 reference to SILO
+
+    # TODO: implement the submission to SILO
 
 
 @click.command()
