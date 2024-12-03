@@ -9,13 +9,22 @@ from pathlib import Path
 import requests
 
 # TODO: move to environment variables
-KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
-SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
+KEYCLOAK_TOKEN_URL = (
+    "https:"
+    "//authentication-wise-seqs.loculus.org"
+    "/realms/loculus/protocol/openid-connect/token"
+)
+SUBMISSION_URL = (
+    "https:"
+    "//backend-wise-seqs.loculus.org"
+    "/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
+)
 
 
 def generate_placeholder_fasta(submission_ids: list[str]) -> str:
     """
-    Generates a placeholder FASTA file for each submission ID with "NNN" as the sequence.
+    Generates a placeholder FASTA file for each submission ID with "NNN" as
+    the sequence.
     """
     fasta_entries = []
     for submission_id in submission_ids:
@@ -62,7 +71,8 @@ def get_loculus_authentication_token(username: str, password: str) -> str:
         return response.json().get("access_token")
     else:
         raise Exception(
-            f"Error: Unable to authenticate. Status code: {response.status_code}, Response: {response.text}"
+            f"Error: Unable to authenticate. Status code: {response.status_code},"
+            f"Response: {response.text}"
         )
 
 
@@ -87,17 +97,19 @@ def _submit(
     if response.status_code == 200:
         print("Upload successful.")
         print(
-            "You can approve the upload for release at:\n\nhttps://microbioinfo-hackathon.loculus.org/salmonella/submission/1/review"
+            "You can approve the upload for release at:\n\n"
+            "https://microbioinfo-hackathon.loculus.org/salmonella/submission/1/review"
         )
     else:
         raise Exception(
-            f"Error: Unable to submit. Status code: {response.status_code}, Response: {response.text}"
+            f"Error: Unable to submit. Status code: {response.status_code}, "
+            f"Response: {response.text}"
         )
 
 
 def submit(input_fp: Path, username: str, password: str, group_id: int) -> None:
     """
-    Uplopad the a metadata tsv file to a loculus instance.
+    Upload the a metadata tsv file to a loculus instance.
     """
 
     authentication_token = get_loculus_authentication_token(username, password)
