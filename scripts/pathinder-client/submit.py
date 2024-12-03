@@ -1,6 +1,11 @@
 """Credits to Chaoran Chen for this script.
 
     https://github.com/microbio-hackathon-2024/pathinder-client/blob/main/submit.py
+
+    Use with:
+    python3 submit.py --input ../../loculus_submission/metadata.tsv --group-id 1 --username testuser
+
+    pw: testuser
 """
 
 from __future__ import annotations
@@ -12,8 +17,8 @@ import tempfile
 import click
 import requests
 
-KEYCLOAK_TOKEN_URL = "https://authentication-microbioinfo-hackathon.loculus.org/realms/loculus/protocol/openid-connect/token"
-SUBMISSION_URL = "https://backend-microbioinfo-hackathon.loculus.org/salmonella/submit?groupId={group_id}&dataUseTermsType=OPEN"
+KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
+SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
 
 
 def generate_placeholder_fasta(submission_ids: list[str]) -> str:
