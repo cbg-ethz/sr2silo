@@ -424,6 +424,28 @@ def transform_to_ndjson(
     return None
 
 
+def make_submission_file(result_dir: Path, srLink: str) -> Path:
+    """Create a submission file with the given S3 link.
+
+    Args:
+        result_dir (Path): The directory to save the submission file.
+        srLink (str): The S3 link to include in the submission file.
+
+    Returns:
+        Path: The path to the created submission file.
+    """
+    result_dir_submission = result_dir / "submission"
+    result_dir_submission.mkdir(parents=True, exist_ok=True)
+
+    submission_metadata_fp = result_dir_submission / "metadata.tsv"
+    with submission_metadata_fp.open("w") as f:
+        f.write("submissionId\ts3Link\tversionComment\n")
+        f.write(f"001\t{srLink}\t\n")
+    logging.info(f"Submission metadata saved to: {submission_metadata_fp}")
+
+    return submission_metadata_fp
+
+
 def process_directory(
     input_dir: Path,
     sample_id: str,
@@ -518,23 +540,12 @@ def process_directory(
         reference_genomes_fp=path_to_files["reference_genomes_fp"],
     )
 
-    #####  PLACEHOLDER: for uploading S3 reference to SILO #####
-    # make new dir for upload_submissions
-    result_dir_submission = result_dir / "submission"
-    result_dir_submission.mkdir(parents=True, exist_ok=True)
-    # Placeholder s3 link
+    #####   Upload to S3  #####
     srLink = "s3://sr2silo01/silo_input.ndjson"
-    # make mock metadata.tsv file with the srLink with the header "submissionId | s3Link	| versionComment"
-    # and  one entry 001 | s3://sr2silo01/silo_input.ndjson | ""
-    submission_metadata_fp = result_dir_submission / "metadata.tsv"
-    with (submission_metadata_fp).open("w") as f:
-        f.write("submissionId\ts3Link\tversionComment\n")
-        f.write("001\t" + srLink + "\t\n")
-    logging.info(f"Submission metadata saved to: {submission_metadata_fp}")
 
     ##### Submit S3 reference to SILO #####
     logging.info(f"Submitting to Loculus")
-    input_fp = submission_metadata_fp
+    input_fp = make_submission_file(result_dir, srLink)
     username = "testuser"
     password = "testuser"
     group_id = 1
