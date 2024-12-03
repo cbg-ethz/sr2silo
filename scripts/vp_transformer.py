@@ -14,6 +14,7 @@ import yaml
 
 import silo_input_transformer
 from sr2silo.convert import bam_to_sam
+from sr2silo.lapis import submit
 from sr2silo.process import pair_normalize_reads
 from sr2silo.translation import translate
 
@@ -462,7 +463,7 @@ def process_directory(
         logging.error(f"Input file not found: {sample_fp}")
         raise FileNotFoundError(f"Input file not found: {sample_fp}")
 
-    # Get Sample and Batch metadata and write to a file
+    ##### Get Sample and Batch metadata and write to a file #####
     metadata = get_metadata(sample_id, batch_id, timeline_file, primers_file)
     # add nextclade reference to metadata
     metadata["nextclade_reference"] = nextclade_reference
@@ -472,25 +473,25 @@ def process_directory(
         json.dump(metadata, f, indent=4)
     logging.info(f"Metadata saved to: {metadata_file}")
 
-    # Convert BAM to SAM
+    ##### Convert BAM to SAM #####
     logging.info(f"Converting BAM to SAM")
     bam_file = sample_fp
     sam_data = bam_to_sam(bam_file)
 
-    # Process SAM to FASTA
+    ##### Process SAM to FASTA #####
     logging.info(f"Processing SAM to FASTA (pair, merge, and normalize reads)")
     fasta_file = result_dir / "reads.fasta"
     insertions_file = result_dir / "insertions.txt"
     pair_normalize_reads(sam_data, fasta_file, insertions_file)
 
-    # Translate nucleotides to amino acids
+    ##### Translate nucleotides to amino acids #####
     logging.info(f"Aliging and translating sequences")
     results_dir_translated = result_dir / "translated"
     translate([fasta_file], results_dir_translated, nextclade_reference)
 
     logging.info(f"Results saved to: {results_dir_translated}")
 
-    # Wrangle to Nextclade format // silo_input_transformer inputs
+    ##### Wrangle to Nextclade format // silo_input_transformer inputs #####
     result_dir_wrangled = result_dir / "wrangled"
     path_to_files = wrangle_for_transformer(
         input_dir=results_dir_translated,
@@ -501,7 +502,7 @@ def process_directory(
         database_config=database_config,
     )
 
-    # Transform to NDJSON
+    ###### Transform to NDJSON ######
     result_dir_transformed = result_dir / "transformed"
     logging.debug(f"Transforming to NDJSON")
     logging.debug(f"sequence_file_directory: {result_dir_wrangled}")
@@ -515,11 +516,27 @@ def process_directory(
         reference_genomes_fp=path_to_files["reference_genomes_fp"],
     )
 
-    # PLACEHOLDER: for uploading S3 reference to SILO
+    #####  PLACEHOLDER: for uploading S3 reference to SILO #####
+    # make new dir for upload_submissions
+    result_dir_submission = result_dir / "submission"
+    result_dir_submission.mkdir(parents=True, exist_ok=True)
+    # Placeholder s3 link
+    srLink = "s3://sr2silo01/silo_input.ndjson"
+    # make mock metadata.tsv file with the srLink with the header "submissionId | s3Link	| versionComment"
+    # and  one entry 001 | s3://sr2silo01/silo_input.ndjson | ""
+    submission_metadata_fp = result_dir_submission / "metadata.tsv"
+    with (submission_metadata_fp).open("w") as f:
+        f.write("submissionId\ts3Link\tversionComment\n")
+        f.write("001\t" + srLink + "\t\n")
+    logging.info(f"Submission metadata saved to: {submission_metadata_fp}")
 
-    # Submit S3 reference to SILO
-
-    # TODO: implement the submission to SILO
+    ##### Submit S3 reference to SILO #####
+    logging.info(f"Submitting to Loculus")
+    input_fp = submission_metadata_fp
+    username = "testuser"
+    password = "testuser"
+    group_id = 1
+    submit(input_fp, username, password, group_id)
 
 
 @click.command()
