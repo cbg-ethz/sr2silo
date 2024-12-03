@@ -98,7 +98,7 @@ def _submit(
         print("Upload successful.")
         print(
             "You can approve the upload for release at:\n\n"
-            "https://microbioinfo-hackathon.loculus.org/salmonella/submission/1/review"
+            "https://wise-seqs.loculus.org/salmonella/submission/1/review"
         )
     else:
         raise Exception(
