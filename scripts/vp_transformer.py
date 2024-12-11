@@ -16,6 +16,7 @@ import silo_input_transformer
 from sr2silo.convert import bam_to_sam
 from sr2silo.lapis import submit
 from sr2silo.process import pair_normalize_reads
+from sr2silo.s3 import compress_file, upload_file_to_s3
 from sr2silo.translation import translate
 
 logging.basicConfig(
@@ -424,6 +425,28 @@ def transform_to_ndjson(
     return None
 
 
+def make_submission_file(result_dir: Path, srLink: str) -> Path:
+    """Create a submission file with the given S3 link.
+
+    Args:
+        result_dir (Path): The directory to save the submission file.
+        srLink (str): The S3 link to include in the submission file.
+
+    Returns:
+        Path: The path to the created submission file.
+    """
+    result_dir_submission = result_dir / "submission"
+    result_dir_submission.mkdir(parents=True, exist_ok=True)
+
+    submission_metadata_fp = result_dir_submission / "metadata.tsv"
+    with submission_metadata_fp.open("w") as f:
+        f.write("submissionId\ts3Link\tversionComment\n")
+        f.write(f"001\t{srLink}\t\n")
+    logging.info(f"Submission metadata saved to: {submission_metadata_fp}")
+
+    return submission_metadata_fp
+
+
 def process_directory(
     input_dir: Path,
     sample_id: str,
@@ -449,6 +472,8 @@ def process_directory(
     Returns:
         None (writes results to the result_dir)
     """
+
+    # TODO: absolb all these intermediary files into a temporary directory
 
     # check that one was given a directory and not a file and it exists
     if not input_dir.is_dir():
@@ -516,23 +541,22 @@ def process_directory(
         reference_genomes_fp=path_to_files["reference_genomes_fp"],
     )
 
-    #####  PLACEHOLDER: for uploading S3 reference to SILO #####
-    # make new dir for upload_submissions
-    result_dir_submission = result_dir / "submission"
-    result_dir_submission.mkdir(parents=True, exist_ok=True)
-    # Placeholder s3 link
-    srLink = "s3://sr2silo01/silo_input.ndjson"
-    # make mock metadata.tsv file with the srLink with the header "submissionId | s3Link	| versionComment"
-    # and  one entry 001 | s3://sr2silo01/silo_input.ndjson | ""
-    submission_metadata_fp = result_dir_submission / "metadata.tsv"
-    with (submission_metadata_fp).open("w") as f:
-        f.write("submissionId\ts3Link\tversionComment\n")
-        f.write("001\t" + srLink + "\t\n")
-    logging.info(f"Submission metadata saved to: {submission_metadata_fp}")
+    #####   Compress & Upload to S3  #####
+    file_to_upload = result_dir_transformed / "silo_input.ndjson"
+    compressed_file = result_dir_transformed / "silo_input.ndjson.bz2"
+    logging.info(f"Compressing file: {file_to_upload}")
+    compress_file(file_to_upload, compressed_file)
+
+    #  Upload as generate a file name for the submission file, i.e. use the SAMPLE_ID
+    logging.info(f"Uploading to S3: {compressed_file}")
+    s3_file_name = f"{sample_id}.ndjson.bz2"
+    s3_bucket = "sr2silo01"
+    s3_link = f"s3://{s3_bucket}/{s3_file_name}"
+    upload_file_to_s3(compressed_file, s3_bucket, s3_file_name)
 
     ##### Submit S3 reference to SILO #####
     logging.info(f"Submitting to Loculus")
-    input_fp = submission_metadata_fp
+    input_fp = make_submission_file(result_dir, s3_link)
     username = "testuser"
     password = "testuser"
     group_id = 1
