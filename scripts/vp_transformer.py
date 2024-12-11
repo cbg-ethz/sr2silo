@@ -16,6 +16,7 @@ import silo_input_transformer
 from sr2silo.convert import bam_to_sam
 from sr2silo.lapis import submit
 from sr2silo.process import pair_normalize_reads
+from sr2silo.s3 import compress_file, upload_file_to_s3
 from sr2silo.translation import translate
 
 logging.basicConfig(
@@ -540,12 +541,22 @@ def process_directory(
         reference_genomes_fp=path_to_files["reference_genomes_fp"],
     )
 
-    #####   Upload to S3  #####
-    srLink = "s3://sr2silo01/silo_input.ndjson"
+    #####   Compress & Upload to S3  #####
+    file_to_upload = result_dir_transformed / "silo_input.ndjson"
+    compressed_file = result_dir_transformed / "silo_input.ndjson.bz2"
+    logging.info(f"Compressing file: {file_to_upload}")
+    compress_file(file_to_upload, compressed_file)
+
+    #  Upload as generate a file name for the submission file, i.e. use the SAMPLE_ID
+    logging.info(f"Uploading to S3: {compressed_file}")
+    s3_file_name = f"{sample_id}.ndjson.bz2"
+    s3_bucket = "sr2silo01"
+    s3_link = f"s3://{s3_bucket}/{s3_file_name}"
+    upload_file_to_s3(compressed_file, s3_bucket, s3_file_name)
 
     ##### Submit S3 reference to SILO #####
     logging.info(f"Submitting to Loculus")
-    input_fp = make_submission_file(result_dir, srLink)
+    input_fp = make_submission_file(result_dir, s3_link)
     username = "testuser"
     password = "testuser"
     group_id = 1
