@@ -16,11 +16,8 @@ def compress_file(input_file, output_file):
             shutil.copyfileobj(f_in, f_out)
 
 
-def upload_file_to_s3(file_name, bucket, object_name=None):
-    """Upload a file to an S3 bucket"""
-    # If S3 object_name was not specified, use file_name
-    if object_name is None:
-        object_name = file_name
+def get_s3_client():
+    """Get an S3 client using AWS credentials from environment variables."""
 
     # Get AWS credentials from environment variables
     aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
@@ -34,6 +31,18 @@ def upload_file_to_s3(file_name, bucket, object_name=None):
         aws_secret_access_key=aws_secret_access_key,
         region_name=aws_default_region,
     )
+
+    return s3_client
+
+
+def upload_file_to_s3(file_name, bucket, object_name=None):
+    """Upload a file to an S3 bucket"""
+    # If S3 object_name was not specified, use file_name
+    if object_name is None:
+        object_name = file_name
+
+    # get the s3 client
+    s3_client = get_s3_client()
 
     try:
         s3_client.upload_file(file_name, bucket, object_name)
@@ -55,18 +64,8 @@ def download_file_from_s3(bucket_name, object_name, file_name=None):
     if file_name is None:
         file_name = object_name
 
-    # Get AWS credentials from environment variables
-    aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
-    aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    aws_default_region = os.getenv("AWS_DEFAULT_REGION")
-
-    # Create an S3 client
-    s3_client = boto3.client(
-        "s3",
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-        region_name=aws_default_region,
-    )
+    # get the s3 client
+    s3_client = get_s3_client()
 
     try:
         s3_client.download_file(bucket_name, object_name, file_name)
@@ -82,18 +81,8 @@ def list_files_in_bucket(bucket_name):
         bucket_name (str): The name of the S3 bucket.
     """
 
-    # Get AWS credentials from environment variables
-    aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
-    aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    aws_default_region = os.getenv("AWS_DEFAULT_REGION")
-
-    # Create an S3 client
-    s3_client = boto3.client(
-        "s3",
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-        region_name=aws_default_region,
-    )
+    # get the s3 client
+    s3_client = get_s3_client()
 
     try:
         response = s3_client.list_objects_v2(Bucket=bucket_name)
