@@ -1,0 +1,17 @@
+services:
+  lapis:
+    image: ghcr.io/genspectrum/lapis:latest
+    ports:
+      - 8080:8080
+      - "127.0.0.1:8081:8081"
+    command: --silo.url=http://silo:8081
+    volumes:
+      - type: bind
+        source: database_config.yaml
+        target: /workspace/database_config.yaml
+        read_only: true
+      - type: bind
+        source: reference_genomes.json
+        target: /workspace/reference_genomes.json
+        read_only: true
+    stop_grace_period: 0s
