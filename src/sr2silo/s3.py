@@ -11,7 +11,7 @@ import boto3
 from botocore.exceptions import NoCredentialsError
 
 
-def compress_file(input_fp: Path, output_fp: Path) -> None:
+def compress_bz2(input_fp: Path, output_fp: Path) -> None:
     """Compress a file using BZ2 compression.
 
     Args:
