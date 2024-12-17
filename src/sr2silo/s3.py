@@ -2,17 +2,24 @@
 
 from __future__ import annotations
 
+import bz2
 import os
 import shutil
+from pathlib import Path
 
 import boto3
 from botocore.exceptions import NoCredentialsError
 
 
-def compress_file(input_file, output_file):
-    """Compress a file using BZ2 compression."""
-    with open(input_file, "rb") as f_in:
-        with open(output_file, "wb") as f_out:
+def compress_bz2(input_fp: Path, output_fp: Path) -> None:
+    """Compress a file using BZ2 compression.
+
+    Args:
+        input_fp (Path): Path to the input file.
+        output_fp (Path): Path to the output compressed file.
+    """
+    with open(input_fp, "rb") as f_in:
+        with bz2.BZ2File(output_fp, "wb") as f_out:
             shutil.copyfileobj(f_in, f_out)
 
 

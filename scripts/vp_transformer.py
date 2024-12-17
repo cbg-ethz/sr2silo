@@ -16,7 +16,7 @@ import silo_input_transformer
 from sr2silo.convert import bam_to_sam
 from sr2silo.lapis import submit
 from sr2silo.process import pair_normalize_reads
-from sr2silo.s3 import compress_file, upload_file_to_s3
+from sr2silo.s3 import compress_bz2, upload_file_to_s3
 from sr2silo.translation import translate
 
 logging.basicConfig(
@@ -545,7 +545,7 @@ def process_directory(
     file_to_upload = result_dir_transformed / "silo_input.ndjson"
     compressed_file = result_dir_transformed / "silo_input.ndjson.bz2"
     logging.info(f"Compressing file: {file_to_upload}")
-    compress_file(file_to_upload, compressed_file)
+    compress_bz2(file_to_upload, compressed_file)
 
     #  Upload as generate a file name for the submission file, i.e. use the SAMPLE_ID
     logging.info(f"Uploading to S3: {compressed_file}")
