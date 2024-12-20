@@ -133,6 +133,33 @@ def enrich_metadata_from_timeline(metadata: dict, timeline: Path) -> None:
             )
 
 
+def get_primer_protocol_name(primer_protocol: str, primers: Path) -> str:
+    """Get the name of the primer protocol from the primers file.
+
+    Args:
+        primer_protocol (str): The primer protocol short name.
+        primers (Path): The primers file to with the long, canonical name
+
+    Returns:
+        str: The long name of the primer protocol.
+    """
+    if not primers.is_file():
+        logging.error(f"Primers file not found or is not a file: {primers}")
+        raise FileNotFoundError(f"Primers file not found or is not a file: {primers}")
+
+    # Load YAML file
+    with primers.open() as f:
+        primers_conf = yaml.safe_load(f)
+
+    for primer in primers_conf.keys():
+        if primer == primer_protocol:
+            return primers_conf[primer]["name"]
+
+    raise ValueError(
+        f"No matching entry found in primers for primer_protocol {primer_protocol}"
+    )
+
+
 def get_metadata(sample_id: str, batch_id: str, timeline: Path, primers: Path) -> dict:
     """
     Get metadata for a given sample and batch directory.
@@ -163,27 +190,8 @@ def get_metadata(sample_id: str, batch_id: str, timeline: Path, primers: Path) -
 
     enrich_metadata_from_timeline(metadata, timeline)
 
-    # Read the primers yaml to get additional metadata
-    # find the key with matching primer_protocol and get the "name" value
-    # as the canonical name of the primer protocol
-    if not primers.is_file():
-        logging.error(f"Primers file not found or is not a file: {primers}")
-        raise FileNotFoundError(f"Primers file not found or is not a file: {primers}")
-    # Load YAML file
-    with open(primers, "r") as file:
-        primers_conf = yaml.safe_load(file)
-    logging.debug(f"Primers: {primers_conf}")
-    logging.debug(f" Type of primers: {type(primers_conf)}")
-    for primer in primers_conf.keys():
-        if primer == metadata["primer_protocol"]:
-            logging.info(
-                "Enriching metadata with primer data e.g. primer_protocol_name"
-            )
-            metadata["primer_protocol_name"] = primers_conf[primer]["name"]
-            break
-    else:
-        raise ValueError(
-            f"No matching entry found in primers for primer_protocol"
-            f"{metadata['primer_protocol']}"
-        )
+    metadata["primer_protocol_name"] = get_primer_protocol_name(
+        metadata["primer_protocol"], primers
+    )
+
     return metadata
