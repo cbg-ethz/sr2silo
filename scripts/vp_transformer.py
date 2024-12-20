@@ -18,7 +18,7 @@ from sr2silo.lapis import submit
 from sr2silo.process import pair_normalize_reads
 from sr2silo.s3 import compress_bz2, upload_file_to_s3
 from sr2silo.translation import translate
-from sr2silo.vpipe.metadata import batch_id_decoder, sample_id_decoder
+from sr2silo.vpipe.metadata import get_metadata
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -36,115 +36,6 @@ def load_config(config_file: Path) -> dict:
     except json.JSONDecodeError as e:
         logging.error(f"Error decoding JSON from config file: {config_file} - {e}")
         raise
-
-
-def convert_to_iso_date(date: str) -> str:
-    """Convert a date string to ISO 8601 format (date only)."""
-    # Parse the date string
-    date_obj = datetime.datetime.strptime(date, "%Y-%m-%d")
-    # Format the date as ISO 8601 (date only)
-    return date_obj.date().isoformat()
-
-
-def get_metadata(sample_id: str, batch_id: str, timeline: Path, primers: Path) -> dict:
-    """
-    Get metadata for a given sample and batch directory.
-    Cross-references the directory with the timeline file to get the metadata.
-
-    Args:
-        sample_id (str): The sample ID to use for metadata.
-        batch_id (str): The batch ID to use for metadata.
-        timeline (Path): The timeline file to cross-reference the metadata.
-        primers (Path): The primers file to cross-reference the metadata.
-
-    Returns:
-        dict: A dictionary containing the metadata.
-
-    """
-
-    metadata = {}
-    metadata["sample_id"] = sample_id
-    metadata["batch_id"] = batch_id
-
-    # Decompose the ids into individual components
-    logging.info(f"Decoding sample_id: {metadata['sample_id']}")
-    sample_id = metadata["sample_id"]
-    metadata.update(sample_id_decoder(sample_id))
-    logging.info(f"Decoding batch_id: {metadata['batch_id']}")
-    batch_id = metadata["batch_id"]
-    metadata.update(batch_id_decoder(batch_id))
-
-    # Read the timeline file to get additional metadata
-    # find row with matching sample_id and batch_id
-    # timline has headers:
-    #  sample_id	batch_id	read_length	primer_protocol	location_code	sampling_date	location_name
-    # get read length, primer protocol, location name
-    # double check if location code and location code are the same
-    if not timeline.is_file():
-        logging.error(f"Timeline file not found or is not a file: {timeline}")
-        raise FileNotFoundError(f"Timeline file not found or is not a file: {timeline}")
-    with timeline.open() as f:
-        reader = csv.reader(f, delimiter="\t")
-        for row in reader:
-            if row[0] == metadata["sample_id"] and row[1] == metadata["batch_id"]:
-                logging.info(
-                    f"Enriching metadata with timeline data e.g. read_length, primer_protocol, location_name"
-                )
-                metadata["read_length"] = row[2]
-                metadata["primer_protocol"] = row[3]
-                metadata["location_name"] = row[6]
-                # Convert sampling_date to ISO format for comparison
-                timeline_sampling_date = convert_to_iso_date(row[5])
-                if int(metadata["location_code"]) != int(row[4]):
-                    # output both location codes for comparison and their types for debugging
-                    logging.warning(
-                        f"Mismatch in location code for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
-                    )
-                    logging.debug(
-                        f"Location code mismatch: {metadata['location_code']} (sample_id) vs {row[4]} (timeline)"
-                    )
-                    logging.debug(
-                        f"Location code types: {type(metadata['location_code'])} (sample_id) vs {type(row[4])} (timeline)"
-                    )
-                if metadata["sampling_date"] != timeline_sampling_date:
-                    # output both sampling dates for comparison and their types for debugging
-                    logging.warning(
-                        f"Mismatch in sampling date for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
-                    )
-                    logging.debug(
-                        f"Sampling date mismatch: {metadata['sampling_date']} (sample_id) vs {timeline_sampling_date} (timeline)"
-                    )
-                    logging.debug(
-                        f"Sampling date types: {type(metadata['sampling_date'])} (sample_id) vs {type(timeline_sampling_date)} (timeline)"
-                    )
-                break
-        else:
-            raise ValueError(
-                f"No matching entry found in timeline for sample_id {metadata['sample_id']} and batch_id {metadata['batch_id']}"
-            )
-    # Read the primers yaml to get additional metadata
-    # find the key with matching primer_protocol and get the "name" value
-    # as the canonical name of the primer protocol
-    if not primers.is_file():
-        logging.error(f"Primers file not found or is not a file: {primers}")
-        raise FileNotFoundError(f"Primers file not found or is not a file: {primers}")
-    # Load YAML file
-    with open(primers, "r") as file:
-        primers_conf = yaml.safe_load(file)
-    logging.debug(f"Primers: {primers_conf}")
-    logging.debug(f" Type of primers: {type(primers_conf)}")
-    for primer in primers_conf.keys():
-        if primer == metadata["primer_protocol"]:
-            logging.info(
-                f"Enriching metadata with primer data e.g. primer_protocol_name"
-            )
-            metadata["primer_protocol_name"] = primers_conf[primer]["name"]
-            break
-    else:
-        raise ValueError(
-            f"No matching entry found in primers for primer_protocol {metadata['primer_protocol']}"
-        )
-    return metadata
 
 
 def wrangle_for_transformer(

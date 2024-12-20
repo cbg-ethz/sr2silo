@@ -1,9 +1,10 @@
 """Implement tests for the metadata extraction functions."""
 
-
 from __future__ import annotations
 
-from sr2silo.vpipe.metadata import batch_id_decoder, sample_id_decoder
+from pathlib import Path
+
+from sr2silo.vpipe.metadata import batch_id_decoder, get_metadata, sample_id_decoder # noqa: F401
 
 
 def test_sample_id_decoder():
@@ -27,3 +28,32 @@ def test_batch_id_decoder():
         "flow_cell_serial_number": "AAG55WNM5",
     }
     assert result == expected
+
+
+def test_get_metadata():
+    """Test the get_metadata function."""
+
+    metadata = get_metadata(
+        sample_id="A1_05_2024_10_08",
+        batch_id="20241024_2411515907",
+        timeline=Path("tests/data/samples/timeline_A1_05_2024_10_08.tsv"),
+        primers=Path("tests/data/samples/primers.yaml"),
+    )
+
+    print(metadata)
+
+    expected_metadata = {
+        "sample_id": "A1_05_2024_10_08",
+        "batch_id": "20241024_2411515907",
+        "sequencing_well_position": "A1",
+        "location_code": "05",
+        "sampling_date": "2024-10-08",
+        "sequencing_date": "2024-10-24",
+        "flow_cell_serial_number": "2411515907",
+        "read_length": "250",
+        "primer_protocol": "v532",
+        "location_name": "Lugano (TI)",
+        "primer_protocol_name": "SARS-CoV-2 ARTIC V5.3.2",
+    }
+
+    assert metadata == expected_metadata
