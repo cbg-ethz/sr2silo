@@ -100,5 +100,7 @@ jobs:
         env:
           CI: true
         run: |
-          docker-compose up --build
+          set -e
+          docker-compose --env-file .env up --build || exit_code=$?
           docker-compose down
+          exit $exit_code
