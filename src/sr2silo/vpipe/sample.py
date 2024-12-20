@@ -23,7 +23,7 @@ class Sample:
         self.primers: Path | None = None
 
     def __str__(self) -> str:
-        return f"Sample(sample_id={self.sample_id}, batch_id={self.batch_id}"
+        return f"Sample(sample_id={self.sample_id}, batch_id={self.batch_id})"
 
     def enrich_metadata(self, timeline: Path, primers: Path) -> None:
         """Enrich the sample metadata with additional information.
