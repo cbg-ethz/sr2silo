@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sr2silo.vpipe.metadata import batch_id_decoder, get_metadata, sample_id_decoder # noqa: F401
+from sr2silo.vpipe.metadata import batch_id_decoder, get_metadata, sample_id_decoder
 
 
 def test_sample_id_decoder():

@@ -27,7 +27,7 @@ mkdocstrings = { extras = ["python"], version = "^0.21.2" }
 mkdocs-gen-files = "^0.4.0"
 mkdocs-literate-nav = "^0.6.0"
 setuptools = "^74.1.2"
-moto = {extras = ["all", "ec2", "s3"], version = "^5.0.22"}
+moto = { extras = ["all", "ec2", "s3"], version = "^5.0.22" }
 
 [tool.coverage.report]
 fail_under = 85.0
@@ -71,3 +71,6 @@ exclude = '''
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
