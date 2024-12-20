@@ -178,15 +178,15 @@ def get_metadata(sample_id: str, batch_id: str, timeline: Path, primers: Path) -
         raise FileNotFoundError(f"Primers file not found or is not a file: {primers}")
     # Load YAML file
     with open(primers, "r") as file:
-        primers = yaml.safe_load(file)
-    logging.debug(f"Primers: {primers}")
-    logging.debug(f" Type of primers: {type(primers)}")
-    for primer in primers.keys():
+        primers_conf = yaml.safe_load(file)
+    logging.debug(f"Primers: {primers_conf}")
+    logging.debug(f" Type of primers: {type(primers_conf)}")
+    for primer in primers_conf.keys():
         if primer == metadata["primer_protocol"]:
             logging.info(
                 f"Enriching metadata with primer data e.g. primer_protocol_name"
             )
-            metadata["primer_protocol_name"] = primers[primer]["name"]
+            metadata["primer_protocol_name"] = primers_conf[primer]["name"]
             break
     else:
         raise ValueError(
@@ -416,7 +416,7 @@ def transform_to_ndjson(
 
     # run the silo_input_transformer with the trafo_config.yaml file
     logging.info(f"Running silo_input_transformer with config: {trafo_config_fp}")
-    silo_input_transformer.run_with_config(str(trafo_config_fp))
+    silo_input_transformer.run_with_config(str(trafo_config_fp))  # type: ignore
     logging.info(f"Results saved to: {output_dir}")
     return None
 
