@@ -43,7 +43,7 @@ def batch_id_decoder(batch_id: str) -> dict:
 
     Returns:
         dict: A dictionary contains the decoded components.
-              containing the following keys:
+              dict: A dictionary contains the decoded components.
                 - sequencing_date (str : date of the sequencing)
                 - flow_cell_serial_number (str : serial number of the flow cell)
     """
