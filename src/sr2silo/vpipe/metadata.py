@@ -67,7 +67,7 @@ def convert_to_iso_date(date: str) -> str:
     return date_obj.date().isoformat()
 
 
-def enrich_metadata_from_timeline(metadata: dict, timeline: Path) -> None:
+def enrich_metadata_from_timeline(metadata: dict[str, str], timeline: Path) -> None:
     """Enrich metadata from the timeline file."""
     if not timeline.is_file():
         logging.error(f"Timeline file not found or is not a file: {timeline}")
@@ -160,7 +160,9 @@ def get_primer_protocol_name(primer_protocol: str, primers: Path) -> str:
     )
 
 
-def get_metadata(sample_id: str, batch_id: str, timeline: Path, primers: Path) -> dict:
+def get_metadata(
+    sample_id: str, batch_id: str, timeline: Path, primers: Path
+) -> dict[str, str]:
     """
     Get metadata for a given sample and batch directory.
     Cross-references the directory with the timeline file to get the metadata.

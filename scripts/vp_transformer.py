@@ -18,7 +18,7 @@ from sr2silo.lapis import submit
 from sr2silo.process import pair_normalize_reads
 from sr2silo.s3 import compress_bz2, upload_file_to_s3
 from sr2silo.translation import translate
-from sr2silo.vpipe.metadata import get_metadata
+from sr2silo.vpipe import Sample
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -328,7 +328,9 @@ def process_directory(
         raise FileNotFoundError(f"Input file not found: {sample_fp}")
 
     ##### Get Sample and Batch metadata and write to a file #####
-    metadata = get_metadata(sample_id, batch_id, timeline_file, primers_file)
+    sample_to_process = Sample(sample_id, batch_id)
+    sample_to_process.enrich_metadata(timeline_file, primers_file)
+    metadata = sample_to_process.get_metadata()
     # add nextclade reference to metadata
     metadata["nextclade_reference"] = nextclade_reference
     metadata_file = result_dir / "metadata.json"

@@ -5,6 +5,6 @@
 
 from __future__ import annotations
 
-from sr2silo.vpipe.metadata import batch_id_decoder, sample_id_decoder
+from sr2silo.vpipe.sample import Sample
 
-__all__ = ["sample_id_decoder", "batch_id_decoder"]
+__all__ = ["Sample"]
