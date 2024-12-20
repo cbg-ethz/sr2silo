@@ -73,7 +73,7 @@ $ pytest
 
 ### [WIP]: Run V-Pipe to SILO Transformation
 This is currently implemented as script and under heavy development.
-To run, we recommend a build as a docker compsoe as it relies on other RUST components.
+To run, we recommend a build as a docker compose as it relies on other RUST components.
 
 #### Configuration
 
