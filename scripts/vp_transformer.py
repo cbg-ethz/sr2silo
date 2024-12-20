@@ -178,15 +178,15 @@ def get_metadata(sample_id: str, batch_id: str, timeline: Path, primers: Path) -
         raise FileNotFoundError(f"Primers file not found or is not a file: {primers}")
     # Load YAML file
     with open(primers, "r") as file:
-        primers = yaml.safe_load(file)
-    logging.debug(f"Primers: {primers}")
-    logging.debug(f" Type of primers: {type(primers)}")
-    for primer in primers.keys():
+        primers_conf = yaml.safe_load(file)
+    logging.debug(f"Primers: {primers_conf}")
+    logging.debug(f" Type of primers: {type(primers_conf)}")
+    for primer in primers_conf.keys():
         if primer == metadata["primer_protocol"]:
             logging.info(
                 f"Enriching metadata with primer data e.g. primer_protocol_name"
             )
-            metadata["primer_protocol_name"] = primers[primer]["name"]
+            metadata["primer_protocol_name"] = primers_conf[primer]["name"]
             break
     else:
         raise ValueError(
@@ -201,7 +201,7 @@ def wrangle_for_transformer(
     fasta_file: Path,
     insertions_file: Path,
     metadata_file: Path,
-    database_config: Path,
+    database_config_fp: Path,
 ) -> dict[str, Path]:
     """Wrangle the sequences to the format required by the silo_input_transformer.
 
@@ -217,7 +217,7 @@ def wrangle_for_transformer(
         insertions_file (Path): The tsv file containing the nucleotide insertions.
         metadata_file (Path): The metadata json file containing the per sequencing run metadata,
                               that is copied for each read_id in the output.
-        database_config (Path): The database configuration file containing the
+        database_config_fp (Path): The database configuration file containing the
                                 schema for the metadata, has to match the
                                 metadata keys in the metadata.json file but the
                                 read_id key is not in the schema.
@@ -227,7 +227,7 @@ def wrangle_for_transformer(
                          created during the wrangling process.
 
                          metadata_fp: metadata.tsv
-                         database_config_fp: database_config.yaml
+                         database_config_new_fp: database_config.yaml
                          reference_genomes_fp: reference_genomes.json
     """
 
@@ -314,7 +314,7 @@ def wrangle_for_transformer(
         metadata = json.load(f)
     # validate that the meatdata keys are the same as defined in the database_config.yaml file as schema /metadata /name
     # if not raise an error
-    with database_config.open() as f:
+    with database_config_fp.open() as f:
         database_schema = yaml.safe_load(f)
     metadata_keys = set(metadata.keys())
     schema_keys = set([item["name"] for item in database_schema["schema"]["metadata"]])
@@ -344,7 +344,7 @@ def wrangle_for_transformer(
     # get the database_config.yaml file and write it to the nextclade directory
     # copy over the scripts/database_config.yaml file to the nextclade directory
     nextclade_database_config = output_dir / "database_config.yaml"
-    with database_config.open() as f:
+    with database_config_fp.open() as f:
         database_config = f.read()
     with nextclade_database_config.open("w") as f:
         f.write(database_config)
@@ -371,14 +371,10 @@ def wrangle_for_transformer(
         f.write(nuc_main_data)
 
     logging.info(f"Results saved to: {output_dir}")
-    # return the paths to
-    #    metadata_fp=metadata_tsv,
-    #    database_config_fp=nextclade_database_config,
-    #    reference_genomes_fp=reference_genome,
 
     path_to_files = {
         "metadata_fp": metadata_tsv,
-        "database_config_fp": nextclade_database_config,
+        "database_config_new_fp": nextclade_database_config,
         "reference_genomes_fp": reference_genome,
     }
 
@@ -420,7 +416,7 @@ def transform_to_ndjson(
 
     # run the silo_input_transformer with the trafo_config.yaml file
     logging.info(f"Running silo_input_transformer with config: {trafo_config_fp}")
-    silo_input_transformer.run_with_config(str(trafo_config_fp))
+    silo_input_transformer.run_with_config(str(trafo_config_fp))  # type: ignore
     logging.info(f"Results saved to: {output_dir}")
     return None
 
@@ -524,7 +520,7 @@ def process_directory(
         fasta_file=fasta_file,
         insertions_file=insertions_file,
         metadata_file=metadata_file,
-        database_config=database_config,
+        database_config_fp=database_config,
     )
 
     ###### Transform to NDJSON ######
@@ -537,7 +533,7 @@ def process_directory(
         trafo_config_fp=result_dir / "trafo_config.yaml",
         output_dir=result_dir_transformed,
         metadata_fp=path_to_files["metadata_fp"],
-        database_config_fp=path_to_files["database_config_fp"],
+        database_config_fp=path_to_files["database_config_new_fp"],
         reference_genomes_fp=path_to_files["reference_genomes_fp"],
     )
 
