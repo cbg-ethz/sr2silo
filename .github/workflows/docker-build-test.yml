@@ -97,7 +97,7 @@ jobs:
 
 
       - name: Run Docker Compose
-        run: docker-compose --env-file .env up -d
+        run: docker-compose --env-file .env up
 
       - name: Tear down Docker Compose
         run: docker-compose down
