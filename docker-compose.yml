@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   sr2silo:
     build: .
@@ -7,7 +9,7 @@ services:
       - ${PRIMER_FILE}:/app/primers.yaml
       - ${RESULTS_DIR}:/app/results
       - ./scripts/database_config.yaml:/app/scripts/database_config.yaml
-      - ./scripts/reference_genomes.json:/app/scripts/- ./scripts/database_config.yaml:/app/scripts/reference_genomes.json
+      - ./scripts/reference_genomes.json:/app/scripts/reference_genomes.json
     environment:
       - PYTHONUNBUFFERED=1
       - SAMPLE_DIR=${SAMPLE_DIR}
@@ -16,9 +18,18 @@ services:
       - TIMELINE_FILE=${TIMELINE_FILE}
       - PRIMER_FILE=${PRIMER_FILE}
       - RESULTS_DIR=${RESULTS_DIR}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+    secrets:
+      - aws_access_key_id
+      - aws_secret_access_key
+      - aws_default_region
+
+secrets:
+  aws_access_key_id:
+    file: ./secrets/aws_access_key_id.txt
+  aws_secret_access_key:
+    file: ./secrets/aws_secret_access_key.txt
+  aws_default_region:
+    file: ./secrets/aws_default_region.txt
 
 volumes:
   results:

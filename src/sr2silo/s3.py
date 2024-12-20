@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import bz2
-import os
 import shutil
 from pathlib import Path
 
@@ -23,13 +22,34 @@ def compress_bz2(input_fp: Path, output_fp: Path) -> None:
             shutil.copyfileobj(f_in, f_out)
 
 
+def get_aws_credentials():
+    """Get AWS credentials from Docker secrets.
+
+    Returns:
+        Tuple[str, str, str]: AWS access key ID, AWS secret access key,
+        and AWS default region.
+
+    Raises:
+        RuntimeError: If any of the required secrets are missing.
+    """
+    try:
+        with open("/run/secrets/aws_access_key_id") as f:
+            aws_access_key_id = f.read().strip()
+        with open("/run/secrets/aws_secret_access_key") as f:
+            aws_secret_access_key = f.read().strip()
+        with open("/run/secrets/aws_default_region") as f:
+            aws_default_region = f.read().strip()
+    except FileNotFoundError as e:
+        raise RuntimeError("Required secret is missing: " + str(e))
+
+    return aws_access_key_id, aws_secret_access_key, aws_default_region
+
+
 def get_s3_client():
     """Get an S3 client using AWS credentials from environment variables."""
 
     # Get AWS credentials from environment variables
-    aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
-    aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    aws_default_region = os.getenv("AWS_DEFAULT_REGION")
+    aws_access_key_id, aws_secret_access_key, aws_default_region = get_aws_credentials()
 
     # Create an S3 client
     s3_client = boto3.client(

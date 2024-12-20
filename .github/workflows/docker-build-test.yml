@@ -42,10 +42,62 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Create .env file
+        run: |
+          echo SAMPLE_DIR=${{ secrets.SAMPLE_DIR }} >> .env
+          echo SAMPLE_ID=${{ secrets.SAMPLE_ID }} >> .env
+          echo BATCH_ID=${{ secrets.BATCH_ID }} >> .env
+          echo TIMELINE_FILE=${{ secrets.TIMELINE_FILE }} >> .env
+          echo PRIMER_FILE=${{ secrets.PRIMER_FILE }} >> .env
+          echo NEXTCLADE_REFERENCE=${{ secrets.NEXTCLADE_REFERENCE }} >> .env
+          echo RESULTS_DIR=${{ secrets.RESULTS_DIR }} >> .env
+          echo AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} >> .env
+          echo AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} >> .env
+          echo AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }} >> .env
+
       - name: Build Docker image
-        run: docker-compose --env-file docker-compose.env build
+        run: docker-compose --env-file .env build
 
       - name: Push to DockerHub
         if: github.ref == 'refs/heads/main'
         run: |
           docker-compose push
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version
+
+      - name: Create .env file
+        run: |
+          echo SAMPLE_DIR=${{ secrets.SAMPLE_DIR }} >> .env
+          echo SAMPLE_ID=${{ secrets.SAMPLE_ID }} >> .env
+          echo BATCH_ID=${{ secrets.BATCH_ID }} >> .env
+          echo TIMELINE_FILE=${{ secrets.TIMELINE_FILE }} >> .env
+          echo PRIMER_FILE=${{ secrets.PRIMER_FILE }} >> .env
+          echo NEXTCLADE_REFERENCE=${{ secrets.NEXTCLADE_REFERENCE }} >> .env
+          echo RESULTS_DIR=${{ secrets.RESULTS_DIR }} >> .env
+
+
+      - name: Create Docker secrets files
+        run: |
+          mkdir -p ./secrets
+          echo "${{ secrets.AWS_ACCESS_KEY_ID }}" > ./secrets/aws_access_key_id.txt
+          echo "${{ secrets.AWS_SECRET_ACCESS_KEY }}" > ./secrets/aws_secret_access_key.txt
+          echo "${{ secrets.AWS_DEFAULT_REGION }}" > ./secrets/aws_default_region.txt
+
+
+      - name: Run Docker Compose
+        run: docker-compose --env-file .env up
+
+      - name: Tear down Docker Compose
+        run: docker-compose down
