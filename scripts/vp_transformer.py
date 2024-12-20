@@ -18,7 +18,7 @@ from sr2silo.lapis import submit
 from sr2silo.process import pair_normalize_reads
 from sr2silo.s3 import compress_bz2, upload_file_to_s3
 from sr2silo.translation import translate
-from sr2silo.vpipe.metadata import sample_id_decoder
+from sr2silo.vpipe.metadata import batch_id_decoder, sample_id_decoder
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -36,30 +36,6 @@ def load_config(config_file: Path) -> dict:
     except json.JSONDecodeError as e:
         logging.error(f"Error decoding JSON from config file: {config_file} - {e}")
         raise
-
-
-def batch_id_decoder(batch_id: str) -> dict:
-    """Decode the batch ID into individual components.
-
-    Args:
-        batch_id (str): The batch ID to decode.
-
-    Returns:
-        dict: A dictionary containing the decoded components.
-              containing the following keys:
-                - sequencing_date (str : date of the sequencing)
-                - flow_cell_serial_number (str : serial number of the flow cell)
-    """
-    components = batch_id.split("_")
-    # Assign components to meaningful variable names
-    sequencing_date = (
-        f"{components[0][:4]}-{components[0][4:6]}-{components[0][6:]}"  # 2024-10-18
-    )
-    flow_cell_serial_number = components[1]  # AAG55WNM5
-    return {
-        "sequencing_date": sequencing_date,
-        "flow_cell_serial_number": flow_cell_serial_number,
-    }
 
 
 def convert_to_iso_date(date: str) -> str:
