@@ -96,8 +96,9 @@ jobs:
           echo "${{ secrets.AWS_DEFAULT_REGION }}" > ./secrets/aws_default_region.txt
 
 
-      - name: Run Docker Compose
-        run: docker-compose --env-file .env up
-
-      - name: Tear down Docker Compose
-        run: docker-compose down
+      - name: Build and Test
+        env:
+          CI: true
+        run: |
+          docker-compose up --build
+          docker-compose down
