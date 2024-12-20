@@ -43,7 +43,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker image
-        run: docker-compose --env-file docker-compose.env build
+        run: docker-compose --env-file .env build
 
       - name: Push to DockerHub
         if: github.ref == 'refs/heads/main'

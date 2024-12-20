@@ -71,7 +71,48 @@ $ poetry shell
 $ pytest
 ```
 
-#### Tool Sections
+### [WIP]: Run V-Pipe to SILO Transformation
+This is currently implemented as script and under heavy development.
+To run, we recommend a build as a docker compsoe as it relies on other RUST components.
+
+#### Configuration
+
+Edit the `docker-compose.env` file in the `docker-compose` directory with the following paths:
+
+```env
+SAMPLE_DIR=../../../data/sr2silo/daemon_test/samples/A1_05_2024_10_08/20241024_2411515907/alignments/
+SAMPLE_ID=A1_05_2024_10_08
+BATCH_ID=20241024_2411515907
+TIMELINE_FILE=../../../data/sr2silo/daemon_test/timeline.tsv
+NEXTCLADE_REFERENCE=sars-cov2
+RESULTS_DIR=./results
+```
+
+
+#### Docker Secrets
+To upload the processed outputs S3 storage is required.
+
+For sensitive information like AWS credentials, use Docker secrets. Create the following files in the secrets directory:
+
+- secrets/aws_access_key_id.txt:
+```YourAWSAccessKeyId````
+
+- secrets/aws_secret_access_key.txt:
+```YourAWSSecretAccessKey````
+
+- secrets/aws_default_region.txt:
+```YourAWSRegion```
+
+#### Run Transformation
+
+To process a single sample, run the following command:
+
+```sh
+docker-compose --env-file .env up --build
+```
+
+
+### Tool Sections
 The code quality checks run on GitHub can be seen in
  - ``.github/workflows/test.yml`` for the python package CI/CD,
 
