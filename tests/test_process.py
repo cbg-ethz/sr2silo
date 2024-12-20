@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess
-
 from sr2silo.process import pair_normalize_reads, parse_cigar
 
 
@@ -97,47 +95,6 @@ def test_pair_normalize_reads(sam_data, temp_dir):
 
     # Pipe the SAM data to the function as stdin
     pair_normalize_reads(sam_data, out_fasta, out_insertions)
-
-    # Check the output files for expected content
-    with open(out_fasta, "r") as fasta_file:
-        fasta_content = fasta_file.read()
-    with open(out_insertions, "r") as insertions_file:
-        insertions_content = insertions_file.read()
-
-    # Load the actual expected content from the files
-    with open("tests/data/merged_expected.fasta", "r") as expected_fasta_file:
-        expected_fasta_content = expected_fasta_file.read()
-    with open(
-        "tests/data/nuc_insertions_expected.txt", "r"
-    ) as expected_insertions_file:
-        expected_insertions_content = expected_insertions_file.read()
-
-    assert (
-        fasta_content == expected_fasta_content
-    ), f"Expected {expected_fasta_content}, but got {fasta_content}"
-    assert (
-        insertions_content == expected_insertions_content
-    ), f"Expected {expected_insertions_content}, but got {insertions_content}"
-
-
-# TODO: add different SAM data for testing
-def test_pair_normalize_reads_to_script(sam_data, temp_dir):
-    """Test the pair_normalize_reads function against the script output."""
-
-    # copy script to temp dir
-    subprocess.run(["cp", "scripts/dgicev/read.py", temp_dir])
-
-    out_fasta = temp_dir / "merged.fasta"
-    out_insertions = temp_dir / "nuc_insertions.txt"
-
-    # Run the script with the SAM data as input in the temp dir
-    subprocess.run(
-        ["python", temp_dir / "read.py"],
-        input=sam_data,
-        capture_output=True,
-        text=True,
-        cwd=temp_dir,
-    )
 
     # Check the output files for expected content
     with open(out_fasta, "r") as fasta_file:
