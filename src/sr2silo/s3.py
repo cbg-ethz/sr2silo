@@ -62,14 +62,14 @@ def get_s3_client():
     return s3_client
 
 
-def upload_file_to_s3(file_name, bucket, object_name=None):
+def upload_file_to_s3(file_name, bucket, object_name=None, client=None):
     """Upload a file to an S3 bucket"""
     # If S3 object_name was not specified, use file_name
     if object_name is None:
         object_name = file_name
 
-    # get the s3 client
-    s3_client = get_s3_client()
+    # If client was given, use it; otherwise, get the s3 client
+    s3_client = client if client else get_s3_client()
 
     try:
         s3_client.upload_file(file_name, bucket, object_name)
