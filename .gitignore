@@ -136,3 +136,6 @@ poetry.lock
 
 # Output folder
 output
+
+# Secret files
+secrets

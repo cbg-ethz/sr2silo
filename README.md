@@ -94,13 +94,15 @@ To upload the processed outputs S3 storage is required.
 
 For sensitive information like AWS credentials, use Docker secrets. Create the following files in the secrets directory:
 
-- secrets/aws_access_key_id.txt:
-```YourAWSAccessKeyId````
+- `secrets/aws_access_key_id.txt`:
 
-- secrets/aws_secret_access_key.txt:
-```YourAWSSecretAccessKey````
+```YourAWSAccessKeyId```
 
-- secrets/aws_default_region.txt:
+- `secrets/aws_secret_access_key.txt`:
+
+```YourAWSSecretAccessKey```
+
+- `secrets/aws_default_region.txt`:
 ```YourAWSRegion```
 
 #### Run Transformation
