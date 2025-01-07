@@ -99,10 +99,7 @@ jobs:
 
 
       - name: Build and Test
-        env:
-          CI: true
-        run: |
-          set -e
+        run:
           docker-compose --env-file .env up --build
         continue-on-error: true
 
