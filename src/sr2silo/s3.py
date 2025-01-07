@@ -65,8 +65,17 @@ def get_s3_client():
     return s3_client
 
 
-def upload_file_to_s3(file_name, bucket, object_name=None, client=None):
-    """Upload a file to an S3 bucket"""
+def upload_file_to_s3(file_name, bucket, object_name=None, client=None) -> bool:
+    """Upload a file to an S3 bucket
+
+    Args:
+        file_name (str): Path to the file to upload.
+        bucket (str): Bucket to upload to.
+        object_name (str, optional): S3 object name.
+
+    Returns:
+        bool: True if the file was uploaded successfully, False otherwise.
+    """
     # If S3 object_name was not specified, use file_name
     if object_name is None:
         object_name = file_name
