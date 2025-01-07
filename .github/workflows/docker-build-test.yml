@@ -86,7 +86,6 @@ jobs:
           echo PRIMER_FILE=${{ secrets.PRIMER_FILE }} >> .env
           echo NEXTCLADE_REFERENCE=${{ secrets.NEXTCLADE_REFERENCE }} >> .env
           echo RESULTS_DIR=${{ secrets.RESULTS_DIR }} >> .env
-          echo CI=true >> .env
 
 
 

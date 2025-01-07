@@ -6,6 +6,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import os
 from pathlib import Path
 
 import click
@@ -439,6 +440,12 @@ def main(
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
     logging.info(f"Using database_config: {database_config}")
+
+    # check CI env variabels - if set print log message
+    if "CI" in os.environ:
+        logging.info(
+            "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
+        )
 
     process_directory(
         input_dir=Path("sample"),
