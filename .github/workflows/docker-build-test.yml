@@ -102,11 +102,16 @@ jobs:
         run: |
           set -e
           docker-compose --env-file .env up --build
-        continue-on-error: true # Allow the job to continue even if the Docker run fails
+        continue-on-error: true
 
-      - name: Check Docker exit code
+      - name: Capture Docker Compose exit code
         run: |
-          if [ $? -ne 0 ]; then
-            echo "Docker container exited with non-zero code. Failing the job."
+          echo "Docker Compose exit code: $?"
+          echo "::set-output name=docker_compose_exit_code::$?"
+
+      - name: Check Docker Compose exit code
+        run: |
+          if [[ ${{ steps.Capture_Docker_Compose_exit_code.outputs.docker_compose_exit_code }} -ne 0 ]]; then
+            echo "Docker Compose exited with non-zero code. Failing the job."
             exit 1
           fi
