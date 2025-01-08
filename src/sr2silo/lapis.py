@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 import csv
+import logging
+import os
 import tempfile
 from pathlib import Path
 
 import requests
+
+# Check if running in CI environment
+is_CI = os.getenv("CI")
 
 # TODO: move to environment variables
 KEYCLOAK_TOKEN_URL = (
@@ -120,5 +125,10 @@ def submit(input_fp: Path, username: str, password: str, group_id: int) -> None:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as fasta_file:
         fasta_file.write(placeholder_fasta_str.encode("utf-8"))
         placeholder_tmp_path = fasta_file.name
+
+    # If running in CI, skip the submission
+    if is_CI:
+        logging.info("Running in CI environment, mocking S3 upload with moto.")
+        return None
 
     _submit(authentication_token, group_id, str(input_fp), placeholder_tmp_path)

@@ -4,9 +4,9 @@
 from __future__ import annotations
 
 import csv
-import datetime
 import json
 import logging
+import os
 from pathlib import Path
 
 import click
@@ -421,6 +421,12 @@ def process_directory(
     default="sars-cov-2",
     help="Nextclade reference.",
 )
+@click.option(
+    "--ci",
+    envvar="CI",
+    default="false",
+    help="Running in CI environment, skip S3 upload and LAPIS submission.",
+)
 def main(
     sample_dir,
     sample_id,
@@ -430,6 +436,7 @@ def main(
     primer_file,
     nextclade_reference,
     database_config: Path = Path("scripts/database_config.yaml"),
+    ci: bool = False,
 ):
     """Process a sample directory."""
     logging.info(f"Processing sample directory: {sample_dir}")
@@ -440,6 +447,11 @@ def main(
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
     logging.info(f"Using database_config: {database_config}")
+
+    if ci:
+        logging.info(
+            "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
+        )
 
     process_directory(
         input_dir=Path("sample"),

@@ -88,6 +88,7 @@ jobs:
           echo RESULTS_DIR=${{ secrets.RESULTS_DIR }} >> .env
 
 
+
       - name: Create Docker secrets files
         run: |
           mkdir -p ./secrets
@@ -95,9 +96,13 @@ jobs:
           echo "${{ secrets.AWS_SECRET_ACCESS_KEY }}" > ./secrets/aws_secret_access_key.txt
           echo "${{ secrets.AWS_DEFAULT_REGION }}" > ./secrets/aws_default_region.txt
 
+      - name: Build and Test
+        env:
+          CI: true
+        run: |
+          docker-compose --env-file .env up --build --abort-on-container-exit|| exit_code=$?
 
-      - name: Run Docker Compose
-        run: docker-compose --env-file .env up
-
-      - name: Tear down Docker Compose
-        run: docker-compose down
+          if [ "$exit_code" -ne 0 ]; then
+            echo "Docker Compose exited with code $exit_code"
+            exit $exit_code
+          fi

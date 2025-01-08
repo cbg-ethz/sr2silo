@@ -18,6 +18,7 @@ services:
       - TIMELINE_FILE=${TIMELINE_FILE}
       - PRIMER_FILE=${PRIMER_FILE}
       - RESULTS_DIR=${RESULTS_DIR}
+      - CI=${CI}
     secrets:
       - aws_access_key_id
       - aws_secret_access_key

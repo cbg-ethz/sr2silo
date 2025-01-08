@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import bz2
+import logging
+import os
 import shutil
 from pathlib import Path
 
 import boto3
 from botocore.exceptions import NoCredentialsError
+from moto import mock_aws
+
+# Check if running in CI environment
+is_CI = os.getenv("CI")
 
 
 def compress_bz2(input_fp: Path, output_fp: Path) -> None:
@@ -62,14 +68,32 @@ def get_s3_client():
     return s3_client
 
 
-def upload_file_to_s3(file_name, bucket, object_name=None):
-    """Upload a file to an S3 bucket"""
+def upload_file_to_s3(file_name, bucket, object_name=None, client=None) -> bool:
+    """Upload a file to an S3 bucket
+
+    Args:
+        file_name (str): Path to the file to upload.
+        bucket (str): Bucket to upload to.
+        object_name (str, optional): S3 object name.
+
+    Returns:
+        bool: True if the file was uploaded successfully, False otherwise.
+    """
     # If S3 object_name was not specified, use file_name
     if object_name is None:
         object_name = file_name
 
-    # get the s3 client
-    s3_client = get_s3_client()
+    # If running in CI, mock the S3 upload
+    if is_CI:
+        logging.info("Running in CI environment, mocking S3 upload with moto.")
+        with mock_aws():
+            s3_client = boto3.client("s3", region_name="us-east-1")
+            s3_client.create_bucket(Bucket=bucket)
+            s3_client.upload_file(file_name, bucket, object_name or file_name)
+            return True
+
+    # If client was given, use it; otherwise, get the s3 client
+    s3_client = client if client else get_s3_client()
 
     try:
         s3_client.upload_file(file_name, bucket, object_name)
