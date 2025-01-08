@@ -100,4 +100,5 @@ jobs:
         env:
           CI: true
         run: |
-          docker-compose --env-file .env up --build || exit 1
+          set -e
+          docker-compose --env-file .env up --build
