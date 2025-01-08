@@ -344,6 +344,9 @@ def process_directory(
     bam_file = sample_fp
     sam_data = bam_to_sam(bam_file)
 
+    # make error to test the CI
+    raise ValueError("Test error")
+
     ##### Process SAM to FASTA #####
     logging.info(f"Processing SAM to FASTA (pair, merge, and normalize reads)")
     fasta_file = result_dir / "reads.fasta"
