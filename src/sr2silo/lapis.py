@@ -10,6 +10,9 @@ from pathlib import Path
 
 import requests
 
+# Check if running in CI environment
+is_CI = os.getenv("CI")
+
 # TODO: move to environment variables
 KEYCLOAK_TOKEN_URL = (
     "https:"
@@ -124,7 +127,7 @@ def submit(input_fp: Path, username: str, password: str, group_id: int) -> None:
         placeholder_tmp_path = fasta_file.name
 
     # If running in CI, skip the submission
-    if os.getenv("CI"):
+    if is_CI:
         logging.info("Running in CI environment, mocking S3 upload with moto.")
         return None
 
