@@ -101,4 +101,9 @@ jobs:
           CI: true
         run: |
           set -e
-          docker-compose --env-file .env up --build
+          docker-compose --env-file .env up --build || exit_code=$?
+
+          if [ "$exit_code" -ne 0 ]; then
+            echo "Docker Compose exited with code $exit_code"
+            exit $exit_code
+          fi
