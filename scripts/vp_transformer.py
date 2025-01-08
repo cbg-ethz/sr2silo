@@ -312,10 +312,6 @@ def process_directory(
         None (writes results to the result_dir)
     """
 
-    raise ValueError(
-        "This test is failing, so I'm raising an exception to see what happens"
-    )
-
     # TODO: absolb all these intermediary files into a temporary directory
 
     # check that one was given a directory and not a file and it exists
