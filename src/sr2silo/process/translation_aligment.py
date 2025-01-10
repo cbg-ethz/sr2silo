@@ -1,5 +1,4 @@
-"""This module contains the logic to translate consensus nuclotides to
-    amino acid sequences."""
+"""Implements the translation of nucleotide alignments to amino acid alignments."""
 
 from __future__ import annotations
 
@@ -10,6 +9,7 @@ from pathlib import Path
 from typing import List
 
 
+# TODO: remove for translate_align()
 def translate(
     input_files: List[Path], result_dir: Path, nextclade_reference: str
 ) -> None:

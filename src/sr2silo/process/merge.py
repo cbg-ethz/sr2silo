@@ -1,5 +1,4 @@
-"""This module contains the main functions for processing the data.
-"""
+"""Implements the read pairing and normalization of the reads."""
 
 from __future__ import annotations
 
