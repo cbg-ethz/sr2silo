@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import bz2
 import logging
-import os
 import shutil
 from pathlib import Path
 
@@ -12,8 +11,7 @@ import boto3
 from botocore.exceptions import NoCredentialsError
 from moto import mock_aws
 
-# Check if running in CI environment
-is_CI = os.getenv("CI")
+from sr2silo.config import is_ci_environment
 
 
 def compress_bz2(input_fp: Path, output_fp: Path) -> None:
@@ -84,7 +82,7 @@ def upload_file_to_s3(file_name, bucket, object_name=None, client=None) -> bool:
         object_name = file_name
 
     # If running in CI, mock the S3 upload
-    if is_CI:
+    if is_ci_environment():
         logging.info("Running in CI environment, mocking S3 upload with moto.")
         with mock_aws():
             s3_client = boto3.client("s3", region_name="us-east-1")

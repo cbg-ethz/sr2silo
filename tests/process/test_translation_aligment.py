@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sr2silo.translation import translate
+from sr2silo.process import translate
 
 
 def test_translate():
