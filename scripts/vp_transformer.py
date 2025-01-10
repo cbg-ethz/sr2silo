@@ -6,13 +6,13 @@ from __future__ import annotations
 import csv
 import json
 import logging
-import os
 from pathlib import Path
 
 import click
 import yaml
 
 import silo_input_transformer
+from sr2silo.config import is_ci_environment
 from sr2silo.convert import bam_to_sam
 from sr2silo.lapis import submit
 from sr2silo.process import pair_normalize_reads
@@ -448,7 +448,8 @@ def main(
     logging.info(f"Using batch_id: {batch_id}")
     logging.info(f"Using database_config: {database_config}")
 
-    if ci:
+    logging.info(f"Running in CI environment: {is_ci_environment()}")
+    if is_ci_environment():
         logging.info(
             "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
         )
