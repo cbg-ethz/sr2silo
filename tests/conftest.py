@@ -13,7 +13,7 @@ from typing import List
 import pytest
 from _pytest.nodes import Item
 
-from sr2silo.convert import bam_to_sam
+from sr2silo.process import bam_to_sam
 
 
 # TODO: Add custom markers here

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sr2silo.process import pair_normalize_reads, parse_cigar
+from sr2silo.process.merge import pair_normalize_reads, parse_cigar
 
 
 def test_parse_cigar(sam_data):

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sr2silo.convert import bam_to_sam
+from sr2silo.process import bam_to_sam
 
 # Define test data paths outside the function
 INPUT_BAM_PATH = Path("tests/data/REF_aln_trim_subsample.bam")
