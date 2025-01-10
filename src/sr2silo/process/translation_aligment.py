@@ -1,4 +1,4 @@
-"""Implements the translation of nucleotide alignments to amino acid alignments."""
+"""Implements the translation of nucleotides alignments to amino acid alignments."""
 
 from __future__ import annotations
 
