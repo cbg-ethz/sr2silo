@@ -134,3 +134,75 @@ def normalize_reads(sam_data: str, output_fasta: Path, output_insertions: Path) 
                 f">{read_id}|{unpaired_read['pos']}\n{unpaired_read['RESULT_seqUENCE']}\n"
             )
             insertions_file.write(f"{read_id}\t{unpaired_read['insertions']}\n")
+
+
+def bam_to_cleartext_alignment(bam_path: Path, output_fp: Path) -> None:
+    """Convert BAM to cleartext alignment and write to a file."""
+    # Ensure the BAM file is indexed
+    bam_path_str = str(bam_path)
+    if not bam_path.with_suffix(".bai").exists():
+        pysam.index(bam_path_str)
+
+    with Path(output_fp).open("w") as out_f:
+        # Open the BAM file
+        with pysam.AlignmentFile(bam_path_str, "rb") as samfile:
+            for read in samfile.fetch():
+                aligned = []  # To store the aligned sequence with gaps
+                insertions = []  # To store the insertions
+                ref_pos = read.reference_start
+                seq_pos = 0
+
+                # validate ciagtuples, query_sequence, and reference_name exist
+                if (
+                    not read.cigartuples
+                    or not read.query_sequence
+                    or not read.reference_name
+                ):
+                    logging.warning(
+                        f"Skipping read {read.query_name} due to missing data"
+                    )
+                    continue
+
+                for operation, length in read.cigartuples:
+                    if operation == 0:  # Match (M)
+                        aligned.append(read.query_sequence[seq_pos : seq_pos + length])
+                        seq_pos += length
+                        ref_pos += length
+                    elif operation == 1:  # Insertion (I)
+                        # Extract insertion sequences
+                        insertions.append(
+                            (seq_pos, read.query_sequence[seq_pos : seq_pos + length])
+                        )
+                        aligned.append(
+                            read.query_sequence[seq_pos : seq_pos + length]
+                        )  # Add insertions to the aligned sequence as well
+                        seq_pos += length
+                    elif operation == 2:  # Deletion (D)
+                        aligned.append(
+                            "-" * length
+                        )  # Represent deletions as gaps ('-')
+                        ref_pos += length
+                    elif operation == 4:  # Soft clip (S)
+                        seq_pos += length
+                    elif operation == 5:  # Hard clip (H)
+                        pass  # Don't include hard clipped sequences in the alignment
+
+                # Combine the aligned sequence
+                aligned_str = "".join(aligned)
+
+                # Write the results to the file
+                out_f.write(f"Read: {read.query_name}\n")
+                out_f.write(f"Aligned with gaps: {aligned_str}\n")
+
+                if insertions:
+                    insertions_str = " ".join(
+                        [f"{pos}:{seq}" for pos, seq in insertions]
+                    )
+                    out_f.write(f"Insertions: {insertions_str}\n")
+                else:
+                    out_f.write("Insertions: None\n")
+                out_f.write("\n")
+
+
+def add_padding():
+    """Add padding to both sides of the sequence."""
