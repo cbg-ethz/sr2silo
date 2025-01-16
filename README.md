@@ -2,10 +2,10 @@
 <picture>
   <source
     media="(prefers-color-scheme: light)"
-    srcset="resources/logo.svg">
+    srcset="resources/graphics/logo.svg">
   <source
     media="(prefers-color-scheme: dark)"
-    srcset="resources/logo_dark_mode.svg">
+    srcset="resources/graphics/logo_dark_mode.svg">
   <img alt="Logo" src="resources/logo.svg" width="15%" />
 </picture>
 
