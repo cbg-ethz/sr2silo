@@ -136,8 +136,22 @@ def normalize_reads(sam_data: str, output_fasta: Path, output_insertions: Path) 
             insertions_file.write(f"{read_id}\t{unpaired_read['insertions']}\n")
 
 
-def bam_to_cleartext_alignment(bam_path: Path, output_fp: Path) -> None:
+def bam_to_cleartext_alignment(
+    bam_path: Path, output_fp: Path, reference: Path
+) -> None:
     """Convert BAM to cleartext alignment and write to a file."""
+
+    # Get the reference length
+    print(reference)
+    reference_length = 0
+    with Path(reference).open() as ref_f:
+        for line in ref_f:
+            if line.startswith(">"):
+                continue
+            reference_length += len(line.strip())
+
+    print(f"Reference length: {reference_length}")
+
     # Ensure the BAM file is indexed
     bam_path_str = str(bam_path)
     if not bam_path.with_suffix(".bai").exists():
@@ -190,19 +204,24 @@ def bam_to_cleartext_alignment(bam_path: Path, output_fp: Path) -> None:
                 # Combine the aligned sequence
                 aligned_str = "".join(aligned)
 
+                # Calculate the padding needed for the left and right
+                left_padding = "-" * read.reference_start
+                right_padding = "-" * (
+                    reference_length - len(aligned_str) - read.reference_start
+                )
+
+                # Pad the aligned sequence
+                padded_alignment = left_padding + aligned_str + right_padding
+
                 # Write the results to the file
                 out_f.write(f"Read: {read.query_name}\n")
-                out_f.write(f"Aligned with gaps: {aligned_str}\n")
+                out_f.write(f"Aligned with gaps: {padded_alignment}\n")
 
+                # Write the insertions separately with
+                # their corresponding start positions
                 if insertions:
-                    insertions_str = " ".join(
-                        [f"{pos}:{seq}" for pos, seq in insertions]
-                    )
-                    out_f.write(f"Insertions: {insertions_str}\n")
+                    for pos, seq in insertions:
+                        out_f.write(f"Ins at pos {pos + read.reference_start}: {seq}\n")
                 else:
                     out_f.write("Insertions: None\n")
                 out_f.write("\n")
-
-
-def add_padding():
-    """Add padding to both sides of the sequence."""
