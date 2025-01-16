@@ -50,7 +50,6 @@ def parse_cigar(cigar: str) -> list[tuple[str, int]]:
     return [(op, int(length)) for length, op in parsed_cigar]
 
 
-# TODO: to be removed as it is superseded by bam_to_cleartext_alignment
 def normalize_reads(sam_data: str, output_fasta: Path, output_insertions: Path) -> None:
     """
     Normalize (to clear text sequence using CIGAR)
@@ -163,6 +162,7 @@ def bam_to_cleartext_alignment(
 
     # Ensure the BAM file is indexed
     bam_path_str = str(bam_path)
+    sorted_bam_path_str = None
     if not bam_path.with_suffix(".bai").exists():
         try:
             pysam.index(bam_path_str)
@@ -243,3 +243,10 @@ def bam_to_cleartext_alignment(
 
                 # Write the JSON object to the file
                 out_f.write(f"{read_json}\n")
+
+    # Cleanup generated files
+    if sorted_bam_path_str:
+        Path(sorted_bam_path_str).unlink(missing_ok=True)
+        Path(sorted_bam_path_str + ".bai").unlink(missing_ok=True)
+    else:
+        Path(bam_path_str + ".bai").unlink(missing_ok=True)
