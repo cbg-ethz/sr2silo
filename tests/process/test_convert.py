@@ -70,7 +70,7 @@ def test_normalize_reads(sam_with_insert_data):
 def test_bam_to_cleartext_alignment():
     """Test the bam_to_cleartext_alignment function."""
 
-    ref_seq = Path("resources/NC_045512.2.fasta")
+    ref_seq = Path("resources/sars-cov-2/NC_045512.2.fasta")
 
     expected_output_file = "tests/data/bam/expected_cleartext.ndjson"
 
