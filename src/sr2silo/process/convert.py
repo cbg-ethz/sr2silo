@@ -50,6 +50,7 @@ def parse_cigar(cigar: str) -> list[tuple[str, int]]:
     return [(op, int(length)) for length, op in parsed_cigar]
 
 
+# TODO: to be removed as it is superseded by bam_to_cleartext_alignment
 def normalize_reads(sam_data: str, output_fasta: Path, output_insertions: Path) -> None:
     """
     Normalize (to clear text sequence using CIGAR)
