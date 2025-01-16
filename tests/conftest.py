@@ -77,6 +77,7 @@ def sam_with_insert_data():
     """Return a sample SAM data as a string with insertions."""
 
     data_expected = dict()
+    data_expected["bam_data_fp"] = INPUT_BAM_INSERTIONS_PATH
     data_expected["sam_data"] = bam_to_sam(INPUT_BAM_INSERTIONS_PATH)
     # Read in the insertions file
     insertions_content = EXPECTED_BAM_INSERTIONS_PATH_inserts.read_text()

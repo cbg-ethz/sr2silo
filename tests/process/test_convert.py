@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 
 from sr2silo.process import bam_to_sam
-from sr2silo.process.convert import normalize_reads
+from sr2silo.process.convert import bam_to_cleartext_alignment, normalize_reads
 
 
 def test_bam_to_sam(bam_data):
@@ -65,3 +65,42 @@ def test_normalize_reads(sam_with_insert_data):
         assert (
             output_insertions_str == sam_with_insert_data["insertions"]
         ), "The output insertions data does not match the expected insertions data"
+
+
+def test_bam_to_cleartext_alignment():
+    """Test the bam_to_cleartext_alignment function."""
+
+    ref_seq = Path("resources/NC_045512.2.fasta")
+
+    expected_output_file = "tests/data/bam/expected_cleartext.ndjson"
+
+    with open(expected_output_file) as f:
+        expected_cleartext = f.read()
+
+    save_to_another_dir = False  # Toggle variable to save to another directory
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        output_file = Path(temp_dir) / "REF_aln_trim_subsample_cleartext.fasta"
+
+        bam_to_cleartext_alignment(
+            Path("tests/data/bam/combined.bam"), output_file, ref_seq
+        )
+
+        output_file_path = Path(output_file)
+
+        assert output_file_path.exists(), "The output file was not created"
+        assert output_file_path.stat().st_size > 0, "The output file is empty"
+
+        with output_file_path.open() as f:
+            cleartext = f.read()
+
+        if save_to_another_dir:
+            another_dir = Path("tests/data/bam")
+            another_dir.mkdir(exist_ok=True)
+            another_output_file = another_dir / "REF_aln_trim_subsample_cleartext.fasta"
+            another_output_file.write_text(cleartext)
+            print(f"Output file also saved to: {another_output_file}")
+
+        assert (
+            cleartext == expected_cleartext
+        ), "The converted cleartext data does not match the expected cleartext data"
