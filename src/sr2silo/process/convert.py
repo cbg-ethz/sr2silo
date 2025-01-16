@@ -139,7 +139,15 @@ def normalize_reads(sam_data: str, output_fasta: Path, output_insertions: Path) 
 def bam_to_cleartext_alignment(
     bam_path: Path, output_fp: Path, reference: Path
 ) -> None:
-    """Convert BAM to cleartext alignment and write to a file."""
+    """Convert BAM to cleartext alignment and write to a ndjson file.
+
+    One Json per read with elements
+    - read_id: read identifier
+    - query_seq_aligned: the aligned sequence with gaps
+    - inserts: list of insertions with elements
+            - pos: position of the insertion
+            - ins: insertion sequence
+    """
 
     # Get the reference length
     print(reference)
@@ -155,7 +163,14 @@ def bam_to_cleartext_alignment(
     # Ensure the BAM file is indexed
     bam_path_str = str(bam_path)
     if not bam_path.with_suffix(".bai").exists():
-        pysam.index(bam_path_str)
+        try:
+            pysam.index(bam_path_str)
+        except pysam.SamtoolsError as e:  # type: ignore
+            logging.error(f"Error indexing BAM file: {e}")
+            sorted_bam_path_str = bam_path_str.replace(".bam", ".sorted.bam")
+            pysam.sort("-o", sorted_bam_path_str, bam_path_str)
+            pysam.index(sorted_bam_path_str)
+            bam_path_str = sorted_bam_path_str
 
     with Path(output_fp).open("w") as out_f:
         # Open the BAM file
@@ -213,17 +228,17 @@ def bam_to_cleartext_alignment(
                 # Pad the aligned sequence
                 padded_alignment = left_padding + aligned_str + right_padding
 
-                # Write the results to the file
-                out_f.write(f"Read: {read.query_name}\n")
-                out_f.write(f"Aligned with gaps: {padded_alignment}\n")
-
-                # Write the insertions separately in JSON format
-                if insertions:
-                    insertions_json = [
+                # Create a JSON object for the read
+                read_json = {
+                    "read_id": read.query_name,
+                    "query_seq_aligned": padded_alignment,
+                    "inserts": [
                         {"pos": pos + read.reference_start, "ins": list(seq)}
                         for pos, seq in insertions
                     ]
-                    out_f.write(f"Insertions: {insertions_json}\n")
-                else:
-                    out_f.write("Insertions: None\n")
-                out_f.write("\n")
+                    if insertions
+                    else [],
+                }
+
+                # Write the JSON object to the file
+                out_f.write(f"{read_json}\n")
