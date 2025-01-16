@@ -233,12 +233,14 @@ def bam_to_cleartext_alignment(
                 read_json = {
                     "read_id": read.query_name,
                     "query_seq_aligned": padded_alignment,
-                    "inserts": [
-                        {"pos": pos + read.reference_start, "ins": list(seq)}
-                        for pos, seq in insertions
-                    ]
-                    if insertions
-                    else [],
+                    "inserts": (
+                        [
+                            {"pos": pos + read.reference_start, "ins": list(seq)}
+                            for pos, seq in insertions
+                        ]
+                        if insertions
+                        else []
+                    ),
                 }
 
                 # Write the JSON object to the file
