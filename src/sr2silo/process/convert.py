@@ -217,11 +217,13 @@ def bam_to_cleartext_alignment(
                 out_f.write(f"Read: {read.query_name}\n")
                 out_f.write(f"Aligned with gaps: {padded_alignment}\n")
 
-                # Write the insertions separately with
-                # their corresponding start positions
+                # Write the insertions separately in JSON format
                 if insertions:
-                    for pos, seq in insertions:
-                        out_f.write(f"Ins at pos {pos + read.reference_start}: {seq}\n")
+                    insertions_json = [
+                        {"pos": pos + read.reference_start, "ins": list(seq)}
+                        for pos, seq in insertions
+                    ]
+                    out_f.write(f"Insertions: {insertions_json}\n")
                 else:
                     out_f.write("Insertions: None\n")
                 out_f.write("\n")
