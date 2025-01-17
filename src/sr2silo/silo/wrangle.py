@@ -71,7 +71,7 @@ def wrangle_for_transformer(
             gene_data = f.read()
         with gene_file.open("w") as f:
             f.write(gene_data)
-    # copy over the nucoletide insertions file and name it
+    # copy over the nucleotide insertions file and name it
     # nucolotide_insertions.tsv
     # add a header of "read_id  | main" to the file
     nuc_insertions = output_dir / "nucleotide_insertions.tsv"
@@ -129,7 +129,7 @@ def wrangle_for_transformer(
             f.write(read_id + "\t" + "\t".join(row_data) + "\n")
 
     # make metadata per read_id
-    # get the metadata from the metadata.json file
+    # validate that the metadata keys are the same as defined in the
     # and write it to the metadata.tsv file
     metadata_tsv = output_dir / "metadata.tsv"
     with metadata_file.open() as f:
@@ -186,7 +186,7 @@ def wrangle_for_transformer(
     with reference_genome.open("w") as f:
         f.write(reference_genome_data)
 
-    # get unaliged_main.tsv // which is just the same as the nuc_main.fasta file ?
+    # get unaligned_main.tsv // which is just the same as the nuc_main.fasta file ?
     # copy over the nuc_main.fasta file and name it unaligned_main.tsv
     unaligned_main = output_dir / "unaligned_main.fasta"
     with nuc_main.open() as f:
