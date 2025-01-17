@@ -53,7 +53,7 @@ def wrangle_for_transformer(
     logging.info("Wrangling sequences to Nextclade format")
     # make a directory for the nextclade-like results
     output_dir.mkdir(parents=True, exist_ok=True)
-    # copy over the nucleotide sequnecefile and name nuc_main.fasta
+    # copy over the nucleotide sequence file and name nuc_main.fasta
     nuc_main = output_dir / "nuc_main.fasta"
     with fasta_file.open() as f:
         nuc_main_data = f.read()
