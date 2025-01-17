@@ -116,7 +116,6 @@ def submit(input_fp: Path, username: str, password: str, group_id: int) -> None:
     Upload the a metadata tsv file to a loculus instance.
     """
 
-    authentication_token = get_loculus_authentication_token(username, password)
     submission_ids = get_submission_ids_from_tsv(str(input_fp))
     placeholder_fasta_str = generate_placeholder_fasta(submission_ids)
 
@@ -129,5 +128,7 @@ def submit(input_fp: Path, username: str, password: str, group_id: int) -> None:
     if is_ci_environment():
         logging.info("Running in CI environment, mocking S3 upload with moto.")
         return None
+
+    authentication_token = get_loculus_authentication_token(username, password)
 
     _submit(authentication_token, group_id, str(input_fp), placeholder_tmp_path)
