@@ -5,5 +5,6 @@
 from __future__ import annotations
 
 from sr2silo.silo.lapis import submit
+from sr2silo.silo.wrangle import wrangle_for_transformer
 
-__all__ = ["submit"]
+__all__ = ["submit", "wrangle_for_transformer"]
