@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import logging
+import os
 import tempfile
 from pathlib import Path
 
@@ -11,17 +12,8 @@ import requests
 
 from sr2silo.config import is_ci_environment
 
-# TODO: move to environment variables
-KEYCLOAK_TOKEN_URL = (
-    "https:"
-    "//authentication-wise-seqs.loculus.org"
-    "/realms/loculus/protocol/openid-connect/token"
-)
-SUBMISSION_URL = (
-    "https:"
-    "//backend-wise-seqs.loculus.org"
-    "/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
-)
+KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
+SUBMISSION_URL = os.getenv("SUBMISSION_URL")
 
 
 def generate_placeholder_fasta(submission_ids: list[str]) -> str:
@@ -59,6 +51,12 @@ def get_loculus_authentication_token(username: str, password: str) -> str:
     """
     Sends a request to the Keycloak authentication server to obtain a token.
     """
+    # verify that KEYCLOAK_TOKEN_URL is set
+    if not KEYCLOAK_TOKEN_URL:
+        raise EnvironmentError(
+            "Error: KEYCLOAK_TOKEN_URL environment variable not set."
+        )
+
     response = requests.post(
         KEYCLOAK_TOKEN_URL,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -85,6 +83,9 @@ def _submit(
     """
     Submits the metadata and sequence files to Loculus via a POST request.
     """
+    if not SUBMISSION_URL:
+        raise EnvironmentError("Error: SUBMISSION_URL environment variable not set.")
+
     submission_url = SUBMISSION_URL.format(group_id=group_id)
 
     with open(tsv_path, "rb") as tsv_file, open(fasta_path, "rb") as fasta_file:

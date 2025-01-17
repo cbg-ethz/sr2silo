@@ -18,6 +18,8 @@ services:
       - TIMELINE_FILE=${TIMELINE_FILE}
       - PRIMER_FILE=${PRIMER_FILE}
       - RESULTS_DIR=${RESULTS_DIR}
+      - KEYCLOAK_TOKEN_URL=${KEYCLOAK_TOKEN_URL}
+      - SUBMISSION_URL=${SUBMISSION_URL}
       - CI=${CI}
     secrets:
       - aws_access_key_id
