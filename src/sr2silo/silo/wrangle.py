@@ -12,6 +12,7 @@ from pathlib import Path
 import yaml
 
 
+# TODO: to be refactored once the silo_import_transformer is moved to SILO
 def wrangle_for_transformer(
     input_dir: Path,
     output_dir: Path,
