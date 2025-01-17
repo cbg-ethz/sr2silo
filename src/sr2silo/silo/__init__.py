@@ -1,0 +1,9 @@
+"""Implements all SILO and LAPIS specific actions, as
+   data wrangeling for SILO, establishing a connection to
+   LAPIS and submitting sequences to LAPIS."""
+
+from __future__ import annotations
+
+from sr2silo.silo.lapis import submit
+
+__all__ = ["submit"]

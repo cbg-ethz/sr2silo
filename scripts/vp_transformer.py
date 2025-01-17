@@ -13,9 +13,9 @@ import yaml
 
 import silo_input_transformer
 from sr2silo.config import is_ci_environment
-from sr2silo.lapis import submit
 from sr2silo.process import bam_to_sam, pair_normalize_reads, translate
 from sr2silo.s3 import compress_bz2, upload_file_to_s3
+from sr2silo.silo import submit
 from sr2silo.vpipe import Sample
 
 logging.basicConfig(
