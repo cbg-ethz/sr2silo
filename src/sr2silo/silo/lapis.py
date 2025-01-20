@@ -13,7 +13,7 @@ from sr2silo.config import is_ci_environment
 class LapisClient:
     """Client for interacting with the Lapis API."""
 
-    def __init__(self, token_url: str, submission_url:str) -> None:
+    def __init__(self, token_url: str, submission_url: str) -> None:
         self.token_url = token_url
         self.submission_url = submission_url
         self.is_ci_environment = is_ci_environment
@@ -44,6 +44,7 @@ class LapisClient:
                 f"Error: Unable to authenticate. Status code: {response.status_code},"
                 f"Response: {response.text}"
             )
+
     def submit(self, group_id: str, data: dict) -> requests.Response:
         """Submit data to the Lapis API."""
 
@@ -72,7 +73,6 @@ class LapisClient:
         return response
 
 
-
 class Submission:
     @staticmethod
     def generate_placeholder_fasta(submission_ids: list[str]) -> str:
@@ -96,8 +96,13 @@ class Submission:
             reader = csv.DictReader(tsv_file, delimiter="\t")
 
             # Check if "submissionId" exists in the header
-            if reader.fieldnames is not None and "submissionId" not in reader.fieldnames:
-                raise ValueError('Error: "submissionId" column not found in the TSV file.')
+            if (
+                reader.fieldnames is not None
+                and "submissionId" not in reader.fieldnames
+            ):
+                raise ValueError(
+                    'Error: "submissionId" column not found in the TSV file.'
+                )
 
             # Extract submission IDs from the "submissionId" column
             for row in reader:
