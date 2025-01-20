@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 
 import click
@@ -14,7 +15,7 @@ import silo_input_transformer
 from sr2silo.config import is_ci_environment
 from sr2silo.process import bam_to_sam, pair_normalize_reads, translate
 from sr2silo.s3 import compress_bz2, upload_file_to_s3
-from sr2silo.silo import submit, wrangle_for_transformer
+from sr2silo.silo import LapisClient, Submission, wrangle_for_transformer
 from sr2silo.vpipe import Sample
 
 logging.basicConfig(
@@ -210,10 +211,21 @@ def process_directory(
     ##### Submit S3 reference to SILO #####
     logging.info(f"Submitting to Loculus")
     input_fp = make_submission_file(result_dir, s3_link)
-    username = "testuser"
-    password = "testuser"
-    group_id = 1
-    submit(input_fp, username, password, group_id)
+
+    KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
+    SUBMISSION_URL = os.getenv("SUBMISSION_URL")
+
+    if KEYCLOAK_TOKEN_URL and SUBMISSION_URL:
+        client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL)
+        client.authenticate(username="testuser", password="testuser")
+        submission_ids = Submission.get_submission_ids_from_tsv(input_fp)
+        fasta_content = Submission.generate_placeholder_fasta(submission_ids)
+        response = client.submit(group_id=1, data={"fasta": fasta_content})
+        print(response.json())
+    else:
+        logging.error(
+            "KEYCLOAK_TOKEN_URL or SUBMISSION_URL environment variables are not set."
+        )
 
 
 @click.command()
@@ -248,7 +260,6 @@ def main(
     primer_file,
     nextclade_reference,
     database_config: Path = Path("scripts/database_config.yaml"),
-    ci: bool = False,
 ):
     """Process a sample directory."""
     logging.info(f"Processing sample directory: {sample_dir}")
@@ -260,11 +271,20 @@ def main(
     logging.info(f"Using batch_id: {batch_id}")
     logging.info(f"Using database_config: {database_config}")
 
-    logging.info(f"Running in CI environment: {is_ci_environment()}")
-    if is_ci_environment():
+    ci_env = is_ci_environment()
+    logging.info(f"Running in CI environment: {ci_env}")
+
+    if ci_env:
         logging.info(
             "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
         )
+        # set some mock environment variables for Keycloak and submission URLs
+        KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
+        SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
+    else:
+        # get the real environment variables
+        KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
+        SUBMISSION_URL = os.getenv("SUBMISSION_URL")
 
     process_directory(
         input_dir=Path("sample"),

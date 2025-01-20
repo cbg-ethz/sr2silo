@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import logging
+from pathlib import Path
 
 import requests
 
@@ -14,6 +15,7 @@ class LapisClient:
     """Client for interacting with the Lapis API."""
 
     def __init__(self, token_url: str, submission_url: str) -> None:
+        """Initialize the Lapis client."""
         self.token_url = token_url
         self.submission_url = submission_url
         self.is_ci_environment = is_ci_environment
@@ -45,7 +47,7 @@ class LapisClient:
                 f"Response: {response.text}"
             )
 
-    def submit(self, group_id: str, data: dict) -> requests.Response:
+    def submit(self, group_id: int, data: dict) -> requests.Response:
         """Submit data to the Lapis API."""
 
         if self.is_ci_environment:
@@ -74,6 +76,10 @@ class LapisClient:
 
 
 class Submission:
+    """Submission-related utilities.
+    Methods for generating placeholder FASTA files containing "NNN" sequences,
+    and S3 links"""
+
     @staticmethod
     def generate_placeholder_fasta(submission_ids: list[str]) -> str:
         """
@@ -87,9 +93,10 @@ class Submission:
         return "\n".join(fasta_entries)
 
     @staticmethod
-    def get_submission_ids_from_tsv(file_path: str) -> list[str]:
+    def get_submission_ids_from_tsv(file_path: Path) -> list[str]:
         """
-        Reads a TSV file and extracts submission IDs by parsing the "submissionId" column.
+        Reads a TSV file and extracts submission IDs by parsing the
+        "submissionId" column.
         """
         submission_ids = []
         with open(file_path, "r") as tsv_file:
