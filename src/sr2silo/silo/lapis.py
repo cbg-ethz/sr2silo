@@ -19,7 +19,7 @@ class LapisClient:
         """Initialize the Lapis client."""
         self.token_url = token_url
         self.submission_url = submission_url
-        self.is_ci_environment = is_ci_environment
+        self.is_ci_environment = is_ci_environment()
         self.token = None
 
     def authenticate(self, username: str, password: str) -> None:
