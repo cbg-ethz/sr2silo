@@ -212,20 +212,27 @@ def process_directory(
     logging.info(f"Submitting to Loculus")
     input_fp = make_submission_file(result_dir, s3_link)
 
-    KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
-    SUBMISSION_URL = os.getenv("SUBMISSION_URL")
-
-    if KEYCLOAK_TOKEN_URL and SUBMISSION_URL:
-        client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL)
-        client.authenticate(username="testuser", password="testuser")
-        submission_ids = Submission.get_submission_ids_from_tsv(input_fp)
-        fasta_content = Submission.generate_placeholder_fasta(submission_ids)
-        response = client.submit(group_id=1, data={"fasta": fasta_content})
-        print(response.json())
-    else:
-        logging.error(
-            "KEYCLOAK_TOKEN_URL or SUBMISSION_URL environment variables are not set."
+    if is_ci_environment():
+        logging.info(
+            "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
         )
+        # set some mock environment variables for Keycloak and submission URLs
+        KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
+        SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
+    else:
+        # get the real environment variables
+        KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
+        SUBMISSION_URL = os.getenv("SUBMISSION_URL")
+
+    client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL)  # type: ignore
+    client.authenticate(username="testuser", password="testuser")
+    submission_ids = Submission.get_submission_ids_from_tsv(input_fp)
+    data = {}
+    data["fasta"] = Submission.generate_placeholder_fasta(submission_ids)
+    data["input_fp"] = input_fp
+    logging.info(f"Submitting data: {data}")
+    response = client.submit(group_id=1, data=data)
+    logging.info(f"Submission response: {response}")
 
 
 @click.command()
@@ -244,12 +251,6 @@ def process_directory(
     envvar="NEXTCLADE_REFERENCE",
     default="sars-cov-2",
     help="Nextclade reference.",
-)
-@click.option(
-    "--ci",
-    envvar="CI",
-    default="false",
-    help="Running in CI environment, skip S3 upload and LAPIS submission.",
 )
 def main(
     sample_dir,
@@ -273,18 +274,6 @@ def main(
 
     ci_env = is_ci_environment()
     logging.info(f"Running in CI environment: {ci_env}")
-
-    if ci_env:
-        logging.info(
-            "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
-        )
-        # set some mock environment variables for Keycloak and submission URLs
-        KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
-        SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
-    else:
-        # get the real environment variables
-        KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
-        SUBMISSION_URL = os.getenv("SUBMISSION_URL")
 
     process_directory(
         input_dir=Path("sample"),

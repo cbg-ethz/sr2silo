@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import logging
+import tempfile
 from pathlib import Path
 
 import requests
@@ -21,12 +22,12 @@ class LapisClient:
         self.is_ci_environment = is_ci_environment
         self.token = None
 
-    def authenticate(self, username: str, password: str) -> str:
+    def authenticate(self, username: str, password: str) -> None:
         """Authenticate with the Lapis API."""
 
-        if self.is_ci_environment:
+        if self.is_ci_environment is True:
             logging.info("CI environment detected. Using dummy token.")
-            return "dummy_token"
+            self.token = "dummy_token"
 
         response = requests.post(
             self.token_url,
@@ -40,7 +41,8 @@ class LapisClient:
         )
 
         if response.status_code == 200:
-            return response.json().get("access_token")
+            self.token = response.json().get("access_token")
+            return None
         else:
             raise Exception(
                 f"Error: Unable to authenticate. Status code: {response.status_code},"
@@ -50,13 +52,29 @@ class LapisClient:
     def submit(self, group_id: int, data: dict) -> requests.Response:
         """Submit data to the Lapis API."""
 
-        if self.is_ci_environment:
+        if self.is_ci_environment is True:
             logging.info("Running in CI environment, skipping actual submission.")
             return requests.Response()
 
-        headers = {"Authorization": f"Bearer {self.token}"}
         url = self.submission_url.format(group_id=group_id)
-        response = requests.post(url, headers=headers, json=data)
+
+        # Write the placeholder FASTA to a temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as fasta_file:
+            fasta_file.write(data["fasta"].encode("utf-8"))
+            placeholder_tmp_path = fasta_file.name
+
+        with open(data["input_fp"], "rb") as tsv_file, open(
+            placeholder_tmp_path, "rb"
+        ) as fasta_file:
+            response = requests.post(
+                url,
+                headers={
+                    "Authorization": f"Bearer {self.token}",
+                    "accept": "application/json",
+                },
+                files={"metadataFile": tsv_file, "sequenceFile": fasta_file},
+            )
+
         response.raise_for_status()
 
         if response.status_code == 200:
