@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from sr2silo.silo.lapis import submit
+from sr2silo.silo.lapis import LapisClient, Submission
 from sr2silo.silo.wrangle import wrangle_for_transformer
 
-__all__ = ["submit", "wrangle_for_transformer"]
+__all__ = ["LapisClient", "Submission", "wrangle_for_transformer"]

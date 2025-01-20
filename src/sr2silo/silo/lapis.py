@@ -4,131 +4,103 @@ from __future__ import annotations
 
 import csv
 import logging
-import os
-import tempfile
-from pathlib import Path
 
 import requests
 
 from sr2silo.config import is_ci_environment
 
-KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
-SUBMISSION_URL = os.getenv("SUBMISSION_URL")
 
+class LapisClient:
+    """Client for interacting with the Lapis API."""
 
-def generate_placeholder_fasta(submission_ids: list[str]) -> str:
-    """
-    Generates a placeholder FASTA file for each submission ID with "NNN" as
-    the sequence.
-    """
-    fasta_entries = []
-    for submission_id in submission_ids:
-        fasta_entries.append(f">{submission_id}")
-        fasta_entries.append("NNN")  # Placeholder sequence
-    return "\n".join(fasta_entries)
+    def __init__(self, token_url: str, submission_url:str) -> None:
+        self.token_url = token_url
+        self.submission_url = submission_url
+        self.is_ci_environment = is_ci_environment
+        self.token = None
 
+    def authenticate(self, username: str, password: str) -> str:
+        """Authenticate with the Lapis API."""
 
-def get_submission_ids_from_tsv(file_path: str) -> list[str]:
-    """
-    Reads a TSV file and extracts submission IDs by parsing the "submissionId" column.
-    """
-    submission_ids = []
-    with open(file_path, "r") as tsv_file:
-        reader = csv.DictReader(tsv_file, delimiter="\t")
+        if self.is_ci_environment:
+            logging.info("CI environment detected. Using dummy token.")
+            return "dummy_token"
 
-        # Check if "submissionId" exists in the header
-        if reader.fieldnames is not None and "submissionId" not in reader.fieldnames:
-            raise ValueError('Error: "submissionId" column not found in the TSV file.')
-
-        # Extract submission IDs from the "submissionId" column
-        for row in reader:
-            submission_ids.append(row["submissionId"])
-
-    return submission_ids
-
-
-def get_loculus_authentication_token(username: str, password: str) -> str:
-    """
-    Sends a request to the Keycloak authentication server to obtain a token.
-    """
-    # verify that KEYCLOAK_TOKEN_URL is set
-    if not KEYCLOAK_TOKEN_URL:
-        raise EnvironmentError(
-            "Error: KEYCLOAK_TOKEN_URL environment variable not set."
-        )
-
-    response = requests.post(
-        KEYCLOAK_TOKEN_URL,
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        data={
-            "username": username,
-            "password": password,
-            "grant_type": "password",
-            "client_id": "backend-client",
-        },
-    )
-
-    if response.status_code == 200:
-        return response.json().get("access_token")
-    else:
-        raise Exception(
-            f"Error: Unable to authenticate. Status code: {response.status_code},"
-            f"Response: {response.text}"
-        )
-
-
-def _submit(
-    authentication_token: str, group_id: int, tsv_path: str, fasta_path: str
-) -> None:
-    """
-    Submits the metadata and sequence files to Loculus via a POST request.
-    """
-    if not SUBMISSION_URL:
-        raise EnvironmentError("Error: SUBMISSION_URL environment variable not set.")
-
-    submission_url = SUBMISSION_URL.format(group_id=group_id)
-
-    with open(tsv_path, "rb") as tsv_file, open(fasta_path, "rb") as fasta_file:
         response = requests.post(
-            submission_url,
-            headers={
-                "Authorization": f"Bearer {authentication_token}",
-                "accept": "application/json",
+            self.token_url,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            data={
+                "username": username,
+                "password": password,
+                "grant_type": "password",
+                "client_id": "backend-client",
             },
-            files={"metadataFile": tsv_file, "sequenceFile": fasta_file},
         )
 
-    if response.status_code == 200:
-        print("Upload successful.")
-        print(
-            "You can approve the upload for release at:\n\n"
-            "https://wise-seqs.loculus.org/salmonella/submission/1/review"
-        )
-    else:
-        raise Exception(
-            f"Error: Unable to submit. Status code: {response.status_code}, "
-            f"Response: {response.text}"
-        )
+        if response.status_code == 200:
+            return response.json().get("access_token")
+        else:
+            raise Exception(
+                f"Error: Unable to authenticate. Status code: {response.status_code},"
+                f"Response: {response.text}"
+            )
+    def submit(self, group_id: str, data: dict) -> requests.Response:
+        """Submit data to the Lapis API."""
+
+        if self.is_ci_environment:
+            logging.info("Running in CI environment, skipping actual submission.")
+            return requests.Response()
+
+        headers = {"Authorization": f"Bearer {self.token}"}
+        url = self.submission_url.format(group_id=group_id)
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+
+        if response.status_code == 200:
+            logging.info("Upload successful.")
+            logging.info(
+                "You can approve the upload for release at:\n\n"
+                "https://wise-seqs.loculus.org/salmonella/submission/1/review"
+            )
+        else:
+            error_message = (
+                f"Error: Unable to submit. Status code: {response.status_code}, "
+                f"Response: {response.text}"
+            )
+            logging.error(error_message)
+            raise Exception(error_message)
+        return response
 
 
-def submit(input_fp: Path, username: str, password: str, group_id: int) -> None:
-    """
-    Upload the a metadata tsv file to a loculus instance.
-    """
 
-    submission_ids = get_submission_ids_from_tsv(str(input_fp))
-    placeholder_fasta_str = generate_placeholder_fasta(submission_ids)
+class Submission:
+    @staticmethod
+    def generate_placeholder_fasta(submission_ids: list[str]) -> str:
+        """
+        Generates a placeholder FASTA file for each submission ID with "NNN" as
+        the sequence.
+        """
+        fasta_entries = []
+        for submission_id in submission_ids:
+            fasta_entries.append(f">{submission_id}")
+            fasta_entries.append("NNN")  # Placeholder sequence
+        return "\n".join(fasta_entries)
 
-    # Write the placeholder FASTA to a temporary file
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as fasta_file:
-        fasta_file.write(placeholder_fasta_str.encode("utf-8"))
-        placeholder_tmp_path = fasta_file.name
+    @staticmethod
+    def get_submission_ids_from_tsv(file_path: str) -> list[str]:
+        """
+        Reads a TSV file and extracts submission IDs by parsing the "submissionId" column.
+        """
+        submission_ids = []
+        with open(file_path, "r") as tsv_file:
+            reader = csv.DictReader(tsv_file, delimiter="\t")
 
-    # If running in CI, skip the submission
-    if is_ci_environment():
-        logging.info("Running in CI environment, mocking S3 upload with moto.")
-        return None
+            # Check if "submissionId" exists in the header
+            if reader.fieldnames is not None and "submissionId" not in reader.fieldnames:
+                raise ValueError('Error: "submissionId" column not found in the TSV file.')
 
-    authentication_token = get_loculus_authentication_token(username, password)
+            # Extract submission IDs from the "submissionId" column
+            for row in reader:
+                submission_ids.append(row["submissionId"])
 
-    _submit(authentication_token, group_id, str(input_fp), placeholder_tmp_path)
+        return submission_ids
