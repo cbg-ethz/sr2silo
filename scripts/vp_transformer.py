@@ -227,11 +227,9 @@ def process_directory(
     client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL)  # type: ignore
     client.authenticate(username="testuser", password="testuser")
     submission_ids = Submission.get_submission_ids_from_tsv(input_fp)
-    data = {}
-    data["fasta"] = Submission.generate_placeholder_fasta(submission_ids)
-    data["input_fp"] = input_fp
-    logging.info(f"Submitting data: {data}")
-    response = client.submit(group_id=1, data=data)
+    fasta_str = Submission.generate_placeholder_fasta(submission_ids)
+    submission = Submission(fasta_str, input_fp)
+    response = client.submit(group_id=1, data=submission)
     logging.info(f"Submission response: {response}")
 
 

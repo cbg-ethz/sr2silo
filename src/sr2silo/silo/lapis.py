@@ -49,7 +49,7 @@ class LapisClient:
                 f"Response: {response.text}"
             )
 
-    def submit(self, group_id: int, data: dict) -> requests.Response:
+    def submit(self, group_id: int, data: Submission) -> requests.Response:
         """Submit data to the Lapis API."""
 
         if self.is_ci_environment is True:
@@ -60,10 +60,10 @@ class LapisClient:
 
         # Write the placeholder FASTA to a temporary file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as fasta_file:
-            fasta_file.write(data["fasta"].encode("utf-8"))
+            fasta_file.write(data.fasta.encode("utf-8"))
             placeholder_tmp_path = fasta_file.name
 
-        with open(data["input_fp"], "rb") as tsv_file, open(
+        with open(data.s3_link, "rb") as tsv_file, open(
             placeholder_tmp_path, "rb"
         ) as fasta_file:
             response = requests.post(
@@ -97,6 +97,11 @@ class Submission:
     """Submission-related utilities.
     Methods for generating placeholder FASTA files containing "NNN" sequences,
     and S3 links"""
+
+    def __init__(self, fasta: str, s3_link: Path) -> None:
+        """Initialize the Submission object."""
+        self.fasta = fasta
+        self.s3_link = s3_link
 
     @staticmethod
     def generate_placeholder_fasta(submission_ids: list[str]) -> str:
