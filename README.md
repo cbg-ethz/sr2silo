@@ -86,8 +86,14 @@ BATCH_ID=20241024_2411515907
 TIMELINE_FILE=../../../data/sr2silo/daemon_test/timeline.tsv
 NEXTCLADE_REFERENCE=sars-cov2
 RESULTS_DIR=./results
+KEYCLOAK_TOKEN_URL=https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token
+SUBMISSION_URL=https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN
+CI=false
 ```
+KEYCLOAK_TOKEN_URL and SUBMISSION_URL are used for the submission to lapis.
 
+CI determines if `sr2silo` runs in a Continuous Integration pipeline and shall mock
+uploads and skip submissions.
 
 #### Docker Secrets
 To upload the processed outputs S3 storage is required.
