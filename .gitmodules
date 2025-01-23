@@ -1,0 +1,3 @@
+[submodule "nextclade"]
+	path = nextclade
+	url = https://github.com/gordonkoehn/nextclade
