@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import nextclade
 from sr2silo.process.convert import bam_to_cleartext_alignment
 
 REFERENCE_PATH = Path("resources/sars-cov-2/NC_045512.2.fasta")
@@ -31,4 +32,5 @@ def process(bam_path: Path, output_fp: Path, reference: Path) -> None:
 
 
 if __name__ == "__main__":
-    process(BAM_PATH, OUTPUT_PATH, REFERENCE_PATH)
+    # process(BAM_PATH, OUTPUT_PATH, REFERENCE_PATH)
+    print(nextclade.sum_as_string(1, 3))  # type: ignore
