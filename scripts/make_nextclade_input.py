@@ -63,4 +63,4 @@ if __name__ == "__main__":
     GENE_MAP_GFF = "nextclade/data/sars-cov-2/genemap.gff"
 
     # print(reference_seq)
-    print(nextclade.translate_aa_align(ref_seq, GENE_MAP_GFF))  # type: ignore
+    print(nextclade.translate_aa_align(ref_seq, qry_seq, GENE_MAP_GFF))  # type: ignore
