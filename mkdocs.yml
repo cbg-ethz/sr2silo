@@ -41,7 +41,7 @@ plugins:
 nav:
   - Home: index.md
   - Contributing: contributing.md
-  - API: api/index.md
+  - API: api/silo.md
 
 
 watch:

@@ -7,4 +7,4 @@ import os
 
 def is_ci_environment() -> bool:
     """Check if running in a CI environment."""
-    return os.getenv("CI", "false").lower() in ("yes", "true", "t", "1")
+    return bool(os.getenv("CI", "false").lower() in ("yes", "true", "t", "1"))
