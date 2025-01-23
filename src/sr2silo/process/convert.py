@@ -141,12 +141,18 @@ def bam_to_cleartext_alignment(
 ) -> None:
     """Convert BAM to cleartext alignment and write to a ndjson file.
 
-    One Json per read with elements
-    - read_id: read identifier
-    - query_seq_aligned: the aligned sequence with gaps
-    - inserts: list of insertions with elements
-            - pos: position of the insertion
-            - ins: insertion sequence
+    Args:
+        bam_path: Path to the input BAM file.
+        output_fp: Path to the output ndjson.
+        reference: Path to the reference sequence as a FASTA file.
+
+    Output:
+        One Json per read with elements
+        - read_id: read identifier
+        - query_seq_aligned: the aligned sequence with gaps
+        - inserts: list of insertions with elements
+                - pos: position of the insertion
+                - ins: insertion sequence
     """
 
     # Get the reference length
