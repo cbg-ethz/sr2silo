@@ -59,5 +59,8 @@ if __name__ == "__main__":
         f"Reference and Aligned Query Seq have the same length {len(qry_seq) == len(ref_seq)}"
     )
 
+    # gene ref path
+    GENE_MAP_GFF = "nextclade/data/sars-cov-2/genemap.gff"
+
     # print(reference_seq)
-    print(nextclade.translate_aa_align(qry_seq))  # type: ignore
+    print(nextclade.translate_aa_align(ref_seq, GENE_MAP_GFF))  # type: ignore
