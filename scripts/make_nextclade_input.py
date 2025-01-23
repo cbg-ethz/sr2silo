@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import nextclade
@@ -32,5 +33,31 @@ def process(bam_path: Path, output_fp: Path, reference: Path) -> None:
 
 
 if __name__ == "__main__":
-    # process(BAM_PATH, OUTPUT_PATH, REFERENCE_PATH)
-    print(nextclade.sum_as_string(1, 3))  # type: ignore
+    process(BAM_PATH, OUTPUT_PATH, REFERENCE_PATH)
+    # read in the first line of the output file
+    with open(OUTPUT_PATH, "r") as f:
+        first_line = f.readline()
+    # parsel as first line of ndjson file, which is a dictionary
+    # handle : json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+    first_line = first_line.replace("'", '"')
+    first_line_dict = json.loads(first_line)
+    print(first_line_dict.keys())
+
+    # load the reference sequence
+    with open(REFERENCE_PATH, "r") as f:
+        reference_seq = f.readlines()
+    reference_seq = "".join(reference_seq[1:]).strip()
+    # make one line
+    reference_seq = reference_seq.replace("\n", "")
+
+    # test nextclade
+    qry_seq = first_line_dict["query_seq_aligned"]
+    ref_seq = reference_seq
+
+    # check that both sequences are the same length
+    print(
+        f"Reference and Aligned Query Seq have the same length {len(qry_seq) == len(ref_seq)}"
+    )
+
+    # print(reference_seq)
+    print(nextclade.translate_aa_align(qry_seq))  # type: ignore
