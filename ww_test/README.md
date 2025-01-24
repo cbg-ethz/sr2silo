@@ -10,6 +10,9 @@ you can replace the `LAPIS_PORT`.
 This builds the SILO indexes (service `siloPreprocessing`),
 starts the silo api (service `silo`) and the LAPIS api (service `lapis`).
 
+The GUI to the API can be accessed at:
+`http://localhost:8080/swagger-ui/index.html`
+
 Prerequisites:
 - installed Docker Compose
 - install jq (on Ubuntu: `sudo apt-get install jq`)
