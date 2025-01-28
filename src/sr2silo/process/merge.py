@@ -3,27 +3,9 @@
 from __future__ import annotations
 
 import logging
-import re
 from pathlib import Path
 
-
-def parse_cigar(cigar: str) -> list[tuple[str, int]]:
-    """
-    Parse a cigar string into a list of tuples.
-
-    Args:
-        cigar: A string representing the cigar string.
-    Returns:
-        A list of tuples where the first element is the operation
-        type and the second is the length of the operation.
-
-    Credits: adapted from David Gicev @davidgicev
-    """
-    pattern = re.compile(r"(\d+)([MIDNSHP=X])")
-
-    parsed_cigar = pattern.findall(cigar)
-
-    return [(op, int(length)) for length, op in parsed_cigar]
+from sr2silo.process.convert import parse_cigar
 
 
 def pair_normalize_reads(
