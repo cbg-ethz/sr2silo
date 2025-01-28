@@ -36,7 +36,7 @@ def process(bam_path: Path, output_fp: Path, reference: Path) -> None:
 
 
 if __name__ == "__main__":
-    N = 1000  # Number of lines to read and process
+    N = 3000  # Number of lines to read and process
 
     process(BAM_PATH, OUTPUT_PATH, REFERENCE_PATH)
 
@@ -89,8 +89,28 @@ if __name__ == "__main__":
         f"Estimated time for 5 million reads: {estimated_time_5m_reads / 3600:.2f} hours"
     )
 
-    with open(OUTPUT_PATH_NEXTCLADE, "a") as f:
+    # do the same but with batch_translate_aa_align
+    start_time = time.time()
+    alignments_sym = nextclade.batch_translate_aa_align(ref_seq, qry_seqs, GENE_MAP_GFF)  # type: ignore
+    stop_time = time.time()
+    print(f"Batch processing time: {stop_time - start_time:.8f} seconds")
+    # so how long would it take to process 5 million reads?
+    estimated_time_5m_reads_batch = (stop_time - start_time) * 5_000_000 / N
+    print(
+        f"Estimated time for 5 million reads with batch processing: {estimated_time_5m_reads_batch / 3600:.2f} hours"
+    )
+
+    # make two different files for the output
+    # for rust and python in the name
+    OUTPUT_PATH_NEXTCLADE_PY = OUTPUT_PATH.parent / "nextclade_output_py.ndjson"
+    OUTPUT_PATH_NEXTCLADE_RU = OUTPUT_PATH.parent / "nextclade_output_ru.ndjson"
+
+    with open(OUTPUT_PATH_NEXTCLADE_PY, "w") as f:
         for result in alignments:
+            f.write(json.dumps(result) + "\n")
+
+    with open(OUTPUT_PATH_NEXTCLADE_RU, "a") as f:
+        for result in alignments_sym:
             f.write(json.dumps(result) + "\n")
 
     print(f"Processed {len(qry_seqs)} sequences")
