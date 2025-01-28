@@ -42,21 +42,34 @@ if __name__ == "__main__":
 
     # read the first N lines of the output file
     with open(OUTPUT_PATH, "r") as f:
-        lines = [f.readline().replace("'", '"') for _ in range(N)]
+        qry_seqs = [f.readline().replace("'", '"') for _ in range(N)]
+
+    qry_seqs = [json.loads(qry_seq) for qry_seq in qry_seqs]
+    # extract the query sequences "query_seq_aligned"
+    qry_seqs = [qry_seq["query_seq_aligned"] for qry_seq in qry_seqs]
 
     # load the reference sequence
     with open(REFERENCE_PATH, "r") as f:
         reference_seq = f.readlines()
-    reference_seq = "".join(reference_seq)
+    ref_seq = "".join(reference_seq[1:]).strip().replace("\n", "")
+
+    # check that both sequences are the same length
+    print(
+        f"Reference and Aligned Query Seq have the same length {len(qry_seqs[0]) == len(ref_seq)}"
+    )
+
+    # gene ref path
+    GENE_MAP_GFF = "nextclade/data/sars-cov-2/genemap.gff"
 
     # Simulate processing times for each sequence
+    alignments = []
     processing_times = []
-    for _ in range(N):
+    for qry_seq in qry_seqs:
         seq_start_time = time.time()
         # Simulate processing of a sequence
-        time.sleep(0.01)  # Simulate a delay for processing
-        seq_end_time = time.time()
-        processing_times.append(seq_end_time - seq_start_time)
+        alignments.append(nextclade.translate_aa_align(ref_seq, qry_seq, GENE_MAP_GFF))  # type: ignore
+        seq_stop_time = time.time()
+        processing_times.append(seq_stop_time - seq_start_time)
 
     # Calculate statistics
     mean_time = mean(processing_times)
@@ -64,11 +77,11 @@ if __name__ == "__main__":
     min_time = min(processing_times)
     max_time = max(processing_times)
 
-    print(f"Mean processing time: {mean_time:.6f} seconds")
+    print(f"Mean processing time: {mean_time:.8f} seconds")
     std_dev_time = variance_time**0.5
-    print(f"Standard deviation of processing time: {std_dev_time:.6f} seconds")
-    print(f"Minimum processing time: {min_time:.6f} seconds")
-    print(f"Maximum processing time: {max_time:.6f} seconds")
+    print(f"Standard deviation of processing time: {std_dev_time:.8f} seconds")
+    print(f"Minimum processing time: {min_time:.8f} seconds")
+    print(f"Maximum processing time: {max_time:.8f} seconds")
 
     # Estimate time for 5 million reads
     estimated_time_5m_reads = mean_time * 5_000_000
@@ -77,7 +90,7 @@ if __name__ == "__main__":
     )
 
     with open(OUTPUT_PATH_NEXTCLADE, "a") as f:
-        for result in lines:
+        for result in alignments:
             f.write(json.dumps(result) + "\n")
 
-    print(f"Processed {len(lines)} sequences")
+    print(f"Processed {len(qry_seqs)} sequences")
