@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 import nextclade
@@ -62,5 +63,17 @@ if __name__ == "__main__":
     # gene ref path
     GENE_MAP_GFF = "nextclade/data/sars-cov-2/genemap.gff"
 
+    # time this function
+    start_time = time.time()
+    nextclade_out = nextclade.translate_aa_align(ref_seq, qry_seq, GENE_MAP_GFF)  # type: ignore
+    end_time = time.time()
+
     # print(reference_seq)
-    print(nextclade.translate_aa_align(ref_seq, qry_seq, GENE_MAP_GFF))  # type: ignore
+    print(nextclade_out)
+
+    print(f"Nextclade took {end_time - start_time} seconds")
+
+    # times this for 5 mio reads
+    print(
+        f"Estimated time for 5 mio reads: {(end_time - start_time) * 5000000 / 60 / 60} hours"
+    )
