@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
+from statistics import mean, variance
 
 import nextclade
 from sr2silo.process.convert import bam_to_cleartext_alignment
@@ -15,6 +16,7 @@ OUTPUT_PATH = Path("out/nextclade/nextclade_input.ndjson")
 BAM_PATH = Path(
     "tests/data/samples_large/A1_05_2024_10_08/20241024_2411515907/alignments/REF_aln_trim.bam"
 )
+OUTPUT_PATH_NEXTCLADE = OUTPUT_PATH.parent / "nextclade_output.ndjson"
 
 
 def process(bam_path: Path, output_fp: Path, reference: Path) -> None:
@@ -34,46 +36,48 @@ def process(bam_path: Path, output_fp: Path, reference: Path) -> None:
 
 
 if __name__ == "__main__":
+    N = 1000  # Number of lines to read and process
+
     process(BAM_PATH, OUTPUT_PATH, REFERENCE_PATH)
-    # read in the first line of the output file
+
+    # read the first N lines of the output file
     with open(OUTPUT_PATH, "r") as f:
-        first_line = f.readline()
-    # parsel as first line of ndjson file, which is a dictionary
-    # handle : json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
-    first_line = first_line.replace("'", '"')
-    first_line_dict = json.loads(first_line)
-    print(first_line_dict.keys())
+        lines = [f.readline().replace("'", '"') for _ in range(N)]
 
     # load the reference sequence
     with open(REFERENCE_PATH, "r") as f:
         reference_seq = f.readlines()
-    reference_seq = "".join(reference_seq[1:]).strip()
-    # make one line
-    reference_seq = reference_seq.replace("\n", "")
+    reference_seq = "".join(reference_seq)
 
-    # test nextclade
-    qry_seq = first_line_dict["query_seq_aligned"]
-    ref_seq = reference_seq
+    # Simulate processing times for each sequence
+    processing_times = []
+    for _ in range(N):
+        seq_start_time = time.time()
+        # Simulate processing of a sequence
+        time.sleep(0.01)  # Simulate a delay for processing
+        seq_end_time = time.time()
+        processing_times.append(seq_end_time - seq_start_time)
 
-    # check that both sequences are the same length
+    # Calculate statistics
+    mean_time = mean(processing_times)
+    variance_time = variance(processing_times)
+    min_time = min(processing_times)
+    max_time = max(processing_times)
+
+    print(f"Mean processing time: {mean_time:.6f} seconds")
+    std_dev_time = variance_time**0.5
+    print(f"Standard deviation of processing time: {std_dev_time:.6f} seconds")
+    print(f"Minimum processing time: {min_time:.6f} seconds")
+    print(f"Maximum processing time: {max_time:.6f} seconds")
+
+    # Estimate time for 5 million reads
+    estimated_time_5m_reads = mean_time * 5_000_000
     print(
-        f"Reference and Aligned Query Seq have the same length {len(qry_seq) == len(ref_seq)}"
+        f"Estimated time for 5 million reads: {estimated_time_5m_reads / 3600:.2f} hours"
     )
 
-    # gene ref path
-    GENE_MAP_GFF = "nextclade/data/sars-cov-2/genemap.gff"
+    with open(OUTPUT_PATH_NEXTCLADE, "a") as f:
+        for result in lines:
+            f.write(json.dumps(result) + "\n")
 
-    # time this function
-    start_time = time.time()
-    nextclade_out = nextclade.translate_aa_align(ref_seq, qry_seq, GENE_MAP_GFF)  # type: ignore
-    end_time = time.time()
-
-    # print(reference_seq)
-    print(nextclade_out)
-
-    print(f"Nextclade took {end_time - start_time} seconds")
-
-    # times this for 5 mio reads
-    print(
-        f"Estimated time for 5 mio reads: {(end_time - start_time) * 5000000 / 60 / 60} hours"
-    )
+    print(f"Processed {len(lines)} sequences")
