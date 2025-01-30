@@ -55,6 +55,8 @@ EXPECTED_BAM_INSERTIONS_PATH_cleartext = (
 
 
 """Returns a sample BAM data path and its corresponding SAM data as a string."""
+
+
 def bam_data() -> dict:
     """Return a sample BAM data path and its corresponding SAM data as a string."""
     dict_data = dict()
