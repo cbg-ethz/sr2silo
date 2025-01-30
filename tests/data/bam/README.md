@@ -7,4 +7,4 @@ do not contain insertions.
 This file was purposfully enriched with insertions
 for good testing.
 
-8 insertsion is al that was to find in an entire sequencing run.
+8 insertion is all that was to find in an entire sequencing run.

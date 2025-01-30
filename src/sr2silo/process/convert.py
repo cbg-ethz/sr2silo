@@ -150,7 +150,7 @@ def bam_to_cleartext_alignment(
     """
 
     # Get the reference length
-    print(reference)
+    logging.info(reference)
     reference_length = 0
     with Path(reference).open() as ref_f:
         for line in ref_f:
