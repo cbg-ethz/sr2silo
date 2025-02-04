@@ -20,6 +20,13 @@ def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
         (int(length), op) for length, op in re.findall(r"(\d+)([MIDNSHP=X])", cigar)
     ]
 
+class NucInsertion:
+    def __init__(self, position: int, sequence: str):
+        self.position = position
+        self.sequence = sequence
+
+    def __str__(self) -> str:
+        return f"{self.position} : {self.sequence}"
 
 class AAInsertion:
     def __init__(self, position: int, sequence: str):
@@ -224,6 +231,7 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
 
 INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
 FASTQ_NUC_ALIGMENT_FILE = "output.fastq"
+FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
 INPUT_AA_ALIGMENT_FILE = "diamond_blastx.sam"
 AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
 NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
@@ -231,10 +239,9 @@ NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
 
 bam_to_fasta.sort_bam_file(INPUT_NUC_ALIGMENT_FILE, "input/sorted.bam")
 bam_to_fasta.create_index("input/sorted.bam")
-bam_to_fasta.bam_to_fastq("input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE)
 
 bam_to_fasta.bam_to_fastq_handle_indels(
-    "input/sorted.bam", "output_indels.fastq", "output_ins.fasta"
+    "input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE, FASTA_NUC_INSERTIONS_FILE
 )
 
 with open(NUC_REFERENCE_FILE, "r") as f:
@@ -244,6 +251,23 @@ nuc_reference_length = len(nuc_reference)
 gene_dict = get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
 
 reads: List[AlignedRead] = []
+
+# load in the nuc insertions file - NucInsertion(position, sequence)
+nuc_insertions = dict() # dict(str, List[NucInsertion])
+
+with open(FASTA_NUC_INSERTIONS_FILE, "r") as f:
+    for line in f:
+        if line.startswith(">"):
+            continue
+        fields = line.strip().split("\t")
+        read_id = fields[0]
+        position = int(fields[1])
+        sequence = fields[2]
+        nuc_ins =NucInsertion(position, sequence)
+        if read_id not in nuc_insertions:
+            nuc_insertions[read_id] = []
+        nuc_insertions[read_id].append(nuc_ins)
+
 
 # read in fastq file with pysam
 with pysam.FastxFile(FASTQ_NUC_ALIGMENT_FILE) as f:
