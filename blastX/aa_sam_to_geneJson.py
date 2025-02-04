@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import bam_to_fasta
+
 from sr2silo.process import pad_alignment
 
 
@@ -219,17 +221,21 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
     return genes
 
 
-# Define the input and reference file paths
-INPUT_FILE = "diamond_blastx.sam"
+INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
+FASTQ_NUC_ALIGMENT_FILE = "output.fastq"
+INPUT_AA_ALIGMENT_FILE = "diamond_blastx.sam"
 REFERENCE_FILE = "../resources/sars-cov-2/reference_genomes.fasta"
 
 
-gene_dict = get_genes_and_lengths_from_ref(REFERENCE_FILE)
+bam_to_fasta.sort_bam_file(INPUT_NUC_ALIGMENT_FILE, "input/sorted.bam")
+bam_to_fasta.create_index("input/sorted.bam")
+bam_to_fasta.bam_to_fastq("input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE)
 
+gene_dict = get_genes_and_lengths_from_ref(REFERENCE_FILE)
 
 reads: List[AlignedRead] = []
 
-with open(INPUT_FILE, "r") as f:
+with open(INPUT_AA_ALIGMENT_FILE, "r") as f:
     for line in f:
         # Skip header lines
         if line.startswith("@"):
