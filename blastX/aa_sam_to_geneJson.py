@@ -10,6 +10,7 @@ import bam_to_fasta
 
 from sr2silo.process import pad_alignment
 
+import pysam
 
 def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
     """Parse the CIGAR string into a list of tuples."""
@@ -235,6 +236,28 @@ gene_dict = get_genes_and_lengths_from_ref(REFERENCE_FILE)
 
 reads: List[AlignedRead] = []
 
+# read in fastq file with pysam
+with pysam.FastxFile(FASTQ_NUC_ALIGMENT_FILE) as f:
+    for entry in f:
+        read_id = entry.name
+        seq = entry.sequence
+        qual = entry.quality
+
+
+
+        reads.append(
+            AlignedRead(
+                read_id=read_id,
+                unaligned_nucleotide_sequences=seq,
+                aligned_nucleotide_sequences="null", # TODO: add with padding
+                nucleotide_insertions="null",
+                amino_acid_insertions="null",
+                aligned_amino_acid_sequences="null",
+            )
+        )
+
+
+
 with open(INPUT_AA_ALIGMENT_FILE, "r") as f:
     for line in f:
         # Skip header lines
@@ -271,17 +294,14 @@ with open(INPUT_AA_ALIGMENT_FILE, "r") as f:
             aligned_amino_acid_sequences[gene] = None
 
         # pad the alignment
-        padded_alignment = pad_alignment(seq, pos, gene_dict[gene_name].gene_length)
+        padded_aa_alignment = pad_alignment(seq, pos, gene_dict[gene_name].gene_length)
 
-        reads.append(
-            AlignedRead(
-                read_id=read_id,
-                unaligned_nucleotide_sequences="null",
-                aligned_nucleotide_sequences="null",
-                nucleotide_insertions=[],
-                amino_acid_insertions=aa_insertions,
-                aligned_amino_acid_sequences=padded_alignment,
-            )
-        )
+
+        # find the correct read by read_id in reads
+        for read in reads:
+            if read.read_id == read_id:
+                read.aligned_amino_acid_sequences = padded_aa_alignment
+                read.amino_acid_insertions = aa_insertions
+                break
 
 print(reads[0].to_json())
