@@ -2,6 +2,9 @@
 """
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Dict, List, Tuple
+
 
 def parse_cigar(cigar):
     """Parse the CIGAR string into a list of tuples."""
@@ -12,7 +15,7 @@ def parse_cigar(cigar):
     ]
 
 
-def process_sequence(seq, cigar):
+def process_sequence(seq: str, cigar: str):
     """
     Processes a SAM file-style sequence and a CIGAR string to return the
     cleartext sequence, along with detailed information about insertions
@@ -90,11 +93,56 @@ def process_sequence(seq, cigar):
     return "".join(cleartext_sequence), insertions, deletions
 
 
+class AlignedRead:
+    """Class to represent an aligned read."""
+    def __init__(
+        self,
+        read_id: str,
+        unalignedNucleotideSequences: str,
+        alignedNucleotideSequences: str,
+        nucliotideInsertions: List[Tuple[int, str]],
+        aminoAcidInsertions: List[Tuple[int, str]],
+        alignedAminoAcidSequences: Dict[str, str],
+    ):
+        self.read_id = read_id
+        self.unalignedNucleotideSequences = unalignedNucleotideSequences
+        self.alignedNucleotideSequences = alignedNucleotideSequences
+        self.nucliotideInsertions = nucliotideInsertions
+        self.aminoAcidInsertions = aminoAcidInsertions
+        self.alignedAminoAcidSequences = alignedAminoAcidSequences
+
+    def to_dict(self):
+        return {
+            "read_id": self.read_id,
+            "unalignedNucleotideSequences": self.unalignedNucleotideSequences,
+            "alignedNucleotideSequences": self.alignedNucleotideSequences,
+            "nucliotideInsertions": self.nucliotideInsertions,
+            "aminoAcidInsertions": self.aminoAcidInsertions,
+            "alignedAminoAcidSequences": self.alignedAminoAcidSequences,
+        }
+
+
+def get_genes_from_reference_name(reference_fp: Path) -> List[str]:
+    """load the gene ref fasta and get all the gene names"""
+    gene_names = []
+
+    with open(reference_fp, "r") as f:
+        # for each line with > get the string following >
+        for line in f:
+            if line.startswith(">"):
+                gene_names.append(line[1:].strip())
+
+    return gene_names
+
+
 #### PSUEDOCODE ####
 
 ## read in each line in the sam file
 
-### if the read_id is not in the dictionary, add it
+### (if the read_id is not in the dictionary, add it - only relevant for paired ends)
+
+
+### make a results dictionary
 
 ###### make a dictionary for AA_sequences for the gene
 
@@ -106,18 +154,22 @@ def process_sequence(seq, cigar):
 
 ### get the insertions from the aligned query sequence and the cigar string
 
-### add the gene name: sequence, and insertions to the dictionaries
+##### make a dict for the read
+## read_id
+## nucliotide insertions
+## aminoAcidInsertions
+## alignedNucleotideSequences
+## unalignedNucleotideSequences
+## alignedAminoAcidSequences
 
 ## write the dictionaries to a json file
+
+REFERENCE_FILE = "../resources/sars-cov-2/reference_genomes.fasta"
 
 
 INPUT_FILE = "diamond_blastx.sam"
 
-# make a dictionary for the AA_sequences
-aa_sequences = {}
-
-# make a dictionary for the insertions
-aa_insertions = {}
+aligned_reads = []
 
 with open(INPUT_FILE, "r") as f:
     for line in f:
@@ -131,11 +183,14 @@ with open(INPUT_FILE, "r") as f:
         cigar = fields[5]
         seq = fields[9]
 
-        cleartext, insertions, deletions = process_sequence(seq, cigar)
+        aa_aligned, aa_insertions, aa_deletions = process_sequence(seq, cigar)
 
-        if (
-            gene_name not in aa_sequences.keys()
-            and gene_name not in aa_insertions.keys()
-        ):
-            aa_sequences[gene_name] = ""
-            aa_insertions[gene_name] = ""
+        # make a dict
+
+        # add padding to the aligned sequence
+
+        print(f"Read ID: {read_id}")
+        print(f"Gene Name: {gene_name}")
+        print(f"AA Aligned: {aa_aligned}")
+        print(f"AA Insertions: {aa_insertions}")
+        print(f"AA Deletions: {aa_deletions}")
