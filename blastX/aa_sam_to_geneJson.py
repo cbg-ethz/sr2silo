@@ -119,7 +119,7 @@ class AlignedRead:
         unaligned_nucleotide_sequences: str,
         aligned_nucleotide_sequences: str,
         nucleotide_insertions: any,
-        amino_acid_insertions: Dict[str, List[AAInsertion]],
+        amino_acid_insertions: AAInsertionSet,
         aligned_amino_acid_sequences: Dict[str, str],
     ):
         self.read_id = read_id
@@ -153,13 +153,13 @@ class AlignedRead:
                 for k, v in self.get_amino_acid_insertions().items()
             },
             "alignedNucleotideSequences": {
-                "main": "GAAGAACATTTTATTGAAA",
+                "main": self.aligned_nucleotide_sequences,
             },
             "unalignedNucleotideSequences": {
-                "main": "GAAGAACATTTTATTGAAA",
+                "main": self.unaligned_nucleotide_sequences,
             },
             "alignedAminoAcidSequences": {
-                "main": "GAAGAACATTTTATTGAAA",
+                "main": self.aligned_amino_acid_sequences,
             },
         }
         return json.dumps(json_representation, indent=4)
@@ -175,6 +175,28 @@ class Gene:
             "gene_name": self.gene_name,
             "gene_length": self.gene_length,
         }
+
+
+class AAInsertionSet:
+    """Class to represent the set of amino acid insertions for a full set of genes."""
+
+    def __init__(
+        self, gene_dict: Dict[Gene], aa_insertions: List[AAInsertion], gene_name: str
+    ):
+        aa_insertions_set = {}
+
+        for gene in gene_dict.keys():
+            aa_insertions_set[gene] = []
+
+        aa_insertions_set[gene_name] = aa_insertions
+
+        self.aa_insertions_set = aa_insertions_set
+
+    def to_dict(self) -> Dict[str, List[AAInsertion]]:
+        return self.aa_insertions_set
+
+    def items(self):
+        return self.aa_insertions_set.items()
 
 
 def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
@@ -228,14 +250,13 @@ with open(INPUT_FILE, "r") as f:
             AAInsertion(78, "C"),
         ]
         # convert aa_insertions to dict of all gene names and add insertions to the correct gene
+
         aa_insertions_fmt = {}
         for gene in gene_dict.keys():
             aa_insertions_fmt[gene] = []
-        print(aa_insertions_fmt)
-        for aa_insertion in aa_insertions:
-            aa_insertions_fmt[gene_name] = aa_insertions
+        aa_insertions_fmt[gene_name] = aa_insertions
 
-        aa_insertions = aa_insertions_fmt
+        aa_insertions = AAInsertionSet(gene_dict, aa_insertions, gene_name)
 
         # Make a dict to hold the aligned amino acid sequences
         aligned_amino_acid_sequences = {}
@@ -250,10 +271,10 @@ with open(INPUT_FILE, "r") as f:
             AlignedRead(
                 read_id=read_id,
                 unaligned_nucleotide_sequences="null",
-                aligned_nucleotide_sequences=padded_alignment,
+                aligned_nucleotide_sequences="null",
                 nucleotide_insertions=[],
                 amino_acid_insertions=aa_insertions,
-                aligned_amino_acid_sequences=aligned_amino_acid_sequences,
+                aligned_amino_acid_sequences=padded_alignment,
             )
         )
 
