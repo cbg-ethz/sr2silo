@@ -2,11 +2,12 @@
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Dict, List, Tuple
-import json
 
 from sr2silo.process import pad_alignment
+
 
 def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
     """Parse the CIGAR string into a list of tuples."""
@@ -21,13 +22,10 @@ class AAInsertion:
     def __init__(self, position: int, sequence: str):
         self.position = position
         self.sequence = sequence
-    def to_tuple(self) -> Tuple[str, any]:
-        return {
-            "position": self.position,
-            "sequence": self.sequence
-        }
-    def __repr__(self):
-        return f"{self.position}: {self.sequence}"
+
+    def __str__(self) -> str:
+        return f"{self.position} : {self.sequence}"
+
 
 def process_sequence(
     seq: str, cigar: str
@@ -106,7 +104,7 @@ def process_sequence(
         elif op == "P":  # Padding (silent deletion from padded reference)
             pass
 
-     # convert insertions to AAInsertion objects
+    # convert insertions to AAInsertion objects
     insertions = [AAInsertion(position, sequence) for position, sequence in insertions]
 
     return "".join(cleartext_sequence), insertions, deletions
@@ -121,7 +119,7 @@ class AlignedRead:
         unaligned_nucleotide_sequences: str,
         aligned_nucleotide_sequences: str,
         nucleotide_insertions: any,
-        amino_acid_insertions: Dict[str, List[str]],
+        amino_acid_insertions: Dict[str, List[AAInsertion]],
         aligned_amino_acid_sequences: Dict[str, str],
     ):
         self.read_id = read_id
@@ -131,7 +129,7 @@ class AlignedRead:
         self.amino_acid_insertions = amino_acid_insertions
         self.aligned_amino_acid_sequences = aligned_amino_acid_sequences
 
-    def to_dict(self) -> Dict[str, any]: # noqa
+    def to_dict(self) -> Dict[str, any]:  # noqa
         return {
             "read_id": self.read_id,
             "unaligned_nucleotide_sequences": self.unaligned_nucleotide_sequences,
@@ -141,31 +139,28 @@ class AlignedRead:
             "aligned_amino_acid_sequences": self.aligned_amino_acid_sequences,
         }
 
+    def get_amino_acid_insertions(self) -> Dict[str, List[AAInsertion]]:
+        print(self.amino_acid_insertions)
+        return self.amino_acid_insertions
+
     def to_json(self) -> str:
         json_representation = {
-            "nucleotideInsertions":
-                {
-                    "main": self.nucleotide_insertions,
-                },
-            "aminoAcidInsertions":
-                {
-                    "E": [],
-                    "ORF9b": [],
-                    "ORF3a": [],
-                    "ORF7a": []
-                },
-            "alignedNucleotideSequences":
-                {
-                    "main": "GAAGAACATTTTATTGAAA",
-                },
-            "unalignedNucleotideSequences":
-                {
-                    "main": "GAAGAACATTTTATTGAAA",
-                },
-            "alignedAminoAcidSequences":
-                {
-                     "main": "GAAGAACATTTTATTGAAA",
-                }
+            "nucleotideInsertions": {
+                "main": self.nucleotide_insertions,
+            },
+            "aminoAcidInsertions": {
+                k: [i.__str__() for i in v]
+                for k, v in self.get_amino_acid_insertions().items()
+            },
+            "alignedNucleotideSequences": {
+                "main": "GAAGAACATTTTATTGAAA",
+            },
+            "unalignedNucleotideSequences": {
+                "main": "GAAGAACATTTTATTGAAA",
+            },
+            "alignedAminoAcidSequences": {
+                "main": "GAAGAACATTTTATTGAAA",
+            },
         }
         return json.dumps(json_representation, indent=4)
 
@@ -180,7 +175,6 @@ class Gene:
             "gene_name": self.gene_name,
             "gene_length": self.gene_length,
         }
-
 
 
 def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
@@ -208,11 +202,10 @@ INPUT_FILE = "diamond_blastx.sam"
 REFERENCE_FILE = "../resources/sars-cov-2/reference_genomes.fasta"
 
 
-
 gene_dict = get_genes_and_lengths_from_ref(REFERENCE_FILE)
 
 
-reads : List[AlignedRead] = []
+reads: List[AlignedRead] = []
 
 with open(INPUT_FILE, "r") as f:
     for line in f:
@@ -229,15 +222,20 @@ with open(INPUT_FILE, "r") as f:
 
         aa_aligned, aa_insertions, aa_deletions = process_sequence(seq, cigar)
 
-        aa_insertions = [AAInsertion(34,"A"), AAInsertion(56, "B"), AAInsertion(78, "C")]
+        aa_insertions = [
+            AAInsertion(34, "A"),
+            AAInsertion(56, "B"),
+            AAInsertion(78, "C"),
+        ]
         # convert aa_insertions to dict of all gene names and add insertions to the correct gene
         aa_insertions_fmt = {}
         for gene in gene_dict.keys():
             aa_insertions_fmt[gene] = []
+        print(aa_insertions_fmt)
         for aa_insertion in aa_insertions:
-            aa_insertions_fmt[gene_name].append(aa_insertion.to_tuple())
-        print(aa_insertions)
-        print(type(aa_insertions))
+            aa_insertions_fmt[gene_name] = aa_insertions
+
+        aa_insertions = aa_insertions_fmt
 
         # Make a dict to hold the aligned amino acid sequences
         aligned_amino_acid_sequences = {}
@@ -245,21 +243,18 @@ with open(INPUT_FILE, "r") as f:
         for gene in get_genes_and_lengths_from_ref(REFERENCE_FILE).keys():
             aligned_amino_acid_sequences[gene] = None
 
-
         # pad the alignment
-        padded_alignment = pad_alignment(
-            seq, pos, gene_dict[gene_name].gene_length
-        )
+        padded_alignment = pad_alignment(seq, pos, gene_dict[gene_name].gene_length)
 
         reads.append(
             AlignedRead(
-                read_id = read_id,
-                unaligned_nucleotide_sequences = "null",
-                aligned_nucleotide_sequences = padded_alignment,
-                nucleotide_insertions= [],
-                amino_acid_insertions = aa_insertions,
-                aligned_amino_acid_sequences = aligned_amino_acid_sequences
-                )
+                read_id=read_id,
+                unaligned_nucleotide_sequences="null",
+                aligned_nucleotide_sequences=padded_alignment,
+                nucleotide_insertions=[],
+                amino_acid_insertions=aa_insertions,
+                aligned_amino_acid_sequences=aligned_amino_acid_sequences,
+            )
         )
 
 print(reads[0].to_json())
