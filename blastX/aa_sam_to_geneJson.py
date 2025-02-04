@@ -20,6 +20,7 @@ def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
         (int(length), op) for length, op in re.findall(r"(\d+)([MIDNSHP=X])", cigar)
     ]
 
+
 class NucInsertion:
     def __init__(self, position: int, sequence: str):
         self.position = position
@@ -27,6 +28,7 @@ class NucInsertion:
 
     def __str__(self) -> str:
         return f"{self.position} : {self.sequence}"
+
 
 class AAInsertion:
     def __init__(self, position: int, sequence: str):
@@ -232,7 +234,7 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
 INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
 FASTQ_NUC_ALIGMENT_FILE = "output.fastq"
 FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
-INPUT_AA_ALIGMENT_FILE = "diamond_blastx.sam"
+AA_ALIGMENT_FILE = "diamond_blastx.sam"
 AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
 NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
 
@@ -253,7 +255,7 @@ gene_dict = get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
 reads: List[AlignedRead] = []
 
 # load in the nuc insertions file - NucInsertion(position, sequence)
-nuc_insertions = dict() # dict(str, List[NucInsertion])
+nuc_insertions = dict()  # dict(str, List[NucInsertion])
 
 with open(FASTA_NUC_INSERTIONS_FILE, "r") as f:
     for line in f:
@@ -263,38 +265,40 @@ with open(FASTA_NUC_INSERTIONS_FILE, "r") as f:
         read_id = fields[0]
         position = int(fields[1])
         sequence = fields[2]
-        nuc_ins =NucInsertion(position, sequence)
+        nuc_ins = NucInsertion(position, sequence)
         if read_id not in nuc_insertions:
             nuc_insertions[read_id] = []
         nuc_insertions[read_id].append(nuc_ins)
 
 
-# read in fastq file with pysam
-with pysam.FastxFile(FASTQ_NUC_ALIGMENT_FILE) as f:
-    for entry in f:
-        read_id = entry.name
-        seq = entry.sequence
-        qual = entry.quality  # TODO: add quality scores
 
-        aligned_nucleotide_sequences = "null"  # TODO: add with padding
+with pysam.AlignmentFile("input/sorted.bam", "rb") as bam:
+    for entry in bam:
+            for read in bam.fetch():
+                read_id = read.query_name
+                seq = read.query_sequence
+                qual = "".join(chr(ord("!") + q) for q in read.query_qualities)
+                pos = read.qstart
 
-        if read_id in nuc_insertions:
-            nucleotide_insertions = nuc_insertions[read_id]
-        else:
-            nucleotide_insertions = []
+                aligned_nucleotide_sequences = pad_alignment(seq, pos, nuc_reference_length)
 
-        reads.append(
-            AlignedRead(
-                read_id=read_id,
-                unaligned_nucleotide_sequences=seq,
-                aligned_nucleotide_sequences=aligned_nucleotide_sequences,
-                nucleotide_insertions=nucleotide_insertions,
-                amino_acid_insertions="null",
-                aligned_amino_acid_sequences="null",
-            )
-        )
+                if read_id in nuc_insertions:
+                    nucleotide_insertions = nuc_insertions[read_id]
+                else:
+                    nucleotide_insertions = []
 
-with open(INPUT_AA_ALIGMENT_FILE, "r") as f:
+                reads.append(
+                    AlignedRead(
+                        read_id=read_id,
+                        unaligned_nucleotide_sequences=seq,
+                        aligned_nucleotide_sequences=aligned_nucleotide_sequences,
+                        nucleotide_insertions=nucleotide_insertions,
+                        amino_acid_insertions="null",
+                        aligned_amino_acid_sequences="null",
+                    )
+                )
+
+with open(AA_ALIGMENT_FILE, "r") as f:
     for line in f:
         # Skip header lines
         if line.startswith("@"):
