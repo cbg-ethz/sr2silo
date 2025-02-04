@@ -7,10 +7,10 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import bam_to_fasta
+import pysam
 
 from sr2silo.process import pad_alignment
 
-import pysam
 
 def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
     """Parse the CIGAR string into a list of tuples."""
@@ -225,14 +225,23 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
 INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
 FASTQ_NUC_ALIGMENT_FILE = "output.fastq"
 INPUT_AA_ALIGMENT_FILE = "diamond_blastx.sam"
-REFERENCE_FILE = "../resources/sars-cov-2/reference_genomes.fasta"
+AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
+NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
 
 
 bam_to_fasta.sort_bam_file(INPUT_NUC_ALIGMENT_FILE, "input/sorted.bam")
 bam_to_fasta.create_index("input/sorted.bam")
 bam_to_fasta.bam_to_fastq("input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE)
 
-gene_dict = get_genes_and_lengths_from_ref(REFERENCE_FILE)
+bam_to_fasta.bam_to_fastq_handle_indels(
+    "input/sorted.bam", "output_indels.fastq", "output_ins.fasta"
+)
+
+with open(NUC_REFERENCE_FILE, "r") as f:
+    nuc_reference = f.read()
+nuc_reference_length = len(nuc_reference)
+
+gene_dict = get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
 
 reads: List[AlignedRead] = []
 
@@ -241,22 +250,20 @@ with pysam.FastxFile(FASTQ_NUC_ALIGMENT_FILE) as f:
     for entry in f:
         read_id = entry.name
         seq = entry.sequence
-        qual = entry.quality
+        qual = entry.quality  # TODO: add quality scores
 
-
+        aligned_nucleotide_sequences = "null"  # TODO: add with padding
 
         reads.append(
             AlignedRead(
                 read_id=read_id,
                 unaligned_nucleotide_sequences=seq,
-                aligned_nucleotide_sequences="null", # TODO: add with padding
+                aligned_nucleotide_sequences=aligned_nucleotide_sequences,
                 nucleotide_insertions="null",
                 amino_acid_insertions="null",
                 aligned_amino_acid_sequences="null",
             )
         )
-
-
 
 with open(INPUT_AA_ALIGMENT_FILE, "r") as f:
     for line in f:
@@ -290,12 +297,11 @@ with open(INPUT_AA_ALIGMENT_FILE, "r") as f:
         # Make a dict to hold the aligned amino acid sequences
         aligned_amino_acid_sequences = {}
         # Write a null for all gene names
-        for gene in get_genes_and_lengths_from_ref(REFERENCE_FILE).keys():
+        for gene in get_genes_and_lengths_from_ref(AA_REFERENCE_FILE).keys():
             aligned_amino_acid_sequences[gene] = None
 
         # pad the alignment
         padded_aa_alignment = pad_alignment(seq, pos, gene_dict[gene_name].gene_length)
-
 
         # find the correct read by read_id in reads
         for read in reads:
