@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 
-def parse_cigar(cigar):
+def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
     """Parse the CIGAR string into a list of tuples."""
     import re
 
@@ -15,7 +15,9 @@ def parse_cigar(cigar):
     ]
 
 
-def process_sequence(seq: str, cigar: str):
+def process_sequence(
+    seq: str, cigar: str
+) -> Tuple[str, List[Tuple[int, str]], List[Tuple[int, int]]]:
     """
     Processes a SAM file-style sequence and a CIGAR string to return the
     cleartext sequence, along with detailed information about insertions
@@ -95,82 +97,63 @@ def process_sequence(seq: str, cigar: str):
 
 class AlignedRead:
     """Class to represent an aligned read."""
+
     def __init__(
         self,
         read_id: str,
-        unalignedNucleotideSequences: str,
-        alignedNucleotideSequences: str,
-        nucliotideInsertions: List[Tuple[int, str]],
-        aminoAcidInsertions: List[Tuple[int, str]],
-        alignedAminoAcidSequences: Dict[str, str],
+        unaligned_nucleotide_sequences: str,
+        aligned_nucleotide_sequences: str,
+        nucleotide_insertions: List[Tuple[int, str]],
+        amino_acid_insertions: List[Tuple[int, str]],
+        aligned_amino_acid_sequences: Dict[str, str],
     ):
         self.read_id = read_id
-        self.unalignedNucleotideSequences = unalignedNucleotideSequences
-        self.alignedNucleotideSequences = alignedNucleotideSequences
-        self.nucliotideInsertions = nucliotideInsertions
-        self.aminoAcidInsertions = aminoAcidInsertions
-        self.alignedAminoAcidSequences = alignedAminoAcidSequences
+        self.unaligned_nucleotide_sequences = unaligned_nucleotide_sequences
+        self.aligned_nucleotide_sequences = aligned_nucleotide_sequences
+        self.nucleotide_insertions = nucleotide_insertions
+        self.amino_acid_insertions = amino_acid_insertions
+        self.aligned_amino_acid_sequences = aligned_amino_acid_sequences
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, any]: # noqa
         return {
             "read_id": self.read_id,
-            "unalignedNucleotideSequences": self.unalignedNucleotideSequences,
-            "alignedNucleotideSequences": self.alignedNucleotideSequences,
-            "nucliotideInsertions": self.nucliotideInsertions,
-            "aminoAcidInsertions": self.aminoAcidInsertions,
-            "alignedAminoAcidSequences": self.alignedAminoAcidSequences,
+            "unaligned_nucleotide_sequences": self.unaligned_nucleotide_sequences,
+            "aligned_nucleotide_sequences": self.aligned_nucleotide_sequences,
+            "nucleotide_insertions": self.nucleotide_insertions,
+            "amino_acid_insertions": self.amino_acid_insertions,
+            "aligned_amino_acid_sequences": self.aligned_amino_acid_sequences,
         }
 
 
-def get_genes_from_reference_name(reference_fp: Path) -> List[str]:
-    """load the gene ref fasta and get all the gene names"""
-    gene_names = []
+def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, int]:
+    """Load the gene ref fasta and get all the gene names."""
+    genes = dict()
 
     with open(reference_fp, "r") as f:
-        # for each line with > get the string following >
+        awaiting_next_line = False
         for line in f:
             if line.startswith(">"):
-                gene_names.append(line[1:].strip())
+                gene = line[1:].strip()
+                awaiting_next_line = True
+            elif awaiting_next_line:
+                reference_length = len(line.strip())
+                genes[gene] = reference_length
+                awaiting_next_line = False
+            else:
+                continue
 
-    return gene_names
+    return genes
 
 
-#### PSUEDOCODE ####
-
-## read in each line in the sam file
-
-### (if the read_id is not in the dictionary, add it - only relevant for paired ends)
-
-
-### make a results dictionary
-
-###### make a dictionary for AA_sequences for the gene
-
-###### make a dictionary for insertions for the gene
-
-### get the gene name from the reference name
-
-### get the cleartext sequence from the aligned query sequence and the cigar string
-
-### get the insertions from the aligned query sequence and the cigar string
-
-##### make a dict for the read
-## read_id
-## nucliotide insertions
-## aminoAcidInsertions
-## alignedNucleotideSequences
-## unalignedNucleotideSequences
-## alignedAminoAcidSequences
-
-## write the dictionaries to a json file
-
+# Define the input and reference file paths
+INPUT_FILE = "diamond_blastx.sam"
 REFERENCE_FILE = "../resources/sars-cov-2/reference_genomes.fasta"
 
 
-INPUT_FILE = "diamond_blastx.sam"
+aa_ref = get_genes_and_lengths_from_ref(REFERENCE_FILE)
 
-aligned_reads = []
-
+print(aa_ref)
+"""
 with open(INPUT_FILE, "r") as f:
     for line in f:
         # Skip header lines
@@ -180,17 +163,27 @@ with open(INPUT_FILE, "r") as f:
         fields = line.strip().split("\t")
         read_id = fields[0]
         gene_name = fields[2]
+        pos = int(fields[3])
         cigar = fields[5]
         seq = fields[9]
 
         aa_aligned, aa_insertions, aa_deletions = process_sequence(seq, cigar)
 
-        # make a dict
+        # Make a dict to hold the aligned amino acid sequences
+        aligned_amino_acid_sequences = {}
+        # Write a null for all gene names
+        for gene in get_genes_and_lengths_from_ref(REFERENCE_FILE).keys():
+            aligned_amino_acid_sequences[gene] = None
 
-        # add padding to the aligned sequence
+        # pad the alignment
+        padded_alignment = pad_alignment(
+            seq, pos,
+        )
 
+        # Print the results
         print(f"Read ID: {read_id}")
         print(f"Gene Name: {gene_name}")
         print(f"AA Aligned: {aa_aligned}")
         print(f"AA Insertions: {aa_insertions}")
         print(f"AA Deletions: {aa_deletions}")
+ """
