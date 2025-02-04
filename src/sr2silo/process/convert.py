@@ -6,6 +6,7 @@ import logging
 import re
 import tempfile
 from pathlib import Path
+from typing import List, Union
 
 import pysam
 
@@ -136,6 +137,44 @@ def normalize_reads(sam_data: str, output_fasta: Path, output_insertions: Path) 
             insertions_file.write(f"{read_id}\t{unpaired_read['insertions']}\n")
 
 
+def pad_alignment(
+    sequence: Union[List[str], str],
+    reference_start: int,
+    reference_length: int,
+    unknown_char: str = "N",
+) -> str:
+    """
+    Pad the sequence to match the reference length.
+
+    This function takes a sequence and pads it with a specified character to align it
+    with a reference sequence of a given length. The padding is added to both the
+    beginning and the end of the sequence as needed.
+
+    Args:
+        sequence (Union[List[str], str]): The sequence to be padded.
+        reference_start (int): The starting position of the reference sequence.
+        reference_length (int): The total length of the reference sequence.
+        unknown_char (str, optional): The character to use for padding. Defaults to "N".
+
+    Returns:
+        str: The padded sequence as a single string.
+    """
+
+    # Combine the aligned sequence
+    aligned_str = "".join(sequence)
+
+    # Calculate the padding needed for the left and right
+    left_padding = unknown_char * reference_start
+    right_padding = unknown_char * (
+        reference_length - len(aligned_str) - reference_start
+    )
+
+    # Pad the aligned sequence
+    padded_alignment = left_padding + aligned_str + right_padding
+
+    return padded_alignment
+
+
 def bam_to_cleartext_alignment(
     bam_path: Path, output_fp: Path, reference: Path
 ) -> None:
@@ -223,17 +262,9 @@ def bam_to_cleartext_alignment(
                     elif operation == 5:  # Hard clip (H)
                         pass  # Don't include hard clipped sequences in the alignment
 
-                # Combine the aligned sequence
-                aligned_str = "".join(aligned)
-
-                # Calculate the padding needed for the left and right
-                left_padding = "-" * read.reference_start
-                right_padding = "-" * (
-                    reference_length - len(aligned_str) - read.reference_start
+                padded_alignment = pad_alignment(
+                    aligned, read.reference_start, reference_length
                 )
-
-                # Pad the aligned sequence
-                padded_alignment = left_padding + aligned_str + right_padding
 
                 # Create a JSON object for the read
                 read_json = {
