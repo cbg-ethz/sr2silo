@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from sr2silo.process import pad_alignment
 
 def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
     """Parse the CIGAR string into a list of tuples."""
@@ -125,7 +126,19 @@ class AlignedRead:
         }
 
 
-def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, int]:
+class Gene:
+    def __init__(self, gene_name: str, gene_length: int):
+        self.gene_name = gene_name
+        self.gene_length = gene_length
+
+    def to_dict(self) -> Dict[str, int]:
+        return {
+            "gene_name": self.gene_name,
+            "gene_length": self.gene_length,
+        }
+
+
+def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
     """Load the gene ref fasta and get all the gene names."""
     genes = dict()
 
@@ -137,7 +150,7 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, int]:
                 awaiting_next_line = True
             elif awaiting_next_line:
                 reference_length = len(line.strip())
-                genes[gene] = reference_length
+                genes[gene] = Gene(gene, reference_length)
                 awaiting_next_line = False
             else:
                 continue
@@ -150,10 +163,10 @@ INPUT_FILE = "diamond_blastx.sam"
 REFERENCE_FILE = "../resources/sars-cov-2/reference_genomes.fasta"
 
 
-aa_ref = get_genes_and_lengths_from_ref(REFERENCE_FILE)
 
-print(aa_ref)
-"""
+gene_dict = get_genes_and_lengths_from_ref(REFERENCE_FILE)
+
+
 with open(INPUT_FILE, "r") as f:
     for line in f:
         # Skip header lines
@@ -175,10 +188,13 @@ with open(INPUT_FILE, "r") as f:
         for gene in get_genes_and_lengths_from_ref(REFERENCE_FILE).keys():
             aligned_amino_acid_sequences[gene] = None
 
+
         # pad the alignment
         padded_alignment = pad_alignment(
-            seq, pos,
+            seq, pos, gene_dict[gene_name].gene_length
         )
+
+        print(padded_alignment)
 
         # Print the results
         print(f"Read ID: {read_id}")
@@ -186,4 +202,4 @@ with open(INPUT_FILE, "r") as f:
         print(f"AA Aligned: {aa_aligned}")
         print(f"AA Insertions: {aa_insertions}")
         print(f"AA Deletions: {aa_deletions}")
- """
+
