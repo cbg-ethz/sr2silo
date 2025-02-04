@@ -278,12 +278,17 @@ with pysam.FastxFile(FASTQ_NUC_ALIGMENT_FILE) as f:
 
         aligned_nucleotide_sequences = "null"  # TODO: add with padding
 
+        if read_id in nuc_insertions:
+            nucleotide_insertions = nuc_insertions[read_id]
+        else:
+            nucleotide_insertions = []
+
         reads.append(
             AlignedRead(
                 read_id=read_id,
                 unaligned_nucleotide_sequences=seq,
                 aligned_nucleotide_sequences=aligned_nucleotide_sequences,
-                nucleotide_insertions="null",
+                nucleotide_insertions=nucleotide_insertions,
                 amino_acid_insertions="null",
                 aligned_amino_acid_sequences="null",
             )
