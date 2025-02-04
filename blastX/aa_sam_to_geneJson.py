@@ -231,7 +231,8 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
     return genes
 
 
-INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
+# INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
+INPUT_NUC_ALIGMENT_FILE = "input/Ref_aln.bam"
 FASTQ_NUC_ALIGMENT_FILE = "output.fastq"
 FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
 AA_ALIGMENT_FILE = "diamond_blastx.sam"
@@ -255,7 +256,7 @@ gene_dict = get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
 reads: List[AlignedRead] = []
 
 # load in the nuc insertions file - NucInsertion(position, sequence)
-nuc_insertions = dict()  # dict(str, List[NucInsertion])
+nuc_insertions: Dict[str, List[NucInsertion]] = dict()
 
 with open(FASTA_NUC_INSERTIONS_FILE, "r") as f:
     for line in f:
@@ -271,35 +272,38 @@ with open(FASTA_NUC_INSERTIONS_FILE, "r") as f:
         nuc_insertions[read_id].append(nuc_ins)
 
 
-
 with pysam.AlignmentFile("input/sorted.bam", "rb") as bam:
     for entry in bam:
-            for read in bam.fetch():
-                read_id = read.query_name
-                seq = read.query_sequence
-                qual = "".join(chr(ord("!") + q) for q in read.query_qualities)
-                pos = read.qstart
+        for read in bam.fetch():
+            read_id = read.query_name
+            seq = read.query_sequence
+            qual = "".join(chr(ord("!") + q) for q in read.query_qualities)
+            pos = read.qstart
 
-                aligned_nucleotide_sequences = pad_alignment(seq, pos, nuc_reference_length)
+            aligned_nucleotide_sequences = pad_alignment(seq, pos, nuc_reference_length)
 
-                if read_id in nuc_insertions:
-                    nucleotide_insertions = nuc_insertions[read_id]
-                else:
-                    nucleotide_insertions = []
+            if read_id in nuc_insertions:
+                nucleotide_insertions = nuc_insertions[read_id]
+            else:
+                nucleotide_insertions = []
 
-                reads.append(
-                    AlignedRead(
-                        read_id=read_id,
-                        unaligned_nucleotide_sequences=seq,
-                        aligned_nucleotide_sequences=aligned_nucleotide_sequences,
-                        nucleotide_insertions=nucleotide_insertions,
-                        amino_acid_insertions="null",
-                        aligned_amino_acid_sequences="null",
-                    )
+            reads.append(
+                AlignedRead(
+                    read_id=read_id,
+                    unaligned_nucleotide_sequences=seq,
+                    aligned_nucleotide_sequences=aligned_nucleotide_sequences,
+                    nucleotide_insertions=nucleotide_insertions,
+                    amino_acid_insertions="null",
+                    aligned_amino_acid_sequences="null",
                 )
+            )
 
 with open(AA_ALIGMENT_FILE, "r") as f:
+    count = 0
     for line in f:
+        count += 1
+        if count % 1000 == 0:
+            print(f"AA Aligment of read {count} ")
         # Skip header lines
         if line.startswith("@"):
             continue
@@ -312,12 +316,6 @@ with open(AA_ALIGMENT_FILE, "r") as f:
         seq = fields[9]
 
         aa_aligned, aa_insertions, aa_deletions = process_sequence(seq, cigar)
-
-        aa_insertions = [
-            AAInsertion(34, "A"),
-            AAInsertion(56, "B"),
-            AAInsertion(78, "C"),
-        ]
         # convert aa_insertions to dict of all gene names and add insertions to the correct gene
 
         aa_insertions_fmt = {}
@@ -344,3 +342,6 @@ with open(AA_ALIGMENT_FILE, "r") as f:
                 break
 
 print(reads[0].to_json())
+print(reads[-1].to_json())
+print(f"Reads: {len(reads)}")
+print("Done!")
