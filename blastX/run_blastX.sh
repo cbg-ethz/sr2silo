@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # ==== Database ====
-diamond makedb --in ref/sequences_assembley.fasta -d ref/hxb_pol_db
+diamond makedb --in ../resources/sars-cov-2/reference_genomes.fasta -d ref/hxb_pol_db
+
 
 
 # ==== Alignment ====
