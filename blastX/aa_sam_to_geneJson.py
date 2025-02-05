@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
+import re
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -11,11 +14,13 @@ import pysam
 
 from sr2silo.process import pad_alignment
 
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 
 def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
     """Parse the CIGAR string into a list of tuples."""
-    import re
-
     return [
         (int(length), op) for length, op in re.findall(r"(\d+)([MIDNSHP=X])", cigar)
     ]
@@ -231,21 +236,60 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
     return genes
 
 
-# INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
-INPUT_NUC_ALIGMENT_FILE = "input/Ref_aln.bam"
+INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
+# INPUT_NUC_ALIGMENT_FILE = "input/Ref_aln.bam"
 FASTQ_NUC_ALIGMENT_FILE = "output.fastq"
 FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
 AA_ALIGMENT_FILE = "diamond_blastx.sam"
 AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
 NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
 
+bam_file = Path("input/sorted.bam")
+bam_to_fasta.sort_bam_file(INPUT_NUC_ALIGMENT_FILE, bam_file)
 
-bam_to_fasta.sort_bam_file(INPUT_NUC_ALIGMENT_FILE, "input/sorted.bam")
-bam_to_fasta.create_index("input/sorted.bam")
+bai_file = bam_file.with_suffix(".bai")
+if not bai_file.exists() or bam_file.stat().st_mtime > bai_file.stat().st_mtime:
+    print("Creating index for BAM file")
+    bam_to_fasta.create_index(str(bam_file))
 
+print("Converting BAM to FASTQ with INDELS")
 bam_to_fasta.bam_to_fastq_handle_indels(
     "input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE, FASTA_NUC_INSERTIONS_FILE
 )
+
+try:
+    # translate and align to AA
+    # ==== Make Sequence DB ====
+    print("== Making Sequence DB ==")
+    result = os.system(f"diamond makedb --in {AA_REFERENCE_FILE} -d ref/hxb_pol_db")
+    if result != 0:
+        raise RuntimeError(
+            "Error occurred while making sequence DB with diamond makedb"
+        )
+
+    # ==== Alignment ====
+    print("== Aligning to AA ==")
+    result = os.system(
+        f"""
+    diamond blastx -d ref/hxb_pol_db \
+        -q {FASTQ_NUC_ALIGMENT_FILE} \
+        -o {AA_ALIGMENT_FILE} \
+        --evalue 1 \
+        --gapopen 6 \
+        --gapextend 2 \
+        --outfmt 101 \
+        --matrix BLOSUM62 \
+        --unal 0 \
+        --max-hsps 1 \
+        --block-size 0.5
+    """
+    )
+    if result != 0:
+        raise RuntimeError("Error occurred while aligning to AA with diamond blastx")
+except Exception as e:
+    print(f"An error occurred: {e}")
+    raise
+
 
 with open(NUC_REFERENCE_FILE, "r") as f:
     nuc_reference = f.read()
