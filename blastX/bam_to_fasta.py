@@ -65,6 +65,75 @@ def bam_to_fastq(bam_file, fastq_file):
                     fq.write(f"@{name}\n{seq}\n+\n{qual}\n")
 
 
+def bam_to_fastq_with_insertions(bam_path, fastq_path, insertions_fastq_path=None):
+    """
+    Converts a BAM file to FASTQ format, optionally separating insertions into another FASTQ file.
+
+    Args:
+        bam_path: Path to the input BAM file.
+        fastq_path: Path to the output FASTQ file (containing regular reads).
+        insertions_fastq_path: Optional path to the output FASTQ file for insertions.  If None, insertions are included in the main FASTQ.
+    """
+
+    try:
+        samfile = pysam.AlignmentFile(bam_path, "rb")  # rb for reading binary
+    except ValueError:
+        raise ValueError(f"Invalid BAM file path: {bam_path}")
+
+    try:
+        fastq_file = open(fastq_path, "w")
+        if insertions_fastq_path:
+            insertions_file = open(insertions_fastq_path, "w")
+    except OSError as e:
+        raise OSError(f"Error opening FASTQ file: {e}")
+
+    for read in samfile.fetch():
+        seq = read.seq
+        qual = read.qual
+
+        if (
+            seq is None or qual is None
+        ):  # Handle reads with missing sequence or quality scores
+            continue
+
+        query_name = read.query_name
+
+        # Primary read FASTQ output
+        fastq_file.write(f"@{query_name}\n{seq}\n+\n{qual}\n")
+
+        if insertions_fastq_path:  # Handle Insertions separately
+            query_position = read.query_alignment_start
+            ref_position = read.reference_start
+            for cigar_tuple in read.cigar:
+                if cigar_tuple[0] == 1:  # CIGAR code 1 represents an insertion (I)
+                    insertion_length = cigar_tuple[1]
+                    insertion_seq = seq[
+                        query_position : query_position + insertion_length
+                    ]  # Extract the inserted sequence
+                    insertion_qual = qual[
+                        query_position : query_position + insertion_length
+                    ]  # Extract the quality scores for the inserted sequence
+
+                    insertions_file.write(
+                        f"@{query_name}\t{ref_position}\t{insertion_seq}\t{insertion_qual}\n"
+                    )
+                    # Update read position to skip the insertion. Important to avoid issues with overlapping insertions.
+                    query_position += insertion_length
+                elif cigar_tuple[0] in {
+                    0,
+                    2,
+                    3,
+                    7,
+                    8,
+                }:  # Update reference position for match, deletion, skip, and other operations
+                    ref_position += cigar_tuple[1]
+
+    samfile.close()
+    fastq_file.close()
+    if insertions_fastq_path:
+        insertions_file.close()
+
+
 def bam_to_fastq_handle_indels(
     bam_file, fastq_file, insertions_file, deletion_char="-"
 ):
@@ -103,9 +172,10 @@ def bam_to_fastq_handle_indels(
                         ref_pos += cigar[1]
                     elif cigar[0] == 1:  # Insertion
                         insertion_seq = query_sequence[query_pos : query_pos + cigar[1]]
-                        insertion_qual = [chr(q + 33) for q in query_qualities[
-                            query_pos : query_pos + cigar[1]
-                        ]]
+                        insertion_qual = [
+                            chr(q + 33)
+                            for q in query_qualities[query_pos : query_pos + cigar[1]]
+                        ]
                         insertion_positions.append(
                             (ref_pos, insertion_seq, insertion_qual)
                         )
@@ -121,8 +191,9 @@ def bam_to_fastq_handle_indels(
                 fastq.write(f"@{read.query_name}\n")
                 fastq.write(f"{''.join(new_sequence)}\n")
                 fastq.write("+\n")
-                fastq.write(f"{''.join(chr(q + 33) for q in new_qualities)}\n") # Phred33 encoding
-
+                fastq.write(
+                    f"{''.join(chr(q + 33) for q in new_qualities)}\n"
+                )  # Phred33 encoding
 
                 # Write the insertions to the insertions file
                 for insertion_pos, insertion_seq, insertion_qual in insertion_positions:

@@ -253,7 +253,15 @@ if not bai_file.exists() or bam_file.stat().st_mtime > bai_file.stat().st_mtime:
     bam_to_fasta.create_index(str(bam_file))
 
 print("Converting BAM to FASTQ with INDELS")
+# make a mofidifed path for indels
+FASTQ_NUC_ALIGMENT_FILE_WI = "output_with_indels.fastq"
+FASTA_NUC_INSERTIONS_FILE_WI = "output_ins_with_indels.fasta"
 bam_to_fasta.bam_to_fastq_handle_indels(
+    "input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE_WI, FASTA_NUC_INSERTIONS_FILE_WI
+)
+
+
+bam_to_fasta.bam_to_fastq_with_insertions(
     "input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE, FASTA_NUC_INSERTIONS_FILE
 )
 
