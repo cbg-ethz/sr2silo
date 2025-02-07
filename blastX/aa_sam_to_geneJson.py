@@ -292,11 +292,10 @@ class ReadStore:
 ####################################################################################################
 # Main function
 
-
 def main():
     #INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
     INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
-    FASTQ_NUC_FOR_AA_ALINGMENT = "output.fastq"
+    FASTA_NUC_FOR_AA_ALINGMENT = "output.fasta"
     FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
     FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
     AA_ALIGNMENT_FILE = "diamond_blastx.sam"
@@ -336,8 +335,7 @@ def main():
     )
 
     print("Converting BAM to FASTQ for AA alignment")
-    bam_to_fasta.bam_to_fastq("input/sorted.bam", FASTQ_NUC_FOR_AA_ALINGMENT)
-    bam_to_fasta.check_fastq_format(FASTQ_NUC_FOR_AA_ALINGMENT)
+    bam_to_fasta.bam_to_fasta("input/sorted.bam", FASTA_NUC_FOR_AA_ALINGMENT)
 
     try:
         # translate and align to AA
@@ -355,25 +353,14 @@ def main():
     try:
         # ==== Alignment ====
         print("== Aligning to AA ==")
+        # Replace batch splitting with a single diamond blastx call on the entire FASTA file.
         result = os.system(
-            f"""
-        diamond blastx -d ref/hxb_pol_db \
-            -q {FASTQ_NUC_FOR_AA_ALINGMENT} \
-            -o {AA_ALIGNMENT_FILE} \
-            --evalue 1 \
-            --gapopen 6 \
-            --gapextend 2 \
-            --outfmt 101 \
-            --matrix BLOSUM62 \
-            --unal 0 \
-            --max-hsps 1 \
-            --block-size 0.5
-        """
+            f"diamond blastx -d ref/hxb_pol_db -q {FASTA_NUC_FOR_AA_ALINGMENT} -o {AA_ALIGNMENT_FILE} "
+            f"--evalue 1 --gapopen 6 --gapextend 2 --outfmt 101 --matrix BLOSUM62 "
+            f"--unal 0 --max-hsps 1 --block-size 0.5"
         )
         if result != 0:
-            raise RuntimeError(
-                "Error occurred while aligning to AA with diamond blastx"
-            )
+            raise RuntimeError("Error occurred while aligning to AA with diamond blastx")
     except Exception as e:
         print(f"An error occurred while aligning to AA: {e}")
         raise
@@ -454,5 +441,27 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    bam_to_fasta.check_fastq_format("output.fastq")
+    main()
+
+    #fastq_with_error = "fastq_batches_2nd/batch_55.fastq"
+
+    # Check the FASTQ format
+    #bam_to_fasta.check_fastq_format(fastq_with_error)
+
+    # run aa alignment
+
+    # print("== Aligning to AA ==")
+    # # Instead of a single diamond blastx call, split the FASTQ into smaller batches.
+    # batches = split_fastq(fastq_with_error, records_per_file=1, output_dir="fastq_batches_3nd")
+    # diamond_outputs = []
+    # for batch in batches:
+    #     batch_output = batch.replace(".fastq", "_diamond.sam")
+    #     print(f"Aligning batch: {batch}")
+    #     result = os.system(
+    #         f"diamond blastx -d ref/hxb_pol_db -q {batch} -o {batch_output} "
+    #         f"--evalue 1 --gapopen 6 --gapextend 2 --outfmt 101 --matrix BLOSUM62 "
+    #         f"--unal 0 --max-hsps 1 --block-size 0.5"
+    #     )
+    #     if result != 0:
+    #         raise RuntimeError("Error occurred while aligning batch with diamond blastx")
+    #     diamond_outputs.append(batch_output)
