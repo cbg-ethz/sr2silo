@@ -7,6 +7,14 @@ from pathlib import Path
 import pysam
 
 
+import logging
+
+
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+
 def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
     """
     Sorts a BAM file using pysam.sort to avoid loading all alignments into memory.
@@ -64,6 +72,10 @@ def bam_to_fastq(bam_file, fastq_file):
         with open(fastq_file, "w") as fq:
             for read in bam.fetch():
                 if not read.is_unmapped:
+                    # Debugging: Check for missing sequence or quality
+                    if not read.query_sequence or not read.query_qualities:
+                        logging.warning(f"Skipping read {read.query_name} due to missing sequence or quality")
+                        continue
                     name = read.query_name
                     seq = read.query_sequence
                     qual = "".join(chr(q + 33) for q in read.query_qualities)
@@ -147,10 +159,26 @@ def bam_to_fastq_handle_indels(
 def check_fastq_format(fastq_path):
     """Utility to check that the FASTQ file has 4 lines per record."""
     with open(fastq_path, "r") as f:
-        lines = f.readlines()
-    if len(lines) % 4 != 0:
-        print(
-            f"FASTQ format error: {fastq_path} has {len(lines)} lines (not a multiple of 4)"
-        )
-    else:
-        print(f"FASTQ format check passed for {fastq_path}")
+        line_count = 0
+        # if line starts with @, it is a header, so parse the read id
+        for line in f:
+            if line.startswith("@"):
+                # get the text after tjhe @ symbol
+                read_id = line.strip()[1:]
+                # get next line which is the sequence
+                seq = next(f).strip()
+                # skip the next line (which is a +)
+                next(f)
+                # get the quality scores
+                qual = next(f).strip()
+                # check if the sequence and quality scores are the same length
+                if len(seq) != len(qual):
+                    raise ValueError(f"Sequence and quality lines have different lengths for {read_id}")
+                if not seq or not qual:
+                    raise ValueError(f"Empty sequence or quality line for {read_id}")
+                line_count += 4
+        if line_count % 4 != 0:
+            raise ValueError(
+                f"FASTQ format error: {fastq_path} has {line_count} lines (not a multiple of 4)"
+            )
+        logging.info(f"FASTQ file {fastq_path} has correct format")

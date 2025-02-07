@@ -43,7 +43,7 @@ class AAInsertion:
     def __str__(self) -> str:
         return f"{self.position} : {self.sequence}"
 
-
+# TODO: better name for this function
 def process_sequence(
     seq: str, cigar: str
 ) -> Tuple[str, List[AAInsertion], List[Tuple[int, int]]]:
@@ -294,8 +294,8 @@ class ReadStore:
 
 
 def main():
-    INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
-    # INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
+    #INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
+    INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
     FASTQ_NUC_FOR_AA_ALINGMENT = "output.fastq"
     FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
     FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
@@ -385,6 +385,7 @@ def main():
     gene_dict = get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
 
     # NEW: Initialize the read store (optionally to a temporary file instead of in-memory)
+    # TODO: move this to a temporary file
     read_store = ReadStore(db_path=":memory:")
 
     ## Process nucleotide alignment reads incrementally
@@ -416,7 +417,7 @@ def main():
             count += 1
             if count % 1000 == 0:
                 print(f"Processing AA alignment for read {count}")
-            if line.startswith("@"):
+            if line.startswith("@"):  # TODO: check this line makes sense, why skip
                 continue
             fields = line.strip().split("\t")
             read_id = fields[0]
@@ -424,6 +425,7 @@ def main():
             pos = int(fields[3])
             cigar = fields[5]
             seq = fields[9]
+            # TODO: why are aa_aligned not used but seq is used ?
             aa_aligned, aa_insertions, aa_deletions = process_sequence(seq, cigar)
             # Build a dict for AA insertions with empty entries for other genes
             aa_ins_dict = {gene: [] for gene in gene_dict.keys()}
@@ -452,4 +454,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    bam_to_fasta.check_fastq_format("output.fastq")
