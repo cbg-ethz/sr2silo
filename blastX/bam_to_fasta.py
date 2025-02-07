@@ -1,27 +1,32 @@
 # Script to convert BAM to FASTA with quality scores
 
 from __future__ import annotations
-
-import os
 from pathlib import Path
 
 import pysam
 
-
 def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
     """
     Sorts a BAM file using pysam.sort to avoid loading all alignments into memory.
+
+    Args:
+        input_bam_path (Path): Path to the input BAM file.
+        output_bam_path (Path): Path to the output sorted BAM file.
     """
     try:
-        # Use os.fspath() to convert Path to str for pysam.sort.
-        pysam.sort("-o", os.fspath(output_bam_path), os.fspath(input_bam_path))
-        print(f"BAM file has been sorted and saved to {output_bam_path}")
+        # Convert Path objects to strings for pysam compatibility
+        input_bam_str = str(input_bam_path)
+        output_bam_str = str(output_bam_path)
+
+        # Using pysam.sort command to sort the BAM file and write to disk incrementally.
+        pysam.sort("-o", output_bam_str, input_bam_str)
+        print(f"BAM file has been sorted and saved to {output_bam_str}")
     except Exception as e:
         print(f"An error occurred: {e}")
         raise Exception(f"An error occurred: {e}")
 
 
-def create_index(bam_file):
+def create_index(bam_file : Path):
     """
     Create an index for a BAM file using pysam.
 
@@ -29,8 +34,11 @@ def create_index(bam_file):
         bam_file (str): Path to the input BAM file.
     """
     try:
-        # Convert bam_file to str if it is a Path object.
-        pysam.index(os.fspath(bam_file))
+        # Convert Path object to string for pysam compatibility
+        bam_file_str = str(bam_file)
+
+        # Open BamFile and save with 'bai' extension
+        pysam.index(bam_file_str)
         print(f"Index created for {bam_file}")
     except Exception as e:
         print(f"An error occurred: {e}")
