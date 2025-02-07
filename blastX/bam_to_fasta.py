@@ -54,32 +54,27 @@ def create_index(bam_file: Path):
         print(f"An error occurred: {e}")
 
 
-def bam_to_fastq(bam_file, fastq_file):
+def bam_to_fasta(bam_file, fasta_file):
     """
-    Convert a BAM file to a FASTQ file. Bluntly resolved the sam to fastq.
+    Convert a BAM file to a FASTA file. Bluntly resolved the sam to fasta.
 
     Args:
         bam_file (str): Path to the input BAM file.
-        fastq_file (str): Path to the output FASTQ file.
+        fasta_file (str): Path to the output FASTQ file.
     """
     # check for proper format
     if not bam_file.endswith(".bam"):
         raise ValueError("Input file is not a BAM file")
-    if not fastq_file.endswith(".fastq"):
-        raise ValueError("Output file is not a FASTQ file")
+    if not fasta_file.endswith(".fasta"):
+        raise ValueError("Output file is not a FASTA file")
 
     with pysam.AlignmentFile(bam_file, "rb") as bam:
-        with open(fastq_file, "w") as fq:
+        with open(fasta_file, "w") as fq:
             for read in bam.fetch():
                 if not read.is_unmapped:
-                    # Debugging: Check for missing sequence or quality
-                    if not read.query_sequence or not read.query_qualities:
-                        logging.warning(f"Skipping read {read.query_name} due to missing sequence or quality")
-                        continue
                     name = read.query_name
                     seq = read.query_sequence
-                    qual = "".join(chr(q + 33) for q in read.query_qualities)
-                    fq.write(f"@{name}\n{seq}\n+\n{qual}\n")
+                    fq.write(f">{name}\n{seq}\n")
 
 
 def bam_to_fastq_handle_indels(
