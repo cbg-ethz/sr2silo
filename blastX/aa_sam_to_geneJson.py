@@ -252,7 +252,8 @@ if not bai_file.exists() or bam_file.stat().st_mtime > bai_file.stat().st_mtime:
     print("Creating index for BAM file")
     bam_to_fasta.create_index(str(bam_file))
 
-print("Converting BAM to FASTQ with INDELS")
+print("Converting BAM to FASTQ with INDELS to show NUC alignment")
+
 # make a mofidifed path for indels
 FASTQ_NUC_ALIGMENT_FILE_WI = "output_with_indels.fastq"
 FASTA_NUC_INSERTIONS_FILE_WI = "output_ins_with_indels.fasta"
@@ -260,10 +261,8 @@ bam_to_fasta.bam_to_fastq_handle_indels(
     "input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE_WI, FASTA_NUC_INSERTIONS_FILE_WI
 )
 
-
-bam_to_fasta.bam_to_fastq_with_insertions(
-    "input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE, FASTA_NUC_INSERTIONS_FILE
-)
+print("Converting BAM to FASTQ for AA alignment")
+bam_to_fasta.bam_to_fastq("input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE)
 
 try:
     # translate and align to AA
@@ -355,7 +354,7 @@ with open(AA_ALIGMENT_FILE, "r") as f:
     for line in f:
         count += 1
         if count % 1000 == 0:
-            print(f"AA Aligment of read {count} ")
+            print(f"AA Alignment of read {count} ")
         # Skip header lines
         if line.startswith("@"):
             continue

@@ -49,7 +49,7 @@ def create_index(bam_file):
 
 def bam_to_fastq(bam_file, fastq_file):
     """
-    Convert a BAM file to a FASTQ file.
+    Convert a BAM file to a FASTQ file. Bluntly resolved the sam to fastq.
 
     Args:
         bam_file (str): Path to the input BAM file.
@@ -65,81 +65,14 @@ def bam_to_fastq(bam_file, fastq_file):
                     fq.write(f"@{name}\n{seq}\n+\n{qual}\n")
 
 
-def bam_to_fastq_with_insertions(bam_path, fastq_path, insertions_fastq_path=None):
-    """
-    Converts a BAM file to FASTQ format, optionally separating insertions into another FASTQ file.
-
-    Args:
-        bam_path: Path to the input BAM file.
-        fastq_path: Path to the output FASTQ file (containing regular reads).
-        insertions_fastq_path: Optional path to the output FASTQ file for insertions.  If None, insertions are included in the main FASTQ.
-    """
-
-    try:
-        samfile = pysam.AlignmentFile(bam_path, "rb")  # rb for reading binary
-    except ValueError:
-        raise ValueError(f"Invalid BAM file path: {bam_path}")
-
-    try:
-        fastq_file = open(fastq_path, "w")
-        if insertions_fastq_path:
-            insertions_file = open(insertions_fastq_path, "w")
-    except OSError as e:
-        raise OSError(f"Error opening FASTQ file: {e}")
-
-    for read in samfile.fetch():
-        seq = read.seq
-        qual = read.qual
-
-        if (
-            seq is None or qual is None
-        ):  # Handle reads with missing sequence or quality scores
-            continue
-
-        query_name = read.query_name
-
-        # Primary read FASTQ output
-        fastq_file.write(f"@{query_name}\n{seq}\n+\n{qual}\n")
-
-        if insertions_fastq_path:  # Handle Insertions separately
-            query_position = read.query_alignment_start
-            ref_position = read.reference_start
-            for cigar_tuple in read.cigar:
-                if cigar_tuple[0] == 1:  # CIGAR code 1 represents an insertion (I)
-                    insertion_length = cigar_tuple[1]
-                    insertion_seq = seq[
-                        query_position : query_position + insertion_length
-                    ]  # Extract the inserted sequence
-                    insertion_qual = qual[
-                        query_position : query_position + insertion_length
-                    ]  # Extract the quality scores for the inserted sequence
-
-                    insertions_file.write(
-                        f"@{query_name}\t{ref_position}\t{insertion_seq}\t{insertion_qual}\n"
-                    )
-                    # Update read position to skip the insertion. Important to avoid issues with overlapping insertions.
-                    query_position += insertion_length
-                elif cigar_tuple[0] in {
-                    0,
-                    2,
-                    3,
-                    7,
-                    8,
-                }:  # Update reference position for match, deletion, skip, and other operations
-                    ref_position += cigar_tuple[1]
-
-    samfile.close()
-    fastq_file.close()
-    if insertions_fastq_path:
-        insertions_file.close()
-
-
 def bam_to_fastq_handle_indels(
     bam_file, fastq_file, insertions_file, deletion_char="-"
 ):
     """
     Convert a BAM file to a FASTQ file, removing insertions and adding a special character for deletions.
     Save the insertions to a separate file.
+
+    Used to look at the cleartext nuclotide sequence of the reads.
 
     :param bam_file: Path to the input BAM file
     :param fastq_file: Path to the output FASTQ file
