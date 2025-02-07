@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import sqlite3
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -235,8 +236,61 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
     return genes
 
 
+class ReadStore:
+    def __init__(self, db_path=":memory:"):
+        self.conn = sqlite3.connect(db_path)
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS reads ("
+            "read_id TEXT PRIMARY KEY, "
+            "unaligned_seq TEXT, "
+            "aligned_nuc_seq TEXT, "
+            "nucleotide_insertions TEXT, "
+            "aligned_aa_seq TEXT, "
+            "aa_insertions TEXT)"
+        )
+
+    def insert_nuc_read(self, read_id, unaligned_seq, aligned_nuc_seq, nuc_ins):
+        import json
+
+        ins_json = json.dumps([ins.__dict__ for ins in nuc_ins])
+        self.conn.execute(
+            "INSERT OR REPLACE INTO reads (read_id, unaligned_seq, aligned_nuc_seq, nucleotide_insertions) VALUES (?,?,?,?)",
+            (read_id, unaligned_seq, aligned_nuc_seq, ins_json),
+        )
+        self.conn.commit()
+
+    def update_aa_alignment(self, read_id, aligned_aa_seq, aa_insertions):
+        import json
+
+        aa_ins_json = json.dumps(
+            {k: [str(i) for i in v] for k, v in aa_insertions.items()}
+        )
+        self.conn.execute(
+            "UPDATE reads SET aligned_aa_seq=?, aa_insertions=? WHERE read_id=?",
+            (aligned_aa_seq, aa_ins_json, read_id),
+        )
+        self.conn.commit()
+
+    def dump_all_json(self):
+        import json
+
+        cursor = self.conn.execute("SELECT * FROM reads")
+        all_reads = []
+        for row in cursor:
+            read_obj = {
+                "read_id": row[0],
+                "unaligned_nucleotide_sequences": row[1],
+                "aligned_nucleotide_sequences": row[2],
+                "nucleotide_insertions": json.loads(row[3]) if row[3] else [],
+                "aligned_amino_acid_sequences": row[4],
+                "amino_acid_insertions": json.loads(row[5]) if row[5] else {},
+            }
+            all_reads.append(read_obj)
+        return json.dumps(all_reads, indent=4)
+
+
 INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
-# INPUT_NUC_ALIGMENT_FILE = "input/Ref_aln.bam"
+# INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
 FASTQ_NUC_ALIGMENT_FILE = "output.fastq"
 FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
 FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
@@ -244,9 +298,22 @@ AA_ALIGNMENT_FILE = "diamond_blastx.sam"
 AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
 NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
 
+# Validate that all Resouces are there before starting
+NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE = [
+    Path(f) for f in [NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE]
+]
+if not all(
+    f.exists() for f in [NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE]
+):
+    raise FileNotFoundError("One or more input files are missing")
+
+# Sort the BAM file
 bam_file = Path("input/sorted.bam")
+logging.info("Sorting BAM file")
 bam_to_fasta.sort_bam_file(INPUT_NUC_ALIGMENT_FILE, bam_file)
 
+# Create index for BAM file
+logging.info("Creating index for BAM file")
 bai_file = bam_file.with_suffix(".bai")
 if not bai_file.exists() or bam_file.stat().st_mtime > bai_file.stat().st_mtime:
     print("Creating index for BAM file")
@@ -302,126 +369,66 @@ nuc_reference_length = len(nuc_reference)
 
 gene_dict = get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
 
-reads: List[AlignedRead] = []
+# NEW: Initialize the read store (optionally to a temporary file instead of in-memory)
+read_store = ReadStore(db_path=":memory:")
 
-# load in the nuc insertions file - NucInsertion(position, sequence)
-nuc_insertions: Dict[str, List[NucInsertion]] = dict()
-
-## Read in the Nuc Insertions
-with open(FASTA_NUC_INSERTIONS_FILE, "r") as f:
-    for line in f:
-        if line.startswith(">"):
-            continue
-        fields = line.strip().split("\t")
-        read_id = fields[0]
-        position = int(fields[1])
-        sequence = fields[2]
-        nuc_ins = NucInsertion(position, sequence)
-        if read_id not in nuc_insertions:
-            nuc_insertions[read_id] = []
-        nuc_insertions[read_id].append(nuc_ins)
-
-## Get the Nucliotide Aligment
-# read the FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS file line by line
-# for each read get get read, padd the aligment and add the insertions if present
-# add to Reads list of AlignedRead objects
+## Process nucleotide alignment reads incrementally
 with open(FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, "r") as f:
-    for line in f:
-        if line.startswith("@"):
-            read_id = line[1:].strip()
-            seq = next(f).strip()
-            _ = next(f)
-            qual = next(f).strip()
-            pos = int(next(f).strip().split(":")[1])
-            aligned_nucleotide_sequences = pad_alignment(seq, pos, nuc_reference_length)
+    while True:
+        header = f.readline()
+        if not header:
+            break
+        # Expecting 5 lines per read:
+        # header, sequence, '+', quality, alignment_position line
+        read_id = header.strip()[1:]
+        seq = f.readline().strip()
+        # Skip next line (e.g. '+')
+        f.readline()
+        qual = f.readline().strip()
+        pos_line = f.readline().strip()
+        pos = int(pos_line.split(":")[1])
+        aligned_nuc_seq = pad_alignment(seq, pos, nuc_reference_length)
+        # Read nucleotide insertions from FASTA insertion file if available
+        # Here we choose to keep an empty list if not found; later update if needed.
+        nuc_ins = []
+        # Insert the nuc read record into the database.
+        read_store.insert_nuc_read(read_id, seq, aligned_nuc_seq, nuc_ins)
 
-            if read_id in nuc_insertions:
-                nucleotide_insertions = nuc_insertions[read_id]
-            else:
-                nucleotide_insertions = []
-
-            reads.append(
-                AlignedRead(
-                    read_id=read_id,
-                    unaligned_nucleotide_sequences=seq,
-                    aligned_nucleotide_sequences=aligned_nucleotide_sequences,
-                    nucleotide_insertions=nucleotide_insertions,
-                    amino_acid_insertions="null",
-                    aligned_amino_acid_sequences="null",
-                )
-            )
-
-
-# with pysam.AlignmentFile("input/sorted.bam", "rb") as bam:
-#     for entry in bam:
-#         for read in bam.fetch():
-#             read_id = read.query_name
-#             seq = read.query_sequence
-#             qual = "".join(chr(ord("!") + q) for q in read.query_qualities)
-#             pos = read.qstart
-
-#             aligned_nucleotide_sequences = pad_alignment(seq, pos, nuc_reference_length)
-
-#             if read_id in nuc_insertions:
-#                 nucleotide_insertions = nuc_insertions[read_id]
-#             else:
-#                 nucleotide_insertions = []
-
-#             reads.append(
-#                 AlignedRead(
-#                     read_id=read_id,
-#                     unaligned_nucleotide_sequences=seq,
-#                     aligned_nucleotide_sequences=aligned_nucleotide_sequences,
-#                     nucleotide_insertions=nucleotide_insertions,
-#                     amino_acid_insertions="null",
-#                     aligned_amino_acid_sequences="null",
-#                 )
-#             )
-
+# Process AA alignment file and update corresponding reads
 with open(AA_ALIGNMENT_FILE, "r") as f:
     count = 0
     for line in f:
         count += 1
         if count % 1000 == 0:
-            print(f"AA Alignment of read {count} ")
-        # Skip header lines
+            print(f"Processing AA alignment for read {count}")
         if line.startswith("@"):
             continue
-        # Split the line into fields
         fields = line.strip().split("\t")
         read_id = fields[0]
         gene_name = fields[2]
         pos = int(fields[3])
         cigar = fields[5]
         seq = fields[9]
-
         aa_aligned, aa_insertions, aa_deletions = process_sequence(seq, cigar)
-        # convert aa_insertions to dict of all gene names and add insertions to the correct gene
-
-        aa_insertions_fmt = {}
-        for gene in gene_dict.keys():
-            aa_insertions_fmt[gene] = []
-        aa_insertions_fmt[gene_name] = aa_insertions
-
-        aa_insertions = AAInsertionSet(gene_dict, aa_insertions, gene_name)
-
-        # Make a dict to hold the aligned amino acid sequences
-        aligned_amino_acid_sequences = {}
-        # Write a null for all gene names
-        for gene in get_genes_and_lengths_from_ref(AA_REFERENCE_FILE).keys():
-            aligned_amino_acid_sequences[gene] = None
-
-        # pad the alignment
+        # Build a dict for AA insertions with empty entries for other genes
+        aa_ins_dict = {gene: [] for gene in gene_dict.keys()}
+        aa_ins_dict[gene_name] = aa_insertions
         padded_aa_alignment = pad_alignment(seq, pos, gene_dict[gene_name].gene_length)
+        # Update the read record with AA alignment info.
+        read_store.update_aa_alignment(read_id, padded_aa_alignment, aa_ins_dict)
 
-        # find the correct read by read_id in reads
-        for read in reads:
-            if read.read_id == read_id:
-                read.aligned_amino_acid_sequences = padded_aa_alignment
-                read.amino_acid_insertions = aa_insertions
-                break
+# Dump combined results to JSON (or write out incrementally)
+final_json = read_store.dump_all_json()
 
-print(reads[0].to_json())
-print(reads[-1].to_json())
-print(f"Reads: {len(reads)}")
+final_json_fp = "reads.json"
+
+with open(final_json_fp, "w") as f:
+    f.write(final_json)
+
+# print the first and last AlignedRead objects
+print("First read:")
+print(json.dumps(json.loads(final_json)[0], indent=4))
+print("Last read:")
+print(json.dumps(json.loads(final_json)[-1], indent=4))
+
 print("Done!")

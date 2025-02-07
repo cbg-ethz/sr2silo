@@ -2,34 +2,23 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 import pysam
 
 
-def sort_bam_file(input_bam_path, output_bam_path):
+def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
     """
-    Sorts a BAM file by coordinate.
-
-    :param input_bam_path: Path to the input BAM file.
-    :param output_bam_path: Path where the sorted BAM file will be saved.
+    Sorts a BAM file using pysam.sort to avoid loading all alignments into memory.
     """
     try:
-        # Open the input BAM file
-        with pysam.AlignmentFile(input_bam_path, "rb") as bam_file:
-            # Sort the alignments by coordinate and write them to a new file
-            sorted_alignments = bam_file.fetch(until_eof=True)
-            with pysam.AlignmentFile(
-                output_bam_path, "wb", template=bam_file
-            ) as output_file:
-                for alignment in sorted(
-                    sorted_alignments,
-                    key=lambda x: (x.reference_name, x.reference_start),
-                ):
-                    output_file.write(alignment)
-
+        # Use os.fspath() to convert Path to str for pysam.sort.
+        pysam.sort("-o", os.fspath(output_bam_path), os.fspath(input_bam_path))
         print(f"BAM file has been sorted and saved to {output_bam_path}")
-
     except Exception as e:
         print(f"An error occurred: {e}")
+        raise Exception(f"An error occurred: {e}")
 
 
 def create_index(bam_file):
@@ -40,8 +29,8 @@ def create_index(bam_file):
         bam_file (str): Path to the input BAM file.
     """
     try:
-        # Open BamFile and save with 'bai' extension
-        pysam.index(bam_file)
+        # Convert bam_file to str if it is a Path object.
+        pysam.index(os.fspath(bam_file))
         print(f"Index created for {bam_file}")
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -137,10 +126,3 @@ def bam_to_fastq_handle_indels(
                     insertions.write(
                         f"{read.query_name}\t{insertion_pos}\t{''.join(insertion_seq)}\t{''.join(insertion_qual)}\n"
                     )
-
-
-# Example usage:
-
-sort_bam_file("input/combined.bam", "input/sorted.bam")
-create_index("input/sorted.bam")
-bam_to_fastq("input/sorted.bam", "output.fastq")
