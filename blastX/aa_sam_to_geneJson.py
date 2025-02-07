@@ -293,8 +293,8 @@ class ReadStore:
 # Main function
 
 def main():
-    #INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
-    INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
+    INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
+    #INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
     FASTA_NUC_FOR_AA_ALINGMENT = "output.fasta"
     FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
     FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
@@ -378,23 +378,28 @@ def main():
     ## Process nucleotide alignment reads incrementally
     with open(FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, "r") as f:
         while True:
-            header = f.readline()
+            header = f.readline().strip()
             if not header:
-                break
-            # Expecting 5 lines per read:
-            # header, sequence, '+', quality, alignment_position line
-            read_id = header.strip()[1:]
+                break  # End of file
             seq = f.readline().strip()
-            # Skip next line (e.g. '+')
-            f.readline()
-            f.readline().strip()
+            plus = f.readline().strip()
+            # TODO: propagate the quanlity scores from here
+            qual = f.readline().strip()
             pos_line = f.readline().strip()
-            pos = int(pos_line.split(":")[1])
+
+            if not (header.startswith("@") and plus.startswith("+") and pos_line.startswith("aligment_position:")):
+                logging.error("Malformed FASTQ record encountered, skipping...")
+                continue
+
+            read_id = header[1:]
+            try:
+                pos = int(pos_line.split(":", 1)[1])
+            except Exception as e:
+                logging.error(f"Error parsing alignment position for {read_id}: {e}")
+                continue
+
             aligned_nuc_seq = pad_alignment(seq, pos, nuc_reference_length)
-            # Read nucleotide insertions from FASTA insertion file if available
-            # Here we choose to keep an empty list if not found; later update if needed.
-            nuc_ins = []
-            # Insert the nuc read record into the database.
+            nuc_ins = []  # Here, keep an empty list for nucleotide insertions if needed
             read_store.insert_nuc_read(read_id, seq, aligned_nuc_seq, nuc_ins)
 
     # Process AA alignment file and update corresponding reads
