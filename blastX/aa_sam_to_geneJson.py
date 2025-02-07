@@ -237,7 +237,8 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
 
 
 class ReadStore:
-    def __init__(self, db_path=":memory:"):
+    # Changed default from ':memory:' to file-based DB
+    def __init__(self, db_path="read_store.db"):
         self.conn = sqlite3.connect(db_path)
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS reads ("
@@ -384,7 +385,7 @@ def main():
             seq = f.readline().strip()
             plus = f.readline().strip()
             # TODO: propagate the quanlity scores from here
-            qual = f.readline().strip()
+            f.readline().strip()
             pos_line = f.readline().strip()
 
             if not (header.startswith("@") and plus.startswith("+") and pos_line.startswith("aligment_position:")):
