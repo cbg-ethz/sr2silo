@@ -1,9 +1,11 @@
 # Script to convert BAM to FASTA with quality scores
 
 from __future__ import annotations
+
 from pathlib import Path
 
 import pysam
+
 
 def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
     """
@@ -26,7 +28,7 @@ def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
         raise Exception(f"An error occurred: {e}")
 
 
-def create_index(bam_file : Path):
+def create_index(bam_file: Path):
     """
     Create an index for a BAM file using pysam.
 
@@ -52,6 +54,12 @@ def bam_to_fastq(bam_file, fastq_file):
         bam_file (str): Path to the input BAM file.
         fastq_file (str): Path to the output FASTQ file.
     """
+    # check for proper format
+    if not bam_file.endswith(".bam"):
+        raise ValueError("Input file is not a BAM file")
+    if not fastq_file.endswith(".fastq"):
+        raise ValueError("Output file is not a FASTQ file")
+
     with pysam.AlignmentFile(bam_file, "rb") as bam:
         with open(fastq_file, "w") as fq:
             for read in bam.fetch():
@@ -134,3 +142,15 @@ def bam_to_fastq_handle_indels(
                     insertions.write(
                         f"{read.query_name}\t{insertion_pos}\t{''.join(insertion_seq)}\t{''.join(insertion_qual)}\n"
                     )
+
+
+def check_fastq_format(fastq_path):
+    """Utility to check that the FASTQ file has 4 lines per record."""
+    with open(fastq_path, "r") as f:
+        lines = f.readlines()
+    if len(lines) % 4 != 0:
+        print(
+            f"FASTQ format error: {fastq_path} has {len(lines)} lines (not a multiple of 4)"
+        )
+    else:
+        print(f"FASTQ format check passed for {fastq_path}")

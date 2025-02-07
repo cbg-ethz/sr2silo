@@ -289,146 +289,167 @@ class ReadStore:
         return json.dumps(all_reads, indent=4)
 
 
-INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
-# INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
-FASTQ_NUC_ALIGMENT_FILE = "output.fastq"
-FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
-FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
-AA_ALIGNMENT_FILE = "diamond_blastx.sam"
-AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
-NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
+####################################################################################################
+# Main function
 
-# Validate that all Resouces are there before starting
-NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE = [
-    Path(f) for f in [NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE]
-]
-if not all(
-    f.exists() for f in [NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE]
-):
-    raise FileNotFoundError("One or more input files are missing")
 
-# Sort the BAM file
-bam_file = Path("input/sorted.bam")
-logging.info("Sorting BAM file")
-bam_to_fasta.sort_bam_file(INPUT_NUC_ALIGMENT_FILE, bam_file)
+def main():
+    INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
+    # INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
+    FASTQ_NUC_FOR_AA_ALINGMENT = "output.fastq"
+    FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
+    FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
+    AA_ALIGNMENT_FILE = "diamond_blastx.sam"
+    AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
+    NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
 
-# Create index for BAM file
-logging.info("Creating index for BAM file")
-bai_file = bam_file.with_suffix(".bai")
-if not bai_file.exists() or bam_file.stat().st_mtime > bai_file.stat().st_mtime:
-    print("Creating index for BAM file")
-    bam_to_fasta.create_index(str(bam_file))
+    # Validate that all Resouces are there before starting
+    NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE = [
+        Path(f)
+        for f in [NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE]
+    ]
+    if not all(
+        f.exists()
+        for f in [NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE]
+    ):
+        raise FileNotFoundError("One or more input files are missing")
 
-print("Converting BAM to FASTQ with INDELS to show NUC alignment")
+    # Sort the BAM file
+    bam_file = Path("input/sorted.bam")
+    logging.info("Sorting BAM file")
+    bam_to_fasta.sort_bam_file(INPUT_NUC_ALIGMENT_FILE, bam_file)
 
-# make a mofidifed path for indels
-bam_to_fasta.bam_to_fastq_handle_indels(
-    "input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, FASTA_NUC_INSERTIONS_FILE
-)
+    # Create index for BAM file
+    logging.info("Creating index for BAM file")
+    bai_file = bam_file.with_suffix(".bai")
+    if not bai_file.exists() or bam_file.stat().st_mtime > bai_file.stat().st_mtime:
+        print("Creating index for BAM file")
+        bam_to_fasta.create_index(str(bam_file))
 
-print("Converting BAM to FASTQ for AA alignment")
-bam_to_fasta.bam_to_fastq("input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE)
+    print("Converting BAM to FASTQ with INDELS to show NUC alignment")
 
-try:
-    # translate and align to AA
-    # ==== Make Sequence DB ====
-    print("== Making Sequence DB ==")
-    result = os.system(f"diamond makedb --in {AA_REFERENCE_FILE} -d ref/hxb_pol_db")
-    if result != 0:
-        raise RuntimeError(
-            "Error occurred while making sequence DB with diamond makedb"
-        )
-
-    # ==== Alignment ====
-    print("== Aligning to AA ==")
-    result = os.system(
-        f"""
-    diamond blastx -d ref/hxb_pol_db \
-        -q {FASTQ_NUC_ALIGMENT_FILE} \
-        -o {AA_ALIGNMENT_FILE} \
-        --evalue 1 \
-        --gapopen 6 \
-        --gapextend 2 \
-        --outfmt 101 \
-        --matrix BLOSUM62 \
-        --unal 0 \
-        --max-hsps 1 \
-        --block-size 0.5
-    """
+    # make a mofidifed path for indels
+    bam_to_fasta.bam_to_fastq_handle_indels(
+        "input/sorted.bam",
+        FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS,
+        FASTA_NUC_INSERTIONS_FILE,
     )
-    if result != 0:
-        raise RuntimeError("Error occurred while aligning to AA with diamond blastx")
-except Exception as e:
-    print(f"An error occurred: {e}")
-    raise
+
+    print("Converting BAM to FASTQ for AA alignment")
+    bam_to_fasta.bam_to_fastq("input/sorted.bam", FASTQ_NUC_FOR_AA_ALINGMENT)
+    bam_to_fasta.check_fastq_format(FASTQ_NUC_FOR_AA_ALINGMENT)
+
+    try:
+        # translate and align to AA
+        # ==== Make Sequence DB ====
+        print("== Making Sequence DB ==")
+        result = os.system(f"diamond makedb --in {AA_REFERENCE_FILE} -d ref/hxb_pol_db")
+        if result != 0:
+            raise RuntimeError(
+                "Error occurred while making sequence DB with diamond makedb"
+            )
+    except Exception as e:
+        print(f"An error occurred while making sequence DB: {e}")
+        raise
+
+    try:
+        # ==== Alignment ====
+        print("== Aligning to AA ==")
+        result = os.system(
+            f"""
+        diamond blastx -d ref/hxb_pol_db \
+            -q {FASTQ_NUC_FOR_AA_ALINGMENT} \
+            -o {AA_ALIGNMENT_FILE} \
+            --evalue 1 \
+            --gapopen 6 \
+            --gapextend 2 \
+            --outfmt 101 \
+            --matrix BLOSUM62 \
+            --unal 0 \
+            --max-hsps 1 \
+            --block-size 0.5
+        """
+        )
+        if result != 0:
+            raise RuntimeError(
+                "Error occurred while aligning to AA with diamond blastx"
+            )
+    except Exception as e:
+        print(f"An error occurred while aligning to AA: {e}")
+        raise
+
+    with open(NUC_REFERENCE_FILE, "r") as f:
+        nuc_reference = f.read()
+    nuc_reference_length = len(nuc_reference)
+
+    gene_dict = get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
+
+    # NEW: Initialize the read store (optionally to a temporary file instead of in-memory)
+    read_store = ReadStore(db_path=":memory:")
+
+    ## Process nucleotide alignment reads incrementally
+    with open(FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, "r") as f:
+        while True:
+            header = f.readline()
+            if not header:
+                break
+            # Expecting 5 lines per read:
+            # header, sequence, '+', quality, alignment_position line
+            read_id = header.strip()[1:]
+            seq = f.readline().strip()
+            # Skip next line (e.g. '+')
+            f.readline()
+            f.readline().strip()
+            pos_line = f.readline().strip()
+            pos = int(pos_line.split(":")[1])
+            aligned_nuc_seq = pad_alignment(seq, pos, nuc_reference_length)
+            # Read nucleotide insertions from FASTA insertion file if available
+            # Here we choose to keep an empty list if not found; later update if needed.
+            nuc_ins = []
+            # Insert the nuc read record into the database.
+            read_store.insert_nuc_read(read_id, seq, aligned_nuc_seq, nuc_ins)
+
+    # Process AA alignment file and update corresponding reads
+    with open(AA_ALIGNMENT_FILE, "r") as f:
+        count = 0
+        for line in f:
+            count += 1
+            if count % 1000 == 0:
+                print(f"Processing AA alignment for read {count}")
+            if line.startswith("@"):
+                continue
+            fields = line.strip().split("\t")
+            read_id = fields[0]
+            gene_name = fields[2]
+            pos = int(fields[3])
+            cigar = fields[5]
+            seq = fields[9]
+            aa_aligned, aa_insertions, aa_deletions = process_sequence(seq, cigar)
+            # Build a dict for AA insertions with empty entries for other genes
+            aa_ins_dict = {gene: [] for gene in gene_dict.keys()}
+            aa_ins_dict[gene_name] = aa_insertions
+            padded_aa_alignment = pad_alignment(
+                seq, pos, gene_dict[gene_name].gene_length
+            )
+            # Update the read record with AA alignment info.
+            read_store.update_aa_alignment(read_id, padded_aa_alignment, aa_ins_dict)
+
+    # Dump combined results to JSON (or write out incrementally)
+    final_json = read_store.dump_all_json()
+
+    final_json_fp = "reads.json"
+
+    with open(final_json_fp, "w") as f:
+        f.write(final_json)
+
+    # print the first and last AlignedRead objects
+    print("First read:")
+    print(json.dumps(json.loads(final_json)[0], indent=4))
+    print("Last read:")
+    print(json.dumps(json.loads(final_json)[-1], indent=4))
+
+    print("Done!")
 
 
-with open(NUC_REFERENCE_FILE, "r") as f:
-    nuc_reference = f.read()
-nuc_reference_length = len(nuc_reference)
-
-gene_dict = get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
-
-# NEW: Initialize the read store (optionally to a temporary file instead of in-memory)
-read_store = ReadStore(db_path=":memory:")
-
-## Process nucleotide alignment reads incrementally
-with open(FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, "r") as f:
-    while True:
-        header = f.readline()
-        if not header:
-            break
-        # Expecting 5 lines per read:
-        # header, sequence, '+', quality, alignment_position line
-        read_id = header.strip()[1:]
-        seq = f.readline().strip()
-        # Skip next line (e.g. '+')
-        f.readline()
-        qual = f.readline().strip()
-        pos_line = f.readline().strip()
-        pos = int(pos_line.split(":")[1])
-        aligned_nuc_seq = pad_alignment(seq, pos, nuc_reference_length)
-        # Read nucleotide insertions from FASTA insertion file if available
-        # Here we choose to keep an empty list if not found; later update if needed.
-        nuc_ins = []
-        # Insert the nuc read record into the database.
-        read_store.insert_nuc_read(read_id, seq, aligned_nuc_seq, nuc_ins)
-
-# Process AA alignment file and update corresponding reads
-with open(AA_ALIGNMENT_FILE, "r") as f:
-    count = 0
-    for line in f:
-        count += 1
-        if count % 1000 == 0:
-            print(f"Processing AA alignment for read {count}")
-        if line.startswith("@"):
-            continue
-        fields = line.strip().split("\t")
-        read_id = fields[0]
-        gene_name = fields[2]
-        pos = int(fields[3])
-        cigar = fields[5]
-        seq = fields[9]
-        aa_aligned, aa_insertions, aa_deletions = process_sequence(seq, cigar)
-        # Build a dict for AA insertions with empty entries for other genes
-        aa_ins_dict = {gene: [] for gene in gene_dict.keys()}
-        aa_ins_dict[gene_name] = aa_insertions
-        padded_aa_alignment = pad_alignment(seq, pos, gene_dict[gene_name].gene_length)
-        # Update the read record with AA alignment info.
-        read_store.update_aa_alignment(read_id, padded_aa_alignment, aa_ins_dict)
-
-# Dump combined results to JSON (or write out incrementally)
-final_json = read_store.dump_all_json()
-
-final_json_fp = "reads.json"
-
-with open(final_json_fp, "w") as f:
-    f.write(final_json)
-
-# print the first and last AlignedRead objects
-print("First read:")
-print(json.dumps(json.loads(final_json)[0], indent=4))
-print("Last read:")
-print(json.dumps(json.loads(final_json)[-1], indent=4))
-
-print("Done!")
+if __name__ == "__main__":
+    main()
