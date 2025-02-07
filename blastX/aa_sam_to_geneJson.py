@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import bam_to_fasta
-import pysam
 
 from sr2silo.process import pad_alignment
 
@@ -239,8 +238,9 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
 INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
 # INPUT_NUC_ALIGMENT_FILE = "input/Ref_aln.bam"
 FASTQ_NUC_ALIGMENT_FILE = "output.fastq"
+FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
 FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
-AA_ALIGMENT_FILE = "diamond_blastx.sam"
+AA_ALIGNMENT_FILE = "diamond_blastx.sam"
 AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
 NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
 
@@ -255,10 +255,8 @@ if not bai_file.exists() or bam_file.stat().st_mtime > bai_file.stat().st_mtime:
 print("Converting BAM to FASTQ with INDELS to show NUC alignment")
 
 # make a mofidifed path for indels
-FASTQ_NUC_ALIGMENT_FILE_WI = "output_with_indels.fastq"
-FASTA_NUC_INSERTIONS_FILE_WI = "output_ins_with_indels.fasta"
 bam_to_fasta.bam_to_fastq_handle_indels(
-    "input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE_WI, FASTA_NUC_INSERTIONS_FILE_WI
+    "input/sorted.bam", FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, FASTA_NUC_INSERTIONS_FILE
 )
 
 print("Converting BAM to FASTQ for AA alignment")
@@ -280,7 +278,7 @@ try:
         f"""
     diamond blastx -d ref/hxb_pol_db \
         -q {FASTQ_NUC_ALIGMENT_FILE} \
-        -o {AA_ALIGMENT_FILE} \
+        -o {AA_ALIGNMENT_FILE} \
         --evalue 1 \
         --gapopen 6 \
         --gapextend 2 \
@@ -309,6 +307,7 @@ reads: List[AlignedRead] = []
 # load in the nuc insertions file - NucInsertion(position, sequence)
 nuc_insertions: Dict[str, List[NucInsertion]] = dict()
 
+## Read in the Nuc Insertions
 with open(FASTA_NUC_INSERTIONS_FILE, "r") as f:
     for line in f:
         if line.startswith(">"):
@@ -322,15 +321,18 @@ with open(FASTA_NUC_INSERTIONS_FILE, "r") as f:
             nuc_insertions[read_id] = []
         nuc_insertions[read_id].append(nuc_ins)
 
-
-with pysam.AlignmentFile("input/sorted.bam", "rb") as bam:
-    for entry in bam:
-        for read in bam.fetch():
-            read_id = read.query_name
-            seq = read.query_sequence
-            qual = "".join(chr(ord("!") + q) for q in read.query_qualities)
-            pos = read.qstart
-
+## Get the Nucliotide Aligment
+# read the FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS file line by line
+# for each read get get read, padd the aligment and add the insertions if present
+# add to Reads list of AlignedRead objects
+with open(FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, "r") as f:
+    for line in f:
+        if line.startswith("@"):
+            read_id = line[1:].strip()
+            seq = next(f).strip()
+            _ = next(f)
+            qual = next(f).strip()
+            pos = int(next(f).strip().split(":")[1])
             aligned_nucleotide_sequences = pad_alignment(seq, pos, nuc_reference_length)
 
             if read_id in nuc_insertions:
@@ -349,7 +351,34 @@ with pysam.AlignmentFile("input/sorted.bam", "rb") as bam:
                 )
             )
 
-with open(AA_ALIGMENT_FILE, "r") as f:
+
+# with pysam.AlignmentFile("input/sorted.bam", "rb") as bam:
+#     for entry in bam:
+#         for read in bam.fetch():
+#             read_id = read.query_name
+#             seq = read.query_sequence
+#             qual = "".join(chr(ord("!") + q) for q in read.query_qualities)
+#             pos = read.qstart
+
+#             aligned_nucleotide_sequences = pad_alignment(seq, pos, nuc_reference_length)
+
+#             if read_id in nuc_insertions:
+#                 nucleotide_insertions = nuc_insertions[read_id]
+#             else:
+#                 nucleotide_insertions = []
+
+#             reads.append(
+#                 AlignedRead(
+#                     read_id=read_id,
+#                     unaligned_nucleotide_sequences=seq,
+#                     aligned_nucleotide_sequences=aligned_nucleotide_sequences,
+#                     nucleotide_insertions=nucleotide_insertions,
+#                     amino_acid_insertions="null",
+#                     aligned_amino_acid_sequences="null",
+#                 )
+#             )
+
+with open(AA_ALIGNMENT_FILE, "r") as f:
     count = 0
     for line in f:
         count += 1

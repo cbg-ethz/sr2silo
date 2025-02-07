@@ -70,9 +70,9 @@ def bam_to_fastq_handle_indels(
 ):
     """
     Convert a BAM file to a FASTQ file, removing insertions and adding a special character for deletions.
-    Save the insertions to a separate file.
+    Save the insertions to a separate file. Include alignment positions in the FASTQ file.
 
-    Used to look at the cleartext nuclotide sequence of the reads.
+    Used to look at the cleartext nucleotide sequence of the reads.
 
     :param bam_file: Path to the input BAM file
     :param fastq_file: Path to the output FASTQ file
@@ -91,6 +91,7 @@ def bam_to_fastq_handle_indels(
                 insertion_positions = []
 
                 query_pos = 0
+                ref_align_start = read.reference_start
                 ref_pos = read.reference_start
 
                 for cigar in read.cigartuples:
@@ -127,6 +128,9 @@ def bam_to_fastq_handle_indels(
                 fastq.write(
                     f"{''.join(chr(q + 33) for q in new_qualities)}\n"
                 )  # Phred33 encoding
+
+                # Write the alignment positions to the FASTQ file
+                fastq.write(f"aligment_position:{ref_align_start}\n")
 
                 # Write the insertions to the insertions file
                 for insertion_pos, insertion_seq, insertion_qual in insertion_positions:
