@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 from typing import List, Union
 
-from sr2silo.process.interface import AAInsertion
+from sr2silo.process.interface import AAInsertion, Gene
 
 import pysam
 
@@ -407,3 +407,23 @@ def sam_to_seq_and_indels(
     insertions = [AAInsertion(position, sequence) for position, sequence in insertions]
 
     return "".join(cleartext_sequence), insertions, deletions
+
+
+def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
+    """Load the gene ref fasta and get all the gene names."""
+    genes = dict()
+
+    with open(reference_fp, "r") as f:
+        awaiting_next_line = False
+        for line in f:
+            if line.startswith(">"):
+                gene = line[1:].strip()
+                awaiting_next_line = True
+            elif awaiting_next_line:
+                reference_length = len(line.strip())
+                genes[gene] = Gene(gene, reference_length)
+                awaiting_next_line = False
+            else:
+                continue
+
+    return genes

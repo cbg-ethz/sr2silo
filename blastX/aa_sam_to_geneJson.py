@@ -14,33 +14,13 @@ import json
 from tqdm import tqdm
 
 import psutil
-from sr2silo.process import pad_alignment, Gene
+from sr2silo.process import pad_alignment
 import sr2silo.process.convert as convert
 
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
-
-def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
-    """Load the gene ref fasta and get all the gene names."""
-    genes = dict()
-
-    with open(reference_fp, "r") as f:
-        awaiting_next_line = False
-        for line in f:
-            if line.startswith(">"):
-                gene = line[1:].strip()
-                awaiting_next_line = True
-            elif awaiting_next_line:
-                reference_length = len(line.strip())
-                genes[gene] = Gene(gene, reference_length)
-                awaiting_next_line = False
-            else:
-                continue
-
-    return genes
 
 
 class ReadStore:
@@ -210,7 +190,7 @@ def main():
     nuc_reference_length = len(nuc_reference)
     logging.info(f"Loaded nucleotide reference with length {nuc_reference_length}")
 
-    gene_dict = get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
+    gene_dict = convert.get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
     logging.info(f"Loaded gene refernece with genes: {gene_dict.keys()}")
 
     with tempfile.NamedTemporaryFile(delete=False) as temp_db:
