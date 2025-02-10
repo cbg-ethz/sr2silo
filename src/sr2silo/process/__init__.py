@@ -9,6 +9,16 @@ from sr2silo.process.convert import (
     bam_to_sam,
     pad_alignment,
 )
+
+from sr2silo.process.interface import (
+
+    AAInsertion,
+    AAInsertionSet,
+    AlignedRead,
+    NucInsertion,
+    Gene
+)
+
 from sr2silo.process.merge import pair_normalize_reads
 from sr2silo.process.translation_aligment import translate
 
@@ -17,4 +27,9 @@ __all__ = [
     "pair_normalize_reads",
     "translate",
     "pad_alignment",
+    "AAInsertion",
+    "AAInsertionSet",
+    "AlignedRead",
+    "NucInsertion",
+    "Gene"
 ]
