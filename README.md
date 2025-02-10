@@ -26,7 +26,6 @@ The V-Pipe Docker is designed to process a single `.bam` file and upload the res
 
 ## Project Organization
 
-- `silo-input-transformer`: Is a rust based utility to handle the `fasta` to `ndjson` transformation and is here imported as a git submodule.
 - `.github/workflows`: Contains GitHub Actions used for building, testing, and publishing.
 install, and whether or not to mount the project directory into the container.
 - `.vscode/settings.json`: Contains VSCode settings specific to the project, such as the Python interpreter to use and the maximum line length for auto-formatting.
