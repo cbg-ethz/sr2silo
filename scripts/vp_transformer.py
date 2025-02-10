@@ -11,7 +11,6 @@ from pathlib import Path
 import click
 import yaml
 
-import silo_input_transformer
 from sr2silo.config import is_ci_environment
 from sr2silo.process import bam_to_sam, pair_normalize_reads, translate
 from sr2silo.s3 import compress_bz2, upload_file_to_s3
@@ -71,9 +70,10 @@ def transform_to_ndjson(
     logging.info(f"Trafo config saved to: {trafo_config_fp}")
 
     # run the silo_input_transformer with the trafo_config.yaml file
-    logging.info(f"Running silo_input_transformer with config: {trafo_config_fp}")
-    silo_input_transformer.run_with_config(str(trafo_config_fp))  # type: ignore
-    logging.info(f"Results saved to: {output_dir}")
+    return NotImplemented("Removed as Translation Now with DIAMOND.")
+    # logging.info(f"Running silo_input_transformer with config: {trafo_config_fp}")
+    # silo_input_transformer.run_with_config(str(trafo_config_fp))  # type: ignore
+    # logging.info(f"Results saved to: {output_dir}")
     return None
 
 
