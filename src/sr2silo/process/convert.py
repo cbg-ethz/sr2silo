@@ -8,9 +8,9 @@ import tempfile
 from pathlib import Path
 from typing import List, Union
 
-from sr2silo.process.interface import AAInsertion, Gene
-
 import pysam
+
+from sr2silo.process.interface import AAInsertion, Gene
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -56,18 +56,18 @@ def create_index(bam_file: Path):
         print(f"An error occurred: {e}")
 
 
-def bam_to_fasta(bam_file, fasta_file):
+def bam_to_fasta(bam_file: Path, fasta_file: Path):
     """
     Convert a BAM file to a FASTA file. Bluntly resolved the sam to fasta.
 
     Args:
-        bam_file (str): Path to the input BAM file.
-        fasta_file (str): Path to the output FASTQ file.
+        bam_file: Path to the input BAM file.
+        fasta_file: Path to the output FASTQ file.
     """
     # check for proper format
-    if not bam_file.endswith(".bam"):
+    if not bam_file.suffix.endswith(".bam"):
         raise ValueError("Input file is not a BAM file")
-    if not fasta_file.endswith(".fasta"):
+    if not fasta_file.suffix.endswith(".fasta"):
         raise ValueError("Output file is not a FASTA file")
 
     with pysam.AlignmentFile(bam_file, "rb") as bam:
@@ -201,7 +201,7 @@ def parse_cigar(cigar: str) -> list[tuple[str, int]]:
     return [(op, int(length)) for length, op in parsed_cigar]
 
 
-# TODO: identify where needed, likly duplicate with sam_to_seq_and_indels
+# TODO: identify where needed, likely duplicate with sam_to_seq_and_indels
 def normalize_reads(sam_data: str, output_fasta: Path, output_insertions: Path) -> None:
     """
     Normalize (to clear text sequence using CIGAR)

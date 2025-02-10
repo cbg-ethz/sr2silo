@@ -122,61 +122,46 @@ class PerfMonitor:
 # Main function
 
 
-def main():
-    """Main function to process SAM files and generate JSON output."""
-    INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
-    # INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
-    FASTA_NUC_FOR_AA_ALINGMENT = "output.fasta"
-    FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
-    FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
-    AA_ALIGNMENT_FILE = "diamond_blastx.sam"
-    AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
-    NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
-
-    # Validate that all Resources are there before starting
-    NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE = [
-        Path(f)
-        for f in [NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE]
-    ]
-    if not all(
-        f.exists()
-        for f in [NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE]
-    ):
-        raise FileNotFoundError("One or more input files are missing")
+def translate_and_align(
+    input_nuc_alignment_fp: Path,
+    fasta_nuc_for_aa_alignment: Path,
+    fastq_nuc_alignment_with_indels: Path,
+    fasta_nuc_insertions_fp: Path,
+    aa_alignment_fp: Path,
+    aa_reference_fp: Path,
+) -> None:
+    """
+    Function to sort, index, convert files and translate and align.
+    """
 
     # Sort the BAM file
     with PerfMonitor("BAM sorting"):
-        convert.sort_bam_file(INPUT_NUC_ALIGMENT_FILE, Path("input/sorted.bam"))
+        convert.sort_bam_file(Path(input_nuc_alignment_fp), Path("input/sorted.bam"))
 
-    # Create index for BAM file
+    # Create index for BAM file if needed
     with PerfMonitor("BAM indexing"):
         bam_file = Path("input/sorted.bam")
         bai_file = bam_file.with_suffix(".bai")
-        if not bai_file.exists() or bam_file.stat().st_mtime > bai_file.stat().st_mtime:
-            print("Creating index for BAM file")
+        if not bai_file.exists() or bam_file.stat().st_mtime > \
+            bai_file.stat().st_mtime:
             convert.create_index(bam_file)
 
-    print("Converting BAM to FASTQ with INDELS to show NUC alignment")
-
-    # make a mofidifed path for indels
+    logging.info("Converting BAM to FASTQ with INDELS to show NUC alignment")
     with PerfMonitor("FASTQ conversion (with INDELS)"):
         convert.bam_to_fastq_handle_indels(
-            "input/sorted.bam",
-            FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS,
-            FASTA_NUC_INSERTIONS_FILE,
+            bam_file, fastq_nuc_alignment_with_indels, fasta_nuc_insertions_fp
         )
 
-    print("Converting BAM to FASTQ for AA alignment")
+    logging.info("Converting BAM to FASTQ for AA alignment")
     with PerfMonitor("FASTA conversion for AA alignment"):
-        convert.bam_to_fasta("input/sorted.bam", FASTA_NUC_FOR_AA_ALINGMENT)
+        convert.bam_to_fasta(bam_file, fasta_nuc_for_aa_alignment)
 
     try:
-        # translate and align to AA
         # ==== Make Sequence DB ====
         with PerfMonitor("Diamond makedb"):
             print("== Making Sequence DB ==")
             result = os.system(
-                f"diamond makedb --in {AA_REFERENCE_FILE} -d ref/hxb_pol_db"
+                f"diamond makedb --in {aa_reference_fp} -d ref/hxb_pol_db"
             )
             if result != 0:
                 raise RuntimeError(
@@ -190,9 +175,8 @@ def main():
         # ==== Alignment ====
         with PerfMonitor("Diamond blastx alignment"):
             result = os.system(
-                f"diamond blastx "
-                f"-d ref/hxb_pol_db -q {FASTA_NUC_FOR_AA_ALINGMENT} "
-                f"-o {AA_ALIGNMENT_FILE} "
+                f"diamond blastx -d ref/hxb_pol_db -q {fasta_nuc_for_aa_alignment} "
+                f"-o {aa_alignment_fp} "
                 f"--evalue 1 --gapopen 6 --gapextend 2 --outfmt 101 --matrix BLOSUM62 "
                 f"--unal 0 --max-hsps 1 --block-size 0.5"
             )
@@ -204,6 +188,52 @@ def main():
         print(f"An error occurred while aligning to AA: {e}")
         raise
 
+    return None
+
+
+def main():
+    """Main function to process SAM files and generate JSON output."""
+    INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
+    # INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
+    FASTA_NUC_FOR_AA_ALINGMENT = "output.fasta"
+    FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
+    FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
+    AA_ALIGNMENT_FILE = "diamond_blastx.sam"
+    AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
+    NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
+    BATCH_SIZE = 10000  # adjust as needed
+
+    # Validate that all Resources are there before starting
+    (
+        NUC_REFERENCE_FILE,
+        AA_REFERENCE_FILE,
+        INPUT_NUC_ALIGMENT_FILE,
+        FASTA_NUC_FOR_AA_ALINGMENT,
+    ) = [
+        Path(f)
+        for f in [
+            NUC_REFERENCE_FILE,
+            AA_REFERENCE_FILE,
+            INPUT_NUC_ALIGMENT_FILE,
+            FASTA_NUC_FOR_AA_ALINGMENT,
+        ]
+    ]
+    if not all(
+        f.exists()
+        for f in [NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE]
+    ):
+        raise FileNotFoundError("One or more input files are missing")
+
+    # Call translation and alignment to prepare the files for downstream processing.
+    translate_and_align(
+        input_nuc_alignment_fp=INPUT_NUC_ALIGMENT_FILE,
+        fasta_nuc_for_aa_alignment=FASTA_NUC_FOR_AA_ALINGMENT,
+        fastq_nuc_alignment_with_indels=FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS,
+        fasta_nuc_insertions_fp=FASTA_NUC_INSERTIONS_FILE,
+        aa_alignment_fp=AA_ALIGNMENT_FILE,
+        aa_reference_fp=AA_REFERENCE_FILE,
+    )
+
     with open(NUC_REFERENCE_FILE, "r") as f:
         nuc_reference = f.read()
     nuc_reference_length = len(nuc_reference)
@@ -214,8 +244,6 @@ def main():
 
     with tempfile.NamedTemporaryFile(delete=False) as temp_db:
         read_store = ReadStore(db_path=temp_db.name)
-
-        BATCH_SIZE = 1000  # adjust as needed
 
         ## Process nucleotide alignment reads incrementally
         with PerfMonitor("Processing nucleotide alignments"):
