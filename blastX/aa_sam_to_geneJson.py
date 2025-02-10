@@ -6,17 +6,15 @@ import json
 import logging
 import os
 import sqlite3
+import tempfile
 import time
 from pathlib import Path
-from typing import Dict
-import tempfile
-import json
-from tqdm import tqdm
 
 import psutil
-from sr2silo.process import pad_alignment
-import sr2silo.process.convert as convert
+from tqdm import tqdm
 
+import sr2silo.process.convert as convert
+from sr2silo.process import pad_alignment
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -25,7 +23,9 @@ logging.basicConfig(
 
 class ReadStore:
     """Class to store and manage reads sequences and indels in a SQLite database."""
+
     def __init__(self, db_path="read_store.db"):
+        """Initialize the ReadStore with a SQLite database."""
         self.conn = sqlite3.connect(db_path)
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS reads ("
@@ -43,7 +43,8 @@ class ReadStore:
 
         ins_json = json.dumps([ins.__dict__ for ins in nuc_ins])
         self.conn.execute(
-            "INSERT OR REPLACE INTO reads (read_id, unaligned_seq, aligned_nuc_seq, nucleotide_insertions) VALUES (?,?,?,?)",
+            "INSERT OR REPLACE INTO reads (read_id, unaligned_seq, aligned_nuc_seq, "
+            "nucleotide_insertions) VALUES (?,?,?,?)",
             (read_id, unaligned_seq, aligned_nuc_seq, ins_json),
         )
         self.conn.commit()
@@ -59,6 +60,22 @@ class ReadStore:
             "UPDATE reads SET aligned_aa_seq=?, aa_insertions=? WHERE read_id=?",
             (aligned_aa_seq, aa_ins_json, read_id),
         )
+        self.conn.commit()
+
+    def bulk_insert_nuc_reads(self, records):
+        """Bulk insert multiple nucleotide reads."""
+        query = (
+            "INSERT OR REPLACE INTO reads "
+            "(read_id, unaligned_seq, aligned_nuc_seq, nucleotide_insertions) "
+            "VALUES (?,?,?,?)"
+        )
+        self.conn.executemany(query, records)
+        self.conn.commit()
+
+    def bulk_update_aa_alignments(self, records):
+        """Bulk update multiple AA alignments."""
+        query = "UPDATE reads SET aligned_aa_seq=?, aa_insertions=? WHERE read_id=?"
+        self.conn.executemany(query, records)
         self.conn.commit()
 
     def dump_all_json(self):
@@ -82,6 +99,7 @@ class PerfMonitor:
     """Context manager that logs runtime and memory usage for a code block."""
 
     def __init__(self, label: str):
+        """Initialize the PerfMonitor with a label."""
         self.label = label
 
     def __enter__(self):
@@ -92,11 +110,11 @@ class PerfMonitor:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         end_time = time.time()
-        end_mem = psutil.Process(os.getpid()).memory_info().rss
+        psutil.Process(os.getpid()).memory_info().rss
         elapsed = end_time - self.start_time
-        mem_diff_mb = (end_mem - self.start_mem) / (1024 * 1024)
         logging.info(
-            f"{self.label} completed in {elapsed:.2f}s with memory change {mem_diff_mb:.2f} MB"
+            f"{self.label} completed in {elapsed:.2f}s"
+            "with memory change {mem_diff_mb:.2f} MB"
         )
 
 
@@ -105,8 +123,9 @@ class PerfMonitor:
 
 
 def main():
+    """Main function to process SAM files and generate JSON output."""
     INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
-    #INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
+    # INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
     FASTA_NUC_FOR_AA_ALINGMENT = "output.fasta"
     FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
     FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
@@ -114,7 +133,7 @@ def main():
     AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
     NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
 
-    # Validate that all Resouces are there before starting
+    # Validate that all Resources are there before starting
     NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE = [
         Path(f)
         for f in [NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE]
@@ -170,10 +189,10 @@ def main():
     try:
         # ==== Alignment ====
         with PerfMonitor("Diamond blastx alignment"):
-            print("== Aligning to AA ==")
-            # Replace batch splitting with a single diamond blastx call on the entire FASTA file.
             result = os.system(
-                f"diamond blastx -d ref/hxb_pol_db -q {FASTA_NUC_FOR_AA_ALINGMENT} -o {AA_ALIGNMENT_FILE} "
+                f"diamond blastx "
+                f"-d ref/hxb_pol_db -q {FASTA_NUC_FOR_AA_ALINGMENT} "
+                f"-o {AA_ALIGNMENT_FILE} "
                 f"--evalue 1 --gapopen 6 --gapextend 2 --outfmt 101 --matrix BLOSUM62 "
                 f"--unal 0 --max-hsps 1 --block-size 0.5"
             )
@@ -191,18 +210,23 @@ def main():
     logging.info(f"Loaded nucleotide reference with length {nuc_reference_length}")
 
     gene_dict = convert.get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
-    logging.info(f"Loaded gene refernece with genes: {gene_dict.keys()}")
+    logging.info(f"Loaded gene reference with genes: {gene_dict.keys()}")
 
     with tempfile.NamedTemporaryFile(delete=False) as temp_db:
         read_store = ReadStore(db_path=temp_db.name)
 
+        BATCH_SIZE = 1000  # adjust as needed
+
         ## Process nucleotide alignment reads incrementally
         with PerfMonitor("Processing nucleotide alignments"):
+            batch_nuc_records = []
             with open(FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, "r") as f:
                 total_lines = sum(1 for _ in f) // 5  # Each entry consists of 5 lines
                 f.seek(0)  # Reset file pointer to the beginning
 
-                with tqdm(total=total_lines, desc="Processing nucleotide alignments") as pbar:
+                with tqdm(
+                    total=total_lines, desc="Processing nucleotide alignments"
+                ) as pbar:
                     while True:
                         header = f.readline().strip()
                         if not header:
@@ -221,7 +245,9 @@ def main():
                             and plus.startswith("+")
                             and pos_line.startswith("alignment_position:")
                         ):
-                            logging.error("Malformed FASTQ record encountered, skipping...")
+                            logging.error(
+                                "Malformed FASTQ record encountered, skipping..."
+                            )
                             continue
 
                         read_id = header[1:]
@@ -229,19 +255,27 @@ def main():
                             pos = int(pos_line.split(":", 1)[1])
                         except Exception as e:
                             logging.error(
-                            f"Error parsing alignment position for {read_id}: {e}"
+                                f"Error parsing alignment position for {read_id}: {e}"
                             )
                             continue
 
                         aligned_nuc_seq = pad_alignment(seq, pos, nuc_reference_length)
-                        nuc_ins = (
-                            []
-                        )  # Here, keep an empty list for nucleotide insertions if needed
-                        read_store.insert_nuc_read(read_id, seq, aligned_nuc_seq, nuc_ins)
-                        pbar.update(1)  # Update progress bar for each processed entry
+                        ins_json = json.dumps([])  # empty nucleotide insertions list
+                        batch_nuc_records.append(
+                            (read_id, seq, aligned_nuc_seq, ins_json)
+                        )
+
+                        if len(batch_nuc_records) >= BATCH_SIZE:
+                            read_store.bulk_insert_nuc_reads(batch_nuc_records)
+                            batch_nuc_records = []
+                        pbar.update(1)
+                    # Insert any remaining records
+                    if batch_nuc_records:
+                        read_store.bulk_insert_nuc_reads(batch_nuc_records)
 
         # Process AA alignment file and update corresponding reads
         with PerfMonitor("Processing AA alignments"):
+            batch_aa_records = []
             with open(AA_ALIGNMENT_FILE, "r") as f:
                 total_lines = sum(1 for _ in f)
                 f.seek(0)  # Reset file pointer to the beginning
@@ -257,20 +291,31 @@ def main():
                         pos = int(fields[3])
                         cigar = fields[5]
                         seq = fields[9]
-                        aa_aligned, aa_insertions, aa_deletions = convert.sam_to_seq_and_indels(
-                            seq, cigar
-                        )
-                        # Build a dict for AA insertions with empty entries for other genes
+                        (
+                            aa_aligned,
+                            aa_insertions,
+                            aa_deletions,
+                        ) = convert.sam_to_seq_and_indels(seq, cigar)
+                        # Build a dict for AA insertions with all genes as keys
                         aa_ins_dict = {gene: [] for gene in gene_dict.keys()}
                         aa_ins_dict[gene_name] = aa_insertions
                         padded_aa_alignment = pad_alignment(
                             aa_aligned, pos, gene_dict[gene_name].gene_length
                         )
-                        # Update the read record with AA alignment info.
-                        read_store.update_aa_alignment(
-                            read_id, padded_aa_alignment, aa_ins_dict
+                        aa_ins_json = json.dumps(
+                            {k: [str(i) for i in v] for k, v in aa_ins_dict.items()}
                         )
-                        pbar.update(1)  # Update progress bar for each processed line
+                        batch_aa_records.append(
+                            (padded_aa_alignment, aa_ins_json, read_id)
+                        )
+
+                        if len(batch_aa_records) >= BATCH_SIZE:
+                            read_store.bulk_update_aa_alignments(batch_aa_records)
+                            batch_aa_records = []
+                        pbar.update(1)
+                    # Update any remaining records
+                    if batch_aa_records:
+                        read_store.bulk_update_aa_alignments(batch_aa_records)
 
         # Dump combined results to JSON (or write out incrementally)
         with PerfMonitor("Dumping final JSON"):
@@ -292,6 +337,6 @@ def main():
         os.remove(temp_db.name)
 
 
-
 if __name__ == "__main__":
+    """Run the main function."""
     main()
