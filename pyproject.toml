@@ -13,6 +13,7 @@ pyyaml = "^6.0.2"
 boto3 = "^1.35.72"
 moto = { extras = ["all", "ec2", "s3"], version = "^5.0.22" }
 psutil = "^6.1.1"
+tqdm = "^4.67.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.1"

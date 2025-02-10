@@ -7,13 +7,15 @@ import logging
 import os
 import re
 import sqlite3
-import time  # added for timing instrumentation
+import time
 from pathlib import Path
 from typing import Dict, List, Tuple
+import tempfile
+import json
+from tqdm import tqdm
 
 import bam_to_fasta
-import psutil  # added for memory instrumentation
-
+import psutil
 from sr2silo.process import pad_alignment
 
 logging.basicConfig(
@@ -29,6 +31,7 @@ def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
 
 
 class NucInsertion:
+    """A nuclotide insertion."""
     def __init__(self, position: int, sequence: str):
         self.position = position
         self.sequence = sequence
@@ -38,6 +41,7 @@ class NucInsertion:
 
 
 class AAInsertion:
+    """An amino acid insertion."""
     def __init__(self, position: int, sequence: str):
         self.position = position
         self.sequence = sequence
@@ -158,8 +162,7 @@ class AlignedRead:
             "aligned_amino_acid_sequences": self.aligned_amino_acid_sequences,
         }
 
-    def get_amino_acid_insertions(self) -> Dict[str, List[AAInsertion]]:
-        print(self.amino_acid_insertions)
+    def get_amino_acid_insertions(self) -> AAInsertionSet:
         return self.amino_acid_insertions
 
     def to_json(self) -> str:
@@ -189,7 +192,7 @@ class Gene:
         self.gene_name = gene_name
         self.gene_length = gene_length
 
-    def to_dict(self) -> Dict[str, int]:
+    def to_dict(self) -> Dict[str, int | str]:
         return {
             "gene_name": self.gene_name,
             "gene_length": self.gene_length,
@@ -239,7 +242,7 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
 
 
 class ReadStore:
-    # Changed default from ':memory:' to file-based DB
+    """Class to store and manage reads sequences and indels in a SQLite database."""
     def __init__(self, db_path="read_store.db"):
         self.conn = sqlite3.connect(db_path)
         self.conn.execute(
@@ -253,6 +256,7 @@ class ReadStore:
         )
 
     def insert_nuc_read(self, read_id, unaligned_seq, aligned_nuc_seq, nuc_ins):
+        """Insert a nucleotide read into the store."""
         import json
 
         ins_json = json.dumps([ins.__dict__ for ins in nuc_ins])
@@ -263,6 +267,7 @@ class ReadStore:
         self.conn.commit()
 
     def update_aa_alignment(self, read_id, aligned_aa_seq, aa_insertions):
+        """Update the AA alignment for a read in the store."""
         import json
 
         aa_ins_json = json.dumps(
@@ -275,8 +280,7 @@ class ReadStore:
         self.conn.commit()
 
     def dump_all_json(self):
-        import json
-
+        """Dump all reads in the store to a JSON string."""
         cursor = self.conn.execute("SELECT * FROM reads")
         all_reads = []
         for row in cursor:
@@ -299,6 +303,7 @@ class PerfMonitor:
         self.label = label
 
     def __enter__(self):
+        logging.info(f"Starting {self.label}")
         self.start_time = time.time()
         self.start_mem = psutil.Process(os.getpid()).memory_info().rss
         return self
@@ -319,7 +324,7 @@ class PerfMonitor:
 
 def main():
     INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
-    # INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
+    #INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
     FASTA_NUC_FOR_AA_ALINGMENT = "output.fasta"
     FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
     FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
@@ -348,7 +353,7 @@ def main():
         bai_file = bam_file.with_suffix(".bai")
         if not bai_file.exists() or bam_file.stat().st_mtime > bai_file.stat().st_mtime:
             print("Creating index for BAM file")
-            bam_to_fasta.create_index(str(bam_file))
+            bam_to_fasta.create_index(bam_file)
 
     print("Converting BAM to FASTQ with INDELS to show NUC alignment")
 
@@ -401,119 +406,110 @@ def main():
     with open(NUC_REFERENCE_FILE, "r") as f:
         nuc_reference = f.read()
     nuc_reference_length = len(nuc_reference)
+    logging.info(f"Loaded nucleotide reference with length {nuc_reference_length}")
 
     gene_dict = get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
+    logging.info(f"Loaded gene refernece with genes: {gene_dict.keys()}")
 
-    # NEW: Initialize the read store (optionally to a temporary file instead of in-memory)
-    # TODO: move this to a temporary file
-    read_store = ReadStore(db_path="read_store.db")
+    with tempfile.NamedTemporaryFile(delete=False) as temp_db:
+        read_store = ReadStore(db_path=temp_db.name)
 
-    ## Process nucleotide alignment reads incrementally
-    with PerfMonitor("Processing nucleotide alignments"):
-        with open(FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, "r") as f:
-            while True:
-                header = f.readline().strip()
-                if not header:
-                    break  # End of file
-                seq = f.readline().strip()
-                plus = f.readline().strip()
-                # TODO: propagate the quanlity scores from here
-                f.readline().strip()
-                pos_line = f.readline().strip()
+        ## Process nucleotide alignment reads incrementally
+        with PerfMonitor("Processing nucleotide alignments"):
+            with open(FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, "r") as f:
+                total_lines = sum(1 for _ in f) // 5  # Each entry consists of 5 lines
+                f.seek(0)  # Reset file pointer to the beginning
 
-                if not (
-                    header.startswith("@")
-                    and plus.startswith("+")
-                    and pos_line.startswith("aligment_position:")
-                ):
-                    logging.error("Malformed FASTQ record encountered, skipping...")
-                    continue
+                with tqdm(total=total_lines, desc="Processing nucleotide alignments") as pbar:
+                    while True:
+                        header = f.readline().strip()
+                        if not header:
+                            break  # End of file
+                        # check it starts with @, if not skip
+                        if not header.startswith("@"):
+                            continue
+                        seq = f.readline().strip()
+                        plus = f.readline().strip()
+                        # NB @ future: propagate the quality scores from here
+                        f.readline().strip()
+                        pos_line = f.readline().strip()
 
-                read_id = header[1:]
-                try:
-                    pos = int(pos_line.split(":", 1)[1])
-                except Exception as e:
-                    logging.error(
-                        f"Error parsing alignment position for {read_id}: {e}"
-                    )
-                    continue
+                        if not (
+                            header.startswith("@")
+                            and plus.startswith("+")
+                            and pos_line.startswith("alignment_position:")
+                        ):
+                            logging.error("Malformed FASTQ record encountered, skipping...")
+                            continue
 
-                aligned_nuc_seq = pad_alignment(seq, pos, nuc_reference_length)
-                nuc_ins = (
-                    []
-                )  # Here, keep an empty list for nucleotide insertions if needed
-                read_store.insert_nuc_read(read_id, seq, aligned_nuc_seq, nuc_ins)
+                        read_id = header[1:]
+                        try:
+                            pos = int(pos_line.split(":", 1)[1])
+                        except Exception as e:
+                            logging.error(
+                            f"Error parsing alignment position for {read_id}: {e}"
+                            )
+                            continue
 
-    # Process AA alignment file and update corresponding reads
-    with PerfMonitor("Processing AA alignments"):
-        with open(AA_ALIGNMENT_FILE, "r") as f:
-            count = 0
-            for line in f:
-                count += 1
-                if count % 1000 == 0:
-                    print(f"Processing AA alignment for read {count}")
-                if line.startswith("@"):  # skip header of .sam file
-                    continue
-                fields = line.strip().split("\t")
-                read_id = fields[0]
-                gene_name = fields[2]
-                pos = int(fields[3])
-                cigar = fields[5]
-                seq = fields[9]
-                aa_aligned, aa_insertions, aa_deletions = sam_to_seq_and_indels(
-                    seq, cigar
-                )
-                # Build a dict for AA insertions with empty entries for other genes
-                aa_ins_dict = {gene: [] for gene in gene_dict.keys()}
-                aa_ins_dict[gene_name] = aa_insertions
-                padded_aa_alignment = pad_alignment(
-                    aa_aligned, pos, gene_dict[gene_name].gene_length
-                )
-                # Update the read record with AA alignment info.
-                read_store.update_aa_alignment(
-                    read_id, padded_aa_alignment, aa_ins_dict
-                )
+                        aligned_nuc_seq = pad_alignment(seq, pos, nuc_reference_length)
+                        nuc_ins = (
+                            []
+                        )  # Here, keep an empty list for nucleotide insertions if needed
+                        read_store.insert_nuc_read(read_id, seq, aligned_nuc_seq, nuc_ins)
+                        pbar.update(1)  # Update progress bar for each processed entry
 
-    # Dump combined results to JSON (or write out incrementally)
-    with PerfMonitor("Dumping final JSON"):
-        final_json = read_store.dump_all_json()
+        # Process AA alignment file and update corresponding reads
+        with PerfMonitor("Processing AA alignments"):
+            with open(AA_ALIGNMENT_FILE, "r") as f:
+                total_lines = sum(1 for _ in f)
+                f.seek(0)  # Reset file pointer to the beginning
 
-        final_json_fp = "reads.json"
+                with tqdm(total=total_lines, desc="Processing AA alignments") as pbar:
+                    for line in f:
+                        if line.startswith("@"):  # skip header of .sam file
+                            pbar.update(1)
+                            continue
+                        fields = line.strip().split("\t")
+                        read_id = fields[0]
+                        gene_name = fields[2]
+                        pos = int(fields[3])
+                        cigar = fields[5]
+                        seq = fields[9]
+                        aa_aligned, aa_insertions, aa_deletions = sam_to_seq_and_indels(
+                            seq, cigar
+                        )
+                        # Build a dict for AA insertions with empty entries for other genes
+                        aa_ins_dict = {gene: [] for gene in gene_dict.keys()}
+                        aa_ins_dict[gene_name] = aa_insertions
+                        padded_aa_alignment = pad_alignment(
+                            aa_aligned, pos, gene_dict[gene_name].gene_length
+                        )
+                        # Update the read record with AA alignment info.
+                        read_store.update_aa_alignment(
+                            read_id, padded_aa_alignment, aa_ins_dict
+                        )
+                        pbar.update(1)  # Update progress bar for each processed line
 
-        with open(final_json_fp, "w") as f:
-            f.write(final_json)
+        # Dump combined results to JSON (or write out incrementally)
+        with PerfMonitor("Dumping final JSON"):
+            final_json = read_store.dump_all_json()
 
-    # print the first and last AlignedRead objects
-    print("First read:")
-    print(json.dumps(json.loads(final_json)[0], indent=4))
-    print("Last read:")
-    print(json.dumps(json.loads(final_json)[-1], indent=4))
+            final_json_fp = "reads.json"
 
-    print("Done!")
+            with open(final_json_fp, "w") as f:
+                f.write(final_json)
+
+        # print the first and last AlignedRead objects
+        print("First read:")
+        print(json.dumps(json.loads(final_json)[0], indent=4))
+        print("Last read:")
+        print(json.dumps(json.loads(final_json)[-1], indent=4))
+
+        print("Done!")
+
+        os.remove(temp_db.name)
+
 
 
 if __name__ == "__main__":
     main()
-
-    # fastq_with_error = "fastq_batches_2nd/batch_55.fastq"
-
-    # Check the FASTQ format
-    # bam_to_fasta.check_fastq_format(fastq_with_error)
-
-    # run aa alignment
-
-    # print("== Aligning to AA ==")
-    # # Instead of a single diamond blastx call, split the FASTQ into smaller batches.
-    # batches = split_fastq(fastq_with_error, records_per_file=1, output_dir="fastq_batches_3nd")
-    # diamond_outputs = []
-    # for batch in batches:
-    #     batch_output = batch.replace(".fastq", "_diamond.sam")
-    #     print(f"Aligning batch: {batch}")
-    #     result = os.system(
-    #         f"diamond blastx -d ref/hxb_pol_db -q {batch} -o {batch_output} "
-    #         f"--evalue 1 --gapopen 6 --gapextend 2 --outfmt 101 --matrix BLOSUM62 "
-    #         f"--unal 0 --max-hsps 1 --block-size 0.5"
-    #     )
-    #     if result != 0:
-    #         raise RuntimeError("Error occurred while aligning batch with diamond blastx")
-    #     diamond_outputs.append(batch_output)

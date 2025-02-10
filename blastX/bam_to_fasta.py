@@ -142,7 +142,7 @@ def bam_to_fastq_handle_indels(
                 )  # Phred33 encoding
 
                 # Write the alignment positions to the FASTQ file
-                fastq.write(f"aligment_position:{ref_align_start}\n")
+                fastq.write(f"alignment_position:{ref_align_start}\n")
 
                 # Write the insertions to the insertions file
                 for insertion_pos, insertion_seq, insertion_qual in insertion_positions:
