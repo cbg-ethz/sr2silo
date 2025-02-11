@@ -198,7 +198,7 @@ def nuc_to_aa_alignment(
 
 def main():
     """Main function to process SAM files and generate JSON output."""
-    # INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
+    #INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
     INPUT_NUC_ALIGMENT_FILE = "input/combined_sorted.bam"
     # INPUT_NUC_ALIGMENT_FILE = "input/REF_aln_trim.bam"
     FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"

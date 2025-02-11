@@ -427,3 +427,91 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
                 continue
 
     return genes
+
+
+
+def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
+    """
+    Function to sort and index the input BAM file,
+
+    implements checks to see if the input BAM file is already sorted and indexed.
+
+    If not sorted and indexed, the function will sort and index the input BAM file.
+
+    """
+
+    # check if sorted and indexed
+    if not is_bam_sorted(input_bam_fp) or not is_bam_indexed(
+        input_bam_fp
+    ):
+        logging.info("Sorting and indexing the input BAM file")
+        _sort_and_index_bam(
+            input_bam_fp, output_bam_fp
+        )
+    else:
+        # copy the input BAM file to the output BAM file
+        output_bam_fp.write_bytes(input_bam_fp.read_bytes())
+        logging.info("Input BAM file is already sorted and indexed, \
+                      copying to output")
+
+
+def _sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
+    """
+    Function to sort and index the input BAM file.
+
+    """
+
+    # Sort the BAM file
+    logging.info("Sorting the input BAM file")
+    sort_bam_file(input_bam_fp, output_bam_fp)
+
+    # Create index for BAM file if needed
+    logging.info("Creating index for the sorted BAM file")
+    create_index(output_bam_fp)
+
+    return None
+
+
+def is_bam_sorted(bam_file):
+    """Checks if a BAM file is sorted using pysam.
+
+    Args:
+        bam_file (str): Path to the BAM file.
+
+    Returns:
+        bool: True if the BAM file is sorted, False otherwise.  Returns None if there's an issue opening the file.
+    """
+    try:
+        bam = pysam.AlignmentFile(bam_file, "rb")  # Open in read-binary mode
+        is_sorted = bam.header.get("HD", {}).get("SO") == "coordinate"
+        bam.close()  # Important: Close the file!
+        return is_sorted
+    except ValueError as e:
+        print(f"Error opening BAM file {bam_file}: {e}")  # Handle file errors
+        return None  # Indicate an issue
+    except Exception as e:  # Catch other potential errors (like missing index)
+        print(f"An unexpected error occurred: {e}")
+        return None
+
+
+def is_bam_indexed(bam_file):
+    """Checks if a BAM file has an index (.bai) file.
+
+    Args:bam_file.suffix.endswith
+        bam_file (str): Path to the BAM file.
+
+    Returns:
+        bool: True if the BAM file has an index, False otherwise. Returns None if there's an issue opening the file.
+    """
+    try:
+        bam = pysam.AlignmentFile(bam_file, "rb")
+        has_index = bam.has_index()  # Directly check for index
+        bam.close()
+        return has_index
+
+    except ValueError as e:
+        print(f"Error opening BAM file {bam_file}: {e}")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return None

@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from sr2silo.process.convert import bam_to_sam, pad_alignment
+from sr2silo.process.convert import bam_to_sam, pad_alignment, sort_and_index_bam
 from sr2silo.process.interface import (
     AAInsertion,
     AAInsertionSet,
@@ -26,4 +26,5 @@ __all__ = [
     "AlignedRead",
     "NucInsertion",
     "Gene",
+    "sort_and_index_bam",
 ]
