@@ -269,31 +269,25 @@ def main():
                     total=total_lines, desc="Processing nucleotide alignments"
                 ) as pbar:
                     while True:
-                        header = f.readline().strip()
-                        if not header:
+                        lines = [f.readline().strip() for _ in range(5)]
+                        if not lines[0]:
                             break  # End of file
-                        # check it starts with @, if not skip
-                        if not header.startswith("@"):
+                        if not lines[0].startswith("@"):
                             continue
-                        seq = f.readline().strip()
-                        plus = f.readline().strip()
-                        # NB @ future: propagate the quality scores from here
-                        f.readline().strip()
-                        pos_line = f.readline().strip()
-
                         if not (
-                            header.startswith("@")
-                            and plus.startswith("+")
-                            and pos_line.startswith("alignment_position:")
+                            lines[0].startswith("@")
+                            and lines[2].startswith("+")
+                            and lines[4].startswith("alignment_position:")
                         ):
                             logging.error(
                                 "Malformed FASTQ record encountered, skipping..."
                             )
                             continue
 
-                        read_id = header[1:]
+                        read_id = lines[0][1:]
+                        seq = lines[1]
                         try:
-                            pos = int(pos_line.split(":", 1)[1])
+                            pos = int(lines[4].split(":", 1)[1])
                         except Exception as e:
                             logging.error(
                                 f"Error parsing alignment position for {read_id}: {e}"
