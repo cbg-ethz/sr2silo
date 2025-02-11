@@ -121,66 +121,6 @@ class PerfMonitor:
         )
 
 
-def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
-    """
-    Function to sort and index the input BAM file.
-    """
-    # Sort the BAM file
-    with PerfMonitor("BAM sorting"):
-        convert.sort_bam_file(input_bam_fp, output_bam_fp)
-
-    # Create index for BAM file if needed
-    with PerfMonitor("BAM indexing"):
-        convert.create_index(output_bam_fp)
-
-    return None
-
-
-def is_bam_sorted(bam_file):
-    """Checks if a BAM file is sorted using pysam.
-
-    Args:
-        bam_file (str): Path to the BAM file.
-
-    Returns:
-        bool: True if the BAM file is sorted, False otherwise.  Returns None if there's an issue opening the file.
-    """
-    try:
-        bam = pysam.AlignmentFile(bam_file, "rb")  # Open in read-binary mode
-        is_sorted = bam.header.get("HD", {}).get("SO") == "coordinate"
-        bam.close()  # Important: Close the file!
-        return is_sorted
-    except ValueError as e:
-        print(f"Error opening BAM file {bam_file}: {e}")  # Handle file errors
-        return None  # Indicate an issue
-    except Exception as e:  # Catch other potential errors (like missing index)
-        print(f"An unexpected error occurred: {e}")
-        return None
-
-
-def is_bam_indexed(bam_file):
-    """Checks if a BAM file has an index (.bai) file.
-
-    Args:bam_file.suffix.endswith
-        bam_file (str): Path to the BAM file.
-
-    Returns:
-        bool: True if the BAM file has an index, False otherwise. Returns None if there's an issue opening the file.
-    """
-    try:
-        bam = pysam.AlignmentFile(bam_file, "rb")
-        has_index = bam.has_index()  # Directly check for index
-        bam.close()
-        return has_index
-
-    except ValueError as e:
-        print(f"Error opening BAM file {bam_file}: {e}")
-        return None
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        return None
-
-
 def nuc_to_aa_alignment(
     in_nuc_alignment_fp: Path,
     in_aa_reference_fp: Path,
@@ -289,18 +229,9 @@ def main():
     ):
         raise FileNotFoundError("One or more input files are missing")
 
-    # check if sorted and indexed
-    if not is_bam_sorted(INPUT_NUC_ALIGMENT_FILE) or not is_bam_indexed(
-        INPUT_NUC_ALIGMENT_FILE
-    ):
-        logging.info("Sorting and indexing the input BAM file")
-        INPUT_NUC_ALIGMENT_FILE_sorted_indexed = Path("input/combined_sorted.bam")
-        sort_and_index_bam(
-            INPUT_NUC_ALIGMENT_FILE, INPUT_NUC_ALIGMENT_FILE_sorted_indexed
-        )
-    else:
-        INPUT_NUC_ALIGMENT_FILE_sorted_indexed = INPUT_NUC_ALIGMENT_FILE
-        logging.info("Input BAM file is already sorted and indexed")
+    # sort and index the input BAM file
+    INPUT_NUC_ALIGMENT_FILE_sorted_indexed = Path("input/combined_sorted.bam")
+    convert.sort_and_index_bam(INPUT_NUC_ALIGMENT_FILE, INPUT_NUC_ALIGMENT_FILE_sorted_indexed)
 
     with PerfMonitor("Parsing Nucliotide: BAM FASTQ conversion (with INDELS)"):
         convert.bam_to_fastq_handle_indels(
