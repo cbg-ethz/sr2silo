@@ -181,7 +181,6 @@ def is_bam_indexed(bam_file):
         return None
 
 
-# rename: nuc aligment to fasrq
 def nuc_to_aa_alignment(
     in_nuc_alignment_fp: Path,
     in_aa_reference_fp: Path,
@@ -432,21 +431,28 @@ def main():
                     if batch_aa_records:
                         read_store.bulk_update_aa_alignments(batch_aa_records)
 
-        # Dump combined results to JSON (or write out incrementally)
-        # TODO: this needs to be written out incrementally as an NDJSON file, not all at once that is impossibel on memory.
-        with PerfMonitor("Dumping final JSON"):
-            final_json = read_store.dump_all_json()
-
-            final_json_fp = "reads.json"
+        # Dump combined results to NDJSON incrementally to handle large data
+        with PerfMonitor("Dumping final NDJSON"):
+            final_json_fp = "reads.ndjson"
 
             with open(final_json_fp, "w") as f:
-                f.write(final_json)
+                cursor = read_store.conn.execute("SELECT * FROM reads")
+                for row in cursor:
+                    read_obj = {
+                    "read_id": row[0],
+                    "unaligned_nucleotide_sequences": row[1],
+                    "aligned_nucleotide_sequences": row[2],
+                    "nucleotide_insertions": json.loads(row[3]) if row[3] else [],
+                    "aligned_amino_acid_sequences": row[4],
+                    "amino_acid_insertions": json.loads(row[5]) if row[5] else {},
+                    }
+                    f.write(json.dumps(read_obj) + "\n")
 
-        # print the first and last AlignedRead objects
-        print("First read:")
-        print(json.dumps(json.loads(final_json)[0], indent=4))
-        print("Last read:")
-        print(json.dumps(json.loads(final_json)[-1], indent=4))
+        # print the final json last element
+        with open(final_json_fp, "r") as f:
+            lines = f.readlines()
+            if lines:
+                print(lines[-1])
 
         print("Done!")
 
