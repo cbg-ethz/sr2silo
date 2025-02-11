@@ -121,7 +121,6 @@ class PerfMonitor:
         )
 
 
-# function to sort and index bam file
 def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
     """
     Function to sort and index the input BAM file.
@@ -183,15 +182,17 @@ def is_bam_indexed(bam_file):
 
 
 # rename: nuc aligment to fasrq
-def translate_and_align(
+def nuc_to_aa_alignment(
     input_nuc_alignment_fp: Path,  # input
     aa_reference_fp: Path,  # input
-    fasta_nuc_for_aa_alignment: Path,  # output
     aa_alignment_fp: Path,  # output
 ) -> None:
     """
     Function to convert files and translate and align.
     """
+
+    # temporary fasta file for AA alignment
+    fasta_nuc_for_aa_alignment = aa_alignment_fp.with_suffix(".tmp.fasta")
 
     logging.info("Converting BAM to FASTQ for AA alignment")
     with PerfMonitor("FASTA conversion for AA alignment"):
@@ -231,6 +232,10 @@ def translate_and_align(
     except Exception as e:
         print(f"An error occurred while aligning to AA: {e}")
         raise
+    finally:
+        # Ensure the temporary fasta file is deleted
+        if fasta_nuc_for_aa_alignment.exists():
+            fasta_nuc_for_aa_alignment.unlink()
 
     return None
 
@@ -240,7 +245,6 @@ def main():
     # INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
     INPUT_NUC_ALIGMENT_FILE = "input/combined_sorted.bam"
     # INPUT_NUC_ALIGMENT_FILE = "input/REF_aln_trim.bam"
-    FASTA_NUC_FOR_AA_ALINGMENT = "output.fasta"
     FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
     FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
     AA_ALIGNMENT_FILE = "diamond_blastx.sam"
@@ -253,14 +257,14 @@ def main():
         NUC_REFERENCE_FILE,
         AA_REFERENCE_FILE,
         INPUT_NUC_ALIGMENT_FILE,
-        FASTA_NUC_FOR_AA_ALINGMENT,
+        AA_ALIGNMENT_FILE,
     ) = [
         Path(f)
         for f in [
             NUC_REFERENCE_FILE,
             AA_REFERENCE_FILE,
             INPUT_NUC_ALIGMENT_FILE,
-            FASTA_NUC_FOR_AA_ALINGMENT,
+            AA_ALIGNMENT_FILE
         ]
     ]
     if not all(
@@ -290,10 +294,9 @@ def main():
         )
 
     # Call translation and alignment to prepare the files for downstream processing.
-    translate_and_align(
+    nuc_to_aa_alignment(
         input_nuc_alignment_fp=INPUT_NUC_ALIGMENT_FILE_sorted_indexed,
         aa_reference_fp=AA_REFERENCE_FILE,
-        fasta_nuc_for_aa_alignment=FASTA_NUC_FOR_AA_ALINGMENT,
         aa_alignment_fp=AA_ALIGNMENT_FILE,
     )
 
