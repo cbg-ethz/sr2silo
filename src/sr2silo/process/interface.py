@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import json
 
 class NucInsertion:
     """A nuclotide insertion."""

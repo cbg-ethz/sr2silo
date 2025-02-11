@@ -13,7 +13,10 @@ from pathlib import Path
 import psutil
 import pysam
 from tqdm import tqdm
+import json
 
+
+from sr2silo.process.interface import AAInsertion, AAInsertionSet, AlignedRead, Gene, NucInsertion
 import sr2silo.process.convert as convert
 from sr2silo.process import pad_alignment
 import sr2silo.process as process
@@ -39,22 +42,23 @@ class ReadStore:
             "aa_insertions TEXT)"
         )
 
-    def insert_nuc_read(self, read_id, unaligned_seq, aligned_nuc_seq, nuc_ins):
+    def insert_nuc_read(self, read: AlignedRead):
         """Insert a nucleotide read into the store."""
-        import json
-
-        ins_json = json.dumps([ins.__dict__ for ins in nuc_ins])
+        ins_json = json.dumps([ins.__dict__ for ins in read.nucleotide_insertions])
         self.conn.execute(
             "INSERT OR REPLACE INTO reads (read_id, unaligned_seq, aligned_nuc_seq, "
             "nucleotide_insertions) VALUES (?,?,?,?)",
-            (read_id, unaligned_seq, aligned_nuc_seq, ins_json),
+            (
+                read.read_id,
+                read.unaligned_nucleotide_sequences,
+                read.aligned_nucleotide_sequences,
+                ins_json,
+            ),
         )
         self.conn.commit()
 
-    def update_aa_alignment(self, read_id, aligned_aa_seq, aa_insertions):
+    def update_aa_alignment(self, read_id: str, aligned_aa_seq: str, aa_insertions: dict):
         """Update the AA alignment for a read in the store."""
-        import json
-
         aa_ins_json = json.dumps(
             {k: [str(i) for i in v] for k, v in aa_insertions.items()}
         )
@@ -64,37 +68,59 @@ class ReadStore:
         )
         self.conn.commit()
 
-    def bulk_insert_nuc_reads(self, records):
+    def bulk_insert_nuc_reads(self, records: list[AlignedRead]):
         """Bulk insert multiple nucleotide reads."""
         query = (
             "INSERT OR REPLACE INTO reads "
             "(read_id, unaligned_seq, aligned_nuc_seq, nucleotide_insertions) "
             "VALUES (?,?,?,?)"
         )
-        self.conn.executemany(query, records)
+        data = [
+            (
+                read.read_id,
+                read.unaligned_nucleotide_sequences,
+                read.aligned_nucleotide_sequences,
+                json.dumps([ins.__dict__ for ins in read.nucleotide_insertions]),
+            )
+            for read in records
+        ]
+        self.conn.executemany(query, data)
         self.conn.commit()
 
-    def bulk_update_aa_alignments(self, records):
+    def bulk_update_aa_alignments(self, records: list[tuple[str, str, dict]]):
         """Bulk update multiple AA alignments."""
         query = "UPDATE reads SET aligned_aa_seq=?, aa_insertions=? WHERE read_id=?"
-        self.conn.executemany(query, records)
+        data = [
+            (
+                aligned_aa_seq,
+                json.dumps({k: [str(i) for i in v] for k, v in aa_insertions.items()}),
+                read_id,
+            )
+            for aligned_aa_seq, aa_insertions, read_id in records
+        ]
+        self.conn.executemany(query, data)
         self.conn.commit()
 
-    def dump_all_json(self):
-        """Dump all reads in the store to a JSON string."""
+    def get_all_reads(self) -> list[AlignedRead]:
+        """Retrieve all reads from the store."""
         cursor = self.conn.execute("SELECT * FROM reads")
         all_reads = []
         for row in cursor:
-            read_obj = {
-                "read_id": row[0],
-                "unaligned_nucleotide_sequences": row[1],
-                "aligned_nucleotide_sequences": row[2],
-                "nucleotide_insertions": json.loads(row[3]) if row[3] else [],
-                "aligned_amino_acid_sequences": row[4],
-                "amino_acid_insertions": json.loads(row[5]) if row[5] else {},
-            }
-            all_reads.append(read_obj)
-        return json.dumps(all_reads, indent=4)
+            read = AlignedRead(
+                read_id=row[0],
+                unaligned_nucleotide_sequences=row[1],
+                aligned_nucleotide_sequences=row[2],
+                nucleotide_insertions=json.loads(row[3]) if row[3] else [],
+                aligned_amino_acid_sequences=row[4],
+                amino_acid_insertions=json.loads(row[5]) if row[5] else {},
+            )
+            all_reads.append(read)
+        return all_reads
+
+    def dump_all_json(self) -> str:
+        """Dump all reads in the store to a JSON string."""
+        all_reads = self.get_all_reads()
+        return json.dumps([read.__dict__ for read in all_reads], indent=4)
 
 
 class PerfMonitor:
@@ -121,6 +147,10 @@ class PerfMonitor:
             f"with memory change {mem_diff_mb:.2f} MB"
         )
 
+
+def nuc_alignment_to_AlignedRead(nuc_alignment_fp: Path, aa_alignment_fp: Path):
+
+    return NotImplementedError
 
 def main():
     """Main function to process SAM files and generate JSON output."""
@@ -181,6 +211,8 @@ def main():
     gene_dict = convert.get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
     logging.info(f"Loaded gene reference with genes: {gene_dict.keys()}")
 
+
+
     with tempfile.NamedTemporaryFile(delete=False) as temp_db:
         read_store = ReadStore(db_path=temp_db.name)
 
@@ -221,10 +253,17 @@ def main():
                             continue
 
                         aligned_nuc_seq = pad_alignment(seq, pos, nuc_reference_length)
-                        ins_json = json.dumps([])  # empty nucleotide insertions list
-                        batch_nuc_records.append(
-                            (read_id, seq, aligned_nuc_seq, ins_json)
+
+                        read = AlignedRead(
+                            read_id=read_id,
+                            unaligned_nucleotide_sequences=seq,
+                            aligned_nucleotide_sequences=aligned_nuc_seq,
+                            nucleotide_insertions=[],
+                            amino_acid_insertions = None,
+                            aligned_amino_acid_sequences= None,
                         )
+
+                        batch_nuc_records.append(read)
 
                         if len(batch_nuc_records) >= BATCH_SIZE:
                             read_store.bulk_insert_nuc_reads(batch_nuc_records)
@@ -233,6 +272,7 @@ def main():
                     # Insert any remaining records
                     if batch_nuc_records:
                         read_store.bulk_insert_nuc_reads(batch_nuc_records)
+
 
         # Process AA alignment file and update corresponding reads
         with PerfMonitor("Processing AA alignments"):
@@ -263,11 +303,8 @@ def main():
                         padded_aa_alignment = pad_alignment(
                             aa_aligned, pos, gene_dict[gene_name].gene_length
                         )
-                        aa_ins_json = json.dumps(
-                            {k: [str(i) for i in v] for k, v in aa_ins_dict.items()}
-                        )
                         batch_aa_records.append(
-                            (padded_aa_alignment, aa_ins_json, read_id)
+                            (padded_aa_alignment, aa_ins_dict, read_id)
                         )
 
                         if len(batch_aa_records) >= BATCH_SIZE:
@@ -295,13 +332,13 @@ def main():
                     }
                     f.write(json.dumps(read_obj) + "\n")
 
-        # print the final json last element
-        with open(final_json_fp, "r") as f:
-            lines = f.readlines()
-            if lines:
-                print(lines[-1])
 
-        print("Done!")
+        # read in the last JSON as AlignedRead object
+        with open(final_json_fp, "r") as f:
+            # read the last line of the file
+            last_line = f.readlines()[-1]
+            read = AlignedRead(**json.loads(last_line))
+            print(read.to_json())
 
         os.remove(temp_db.name)
 
