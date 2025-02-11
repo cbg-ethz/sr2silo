@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import List
 
 
-# TODO: remove for translate_align()
-def translate(
+# TODO: to remove // perhaps to test diamond against nextclade ?
+def translate_nextclade(
     input_files: List[Path], result_dir: Path, nextclade_reference: str
 ) -> None:
     """Translate consensus nucleotides to amino acid sequences.

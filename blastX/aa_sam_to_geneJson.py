@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 
 import psutil
+import pysam
 from tqdm import tqdm
 
 import sr2silo.process.convert as convert
@@ -110,53 +111,96 @@ class PerfMonitor:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         end_time = time.time()
-        psutil.Process(os.getpid()).memory_info().rss
+        end_mem = psutil.Process(os.getpid()).memory_info().rss
+        mem_diff_mb = (end_mem - self.start_mem) / (1024 * 1024)
         elapsed = end_time - self.start_time
+
         logging.info(
-            f"{self.label} completed in {elapsed:.2f}s"
-            "with memory change {mem_diff_mb:.2f} MB"
+            f"{self.label} completed in {elapsed:.2f}s "
+            f"with memory change {mem_diff_mb:.2f} MB"
         )
 
 
-####################################################################################################
-# Main function
-
-
-def translate_and_align(
-    input_nuc_alignment_fp: Path,
-    fasta_nuc_for_aa_alignment: Path,
-    fastq_nuc_alignment_with_indels: Path,
-    fasta_nuc_insertions_fp: Path,
-    aa_alignment_fp: Path,
-    aa_reference_fp: Path,
-) -> None:
+# function to sort and index bam file
+def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
     """
-    Function to sort, index, convert files and translate and align.
+    Function to sort and index the input BAM file.
     """
-
     # Sort the BAM file
     with PerfMonitor("BAM sorting"):
-        convert.sort_bam_file(Path(input_nuc_alignment_fp), Path("input/sorted.bam"))
+        convert.sort_bam_file(input_bam_fp, output_bam_fp)
 
     # Create index for BAM file if needed
     with PerfMonitor("BAM indexing"):
-        bam_file = Path("input/sorted.bam")
-        bai_file = bam_file.with_suffix(".bai")
-        if not bai_file.exists() or bam_file.stat().st_mtime > \
-            bai_file.stat().st_mtime:
-            convert.create_index(bam_file)
+        convert.create_index(output_bam_fp)
 
-    logging.info("Converting BAM to FASTQ with INDELS to show NUC alignment")
-    with PerfMonitor("FASTQ conversion (with INDELS)"):
-        convert.bam_to_fastq_handle_indels(
-            bam_file, fastq_nuc_alignment_with_indels, fasta_nuc_insertions_fp
-        )
+    return None
+
+
+def is_bam_sorted(bam_file):
+    """Checks if a BAM file is sorted using pysam.
+
+    Args:
+        bam_file (str): Path to the BAM file.
+
+    Returns:
+        bool: True if the BAM file is sorted, False otherwise.  Returns None if there's an issue opening the file.
+    """
+    try:
+        bam = pysam.AlignmentFile(bam_file, "rb")  # Open in read-binary mode
+        is_sorted = bam.header.get("HD", {}).get("SO") == "coordinate"
+        bam.close()  # Important: Close the file!
+        return is_sorted
+    except ValueError as e:
+        print(f"Error opening BAM file {bam_file}: {e}")  # Handle file errors
+        return None  # Indicate an issue
+    except Exception as e:  # Catch other potential errors (like missing index)
+        print(f"An unexpected error occurred: {e}")
+        return None
+
+
+def is_bam_indexed(bam_file):
+    """Checks if a BAM file has an index (.bai) file.
+
+    Args:bam_file.suffix.endswith
+        bam_file (str): Path to the BAM file.
+
+    Returns:
+        bool: True if the BAM file has an index, False otherwise. Returns None if there's an issue opening the file.
+    """
+    try:
+        bam = pysam.AlignmentFile(bam_file, "rb")
+        has_index = bam.has_index()  # Directly check for index
+        bam.close()
+        return has_index
+
+    except ValueError as e:
+        print(f"Error opening BAM file {bam_file}: {e}")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return None
+
+
+# rename: nuc aligment to fasrq
+def translate_and_align(
+    input_nuc_alignment_fp: Path,  # input
+    aa_reference_fp: Path,  # input
+    fasta_nuc_for_aa_alignment: Path,  # output
+    aa_alignment_fp: Path,  # output
+) -> None:
+    """
+    Function to convert files and translate and align.
+    """
 
     logging.info("Converting BAM to FASTQ for AA alignment")
     with PerfMonitor("FASTA conversion for AA alignment"):
-        convert.bam_to_fasta(bam_file, fasta_nuc_for_aa_alignment)
+        convert.bam_to_fasta(input_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
 
     try:
+        # TODO: name the database after them reference file used and check age
+        # if present then skip this file creation
+
         # ==== Make Sequence DB ====
         with PerfMonitor("Diamond makedb"):
             print("== Making Sequence DB ==")
@@ -193,8 +237,9 @@ def translate_and_align(
 
 def main():
     """Main function to process SAM files and generate JSON output."""
-    INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
-    # INPUT_NUC_ALIGMENT_FILE = "input/REF_aln.bam"
+    # INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
+    INPUT_NUC_ALIGMENT_FILE = "input/combined_sorted.bam"
+    # INPUT_NUC_ALIGMENT_FILE = "input/REF_aln_trim.bam"
     FASTA_NUC_FOR_AA_ALINGMENT = "output.fasta"
     FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
     FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
@@ -224,14 +269,32 @@ def main():
     ):
         raise FileNotFoundError("One or more input files are missing")
 
+    # check if sorted and indexed
+    if not is_bam_sorted(INPUT_NUC_ALIGMENT_FILE) or not is_bam_indexed(
+        INPUT_NUC_ALIGMENT_FILE
+    ):
+        logging.info("Sorting and indexing the input BAM file")
+        INPUT_NUC_ALIGMENT_FILE_sorted_indexed = Path("input/combined_sorted.bam")
+        sort_and_index_bam(
+            INPUT_NUC_ALIGMENT_FILE, INPUT_NUC_ALIGMENT_FILE_sorted_indexed
+        )
+    else:
+        INPUT_NUC_ALIGMENT_FILE_sorted_indexed = INPUT_NUC_ALIGMENT_FILE
+        logging.info("Input BAM file is already sorted and indexed")
+
+    with PerfMonitor("Parsing Nucliotide: BAM FASTQ conversion (with INDELS)"):
+        convert.bam_to_fastq_handle_indels(
+            INPUT_NUC_ALIGMENT_FILE_sorted_indexed,
+            FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS,
+            FASTA_NUC_INSERTIONS_FILE,
+        )
+
     # Call translation and alignment to prepare the files for downstream processing.
     translate_and_align(
-        input_nuc_alignment_fp=INPUT_NUC_ALIGMENT_FILE,
-        fasta_nuc_for_aa_alignment=FASTA_NUC_FOR_AA_ALINGMENT,
-        fastq_nuc_alignment_with_indels=FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS,
-        fasta_nuc_insertions_fp=FASTA_NUC_INSERTIONS_FILE,
-        aa_alignment_fp=AA_ALIGNMENT_FILE,
+        input_nuc_alignment_fp=INPUT_NUC_ALIGMENT_FILE_sorted_indexed,
         aa_reference_fp=AA_REFERENCE_FILE,
+        fasta_nuc_for_aa_alignment=FASTA_NUC_FOR_AA_ALINGMENT,
+        aa_alignment_fp=AA_ALIGNMENT_FILE,
     )
 
     with open(NUC_REFERENCE_FILE, "r") as f:
@@ -346,6 +409,7 @@ def main():
                         read_store.bulk_update_aa_alignments(batch_aa_records)
 
         # Dump combined results to JSON (or write out incrementally)
+        # TODO: this needs to be written out incrementally as an NDJSON file, not all at once that is impossibel on memory.
         with PerfMonitor("Dumping final JSON"):
             final_json = read_store.dump_all_json()
 
