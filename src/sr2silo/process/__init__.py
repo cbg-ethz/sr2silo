@@ -14,7 +14,7 @@ from sr2silo.process.interface import (
     NucInsertion,
 )
 from sr2silo.process.merge import pair_normalize_reads
-from sr2silo.process.translation_aligment import translate_nextclade
+from sr2silo.process.translation_aligment import translate_nextclade, nuc_to_aa_alignment
 
 __all__ = [
     "bam_to_sam",
@@ -27,4 +27,5 @@ __all__ = [
     "NucInsertion",
     "Gene",
     "sort_and_index_bam",
+    "nuc_to_aa_alignment"
 ]
