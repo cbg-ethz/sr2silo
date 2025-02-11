@@ -211,21 +211,23 @@ def nuc_to_aa_alignment(
     """
 
     # temporary fasta file for AA alignment
-    fasta_nuc_for_aa_alignment = aa_alignment_fp.with_suffix(".tmp.fasta")
+    fasta_nuc_for_aa_alignment = out_aa_alignment_fp.with_suffix(".tmp.fasta")
 
     logging.info("Converting BAM to FASTQ for AA alignment")
     with PerfMonitor("FASTA conversion for AA alignment"):
-        convert.bam_to_fasta(input_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
+        convert.bam_to_fasta(in_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
 
     try:
         # TODO: name the database after them reference file used and check age
         # if present then skip this file creation
 
+        db_ref_fp = Path("ref/hxb_pol_db")
+
         # ==== Make Sequence DB ====
         with PerfMonitor("Diamond makedb"):
             print("== Making Sequence DB ==")
             result = os.system(
-                f"diamond makedb --in {aa_reference_fp} -d ref/hxb_pol_db"
+                f"diamond makedb --in {in_aa_reference_fp} -d {db_ref_fp}"
             )
             if result != 0:
                 raise RuntimeError(
@@ -239,8 +241,8 @@ def nuc_to_aa_alignment(
         # ==== Alignment ====
         with PerfMonitor("Diamond blastx alignment"):
             result = os.system(
-                f"diamond blastx -d ref/hxb_pol_db -q {fasta_nuc_for_aa_alignment} "
-                f"-o {aa_alignment_fp} "
+                f"diamond blastx -d {db_ref_fp} -q {fasta_nuc_for_aa_alignment} "
+                f"-o {out_aa_alignment_fp} "
                 f"--evalue 1 --gapopen 6 --gapextend 2 --outfmt 101 --matrix BLOSUM62 "
                 f"--unal 0 --max-hsps 1 --block-size 0.5"
             )
