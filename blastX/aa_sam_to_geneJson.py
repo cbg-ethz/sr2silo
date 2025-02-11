@@ -183,12 +183,31 @@ def is_bam_indexed(bam_file):
 
 # rename: nuc aligment to fasrq
 def nuc_to_aa_alignment(
-    input_nuc_alignment_fp: Path,  # input
-    aa_reference_fp: Path,  # input
-    aa_alignment_fp: Path,  # output
+    in_nuc_alignment_fp: Path,
+    in_aa_reference_fp: Path,
+    out_aa_alignment_fp: Path,
 ) -> None:
     """
-    Function to convert files and translate and align.
+    Function to convert files and translate and align with Diamond / blastx.
+
+    Args:
+        in_nuc_alignment_fp (Path): Path to the input nucleotide alignment file.
+        in_aa_reference_fp (Path): Path to the input amino acid reference file.
+        out_aa_alignment_fp (Path): Path to the output amino acid alignment file.
+
+    Returns:
+        None
+
+    Description:
+        Uses Diamond with the settings:
+        --evalue 1
+        --gapopen 6
+        --gapextend 2
+        --outfmt 101
+        --matrix BLOSUM62
+        --unal 0
+        --max-hsps 1
+        --block-size 0.5
     """
 
     # temporary fasta file for AA alignment
@@ -295,9 +314,9 @@ def main():
 
     # Call translation and alignment to prepare the files for downstream processing.
     nuc_to_aa_alignment(
-        input_nuc_alignment_fp=INPUT_NUC_ALIGMENT_FILE_sorted_indexed,
-        aa_reference_fp=AA_REFERENCE_FILE,
-        aa_alignment_fp=AA_ALIGNMENT_FILE,
+        in_nuc_alignment_fp=INPUT_NUC_ALIGMENT_FILE_sorted_indexed,
+        in_aa_reference_fp=AA_REFERENCE_FILE,
+        out_aa_alignment_fp=AA_ALIGNMENT_FILE,
     )
 
     with open(NUC_REFERENCE_FILE, "r") as f:
