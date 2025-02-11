@@ -217,11 +217,7 @@ def nuc_to_aa_alignment(
         convert.bam_to_fasta(in_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
 
     try:
-        # TODO: name the database after them reference file used and check age
-        # if present then skip this file creation
-
-        db_ref_fp = Path("ref/hxb_pol_db")
-
+        db_ref_fp = Path(in_aa_reference_fp.stem + ".temp.db")
         # ==== Make Sequence DB ====
         with PerfMonitor("Diamond makedb"):
             print("== Making Sequence DB ==")
