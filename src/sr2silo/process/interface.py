@@ -35,7 +35,7 @@ class AlignedRead:
         aligned_nucleotide_sequences: str,
         nucleotide_insertions: List[NucInsertion],
         amino_acid_insertions: AAInsertionSet,
-        aligned_amino_acid_sequences: Dict[str, str],
+        aligned_amino_acid_sequences: AASequenceSet,
     ):
         self.read_id = read_id
         self.unaligned_nucleotide_sequences = unaligned_nucleotide_sequences
@@ -44,6 +44,7 @@ class AlignedRead:
         self.amino_acid_insertions = amino_acid_insertions
         self.aligned_amino_acid_sequences = aligned_amino_acid_sequences
 
+        self._validate_types()
 
     def _validate_types(self):
         if not isinstance(self.read_id, str):
@@ -56,7 +57,7 @@ class AlignedRead:
             raise TypeError("All items in nucleotide_insertions must be NucInsertion instances")
         if not isinstance(self.amino_acid_insertions, AAInsertionSet):
             raise TypeError(f"amino_acid_insertions must be an AAInsertionSet, got {type(self.amino_acid_insertions).__name__}")
-        if not isinstance(self.aligned_amino_acid_sequences, dict):
+        if not isinstance(self.aligned_amino_acid_sequences, AASequenceSet):
             raise TypeError(f"aligned_amino_acid_sequences must be a dict, got {type(self.aligned_amino_acid_sequences).__name__}")
         if not all(isinstance(k, str) and isinstance(v, str) for k, v in self.aligned_amino_acid_sequences.items()):
             raise TypeError("All keys and values in aligned_amino_acid_sequences must be str")
@@ -77,11 +78,10 @@ class AlignedRead:
     def to_json(self) -> str:
         json_representation = {
             "nucleotideInsertions": {
-                "main": self.nucleotide_insertions,
+                "main": self.nucleotide_insertions.__str__(),
             },
             "aminoAcidInsertions": {
-                k: [i.__str__() for i in v]
-                for k, v in self.get_amino_acid_insertions().items()
+                self.amino_acid_insertions.__str__(),
             },
             "alignedNucleotideSequences": {
                 "main": self.aligned_nucleotide_sequences,
@@ -90,10 +90,13 @@ class AlignedRead:
                 "main": self.unaligned_nucleotide_sequences,
             },
             "alignedAminoAcidSequences": {
-                "main": self.aligned_amino_acid_sequences,
+                k: v for k, v in self.aligned_amino_acid_sequences.items()
             },
         }
+
+        print(json_representation)
         return json.dumps(json_representation, indent=4)
+
 
 
 class Gene:
@@ -111,8 +114,6 @@ class Gene:
 class AAInsertionSet:
     """Class to represent the set of amino acid insertions for a full set of genes."""
 
-    # TODO: rewrite to create a dict with all genes in init, the add insertions the a pactiruclar gene
-
     def __init__(self, genes: List[Gene]):
         """Initialize the AAInsertionSet with an empty set of insertions for each gene."""
         aa_insertions_set = {}
@@ -129,9 +130,36 @@ class AAInsertionSet:
         """Set the amino acid insertions for a particular gene."""
         self.aa_insertions_set[gene_name] = aa_insertions
 
-
-    def to_dict(self) -> Dict[str, List[AAInsertion]]:
-        return self.aa_insertions_set
-
     def items(self):
         return self.aa_insertions_set.items()
+
+    def __str__(self) -> str:
+        return str(self.aa_insertions_set)
+
+
+class AASequenceSet:
+    """Class to represent the set of amino acid sequences for a full set of genes."""
+
+    def __init__(self, genes: List[Gene]):
+        """Initialize the AASequenceSet with an empty set of sequences for each gene."""
+        aa_sequence_set = {}
+
+        for gene in genes:
+            aa_sequence_set[gene] = ""
+
+        self.aa_sequence_set = aa_sequence_set
+
+    def set_sequence_for_gene(self, gene_name: str, aa_sequence: str):
+        """Set the amino acid sequence for a particular gene."""
+        self.aa_sequence_set[gene_name] = aa_sequence
+
+    def to_dict(self) -> Dict[str, str]:
+        return self.aa_sequence_set
+
+    def items(self):
+        return self.aa_sequence_set.items()
+
+    def __str__(self) -> str:
+        return str(self.aa_sequence_set)
+
+
