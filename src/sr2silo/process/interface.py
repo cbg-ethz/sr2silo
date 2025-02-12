@@ -28,13 +28,12 @@ class AAInsertion:
 
 class AlignedRead:
     """Class to represent an aligned read."""
-
     def __init__(
         self,
         read_id: str,
         unaligned_nucleotide_sequences: str,
         aligned_nucleotide_sequences: str,
-        nucleotide_insertions: any,
+        nucleotide_insertions: List[NucInsertion],
         amino_acid_insertions: AAInsertionSet,
         aligned_amino_acid_sequences: Dict[str, str],
     ):
@@ -44,6 +43,23 @@ class AlignedRead:
         self.nucleotide_insertions = nucleotide_insertions
         self.amino_acid_insertions = amino_acid_insertions
         self.aligned_amino_acid_sequences = aligned_amino_acid_sequences
+
+
+    def _validate_types(self):
+        if not isinstance(self.read_id, str):
+            raise TypeError(f"read_id must be a str, got {type(self.read_id).__name__}")
+        if not isinstance(self.unaligned_nucleotide_sequences, str):
+            raise TypeError(f"unaligned_nucleotide_sequences must be a str, got {type(self.unaligned_nucleotide_sequences).__name__}")
+        if not isinstance(self.aligned_nucleotide_sequences, str):
+            raise TypeError(f"aligned_nucleotide_sequences must be a str, got {type(self.aligned_nucleotide_sequences).__name__}")
+        if not all(isinstance(i, NucInsertion) for i in self.nucleotide_insertions):
+            raise TypeError("All items in nucleotide_insertions must be NucInsertion instances")
+        if not isinstance(self.amino_acid_insertions, AAInsertionSet):
+            raise TypeError(f"amino_acid_insertions must be an AAInsertionSet, got {type(self.amino_acid_insertions).__name__}")
+        if not isinstance(self.aligned_amino_acid_sequences, dict):
+            raise TypeError(f"aligned_amino_acid_sequences must be a dict, got {type(self.aligned_amino_acid_sequences).__name__}")
+        if not all(isinstance(k, str) and isinstance(v, str) for k, v in self.aligned_amino_acid_sequences.items()):
+            raise TypeError("All keys and values in aligned_amino_acid_sequences must be str")
 
     def to_dict(self) -> Dict[str, any]:  # noqa
         return {
@@ -95,17 +111,24 @@ class Gene:
 class AAInsertionSet:
     """Class to represent the set of amino acid insertions for a full set of genes."""
 
-    def __init__(
-        self, gene_dict: Dict[Gene], aa_insertions: List[AAInsertion], gene_name: str
-    ):
+    # TODO: rewrite to create a dict with all genes in init, the add insertions the a pactiruclar gene
+
+    def __init__(self, genes: List[Gene]):
+        """Initialize the AAInsertionSet with an empty set of insertions for each gene."""
         aa_insertions_set = {}
 
-        for gene in gene_dict.keys():
+        for gene in genes:
             aa_insertions_set[gene] = []
 
-        aa_insertions_set[gene_name] = aa_insertions
-
         self.aa_insertions_set = aa_insertions_set
+
+
+    def set_insertions_for_gene(
+        self, aa_insertions: List[AAInsertion], gene_name: str
+    ):
+        """Set the amino acid insertions for a particular gene."""
+        self.aa_insertions_set[gene_name] = aa_insertions
+
 
     def to_dict(self) -> Dict[str, List[AAInsertion]]:
         return self.aa_insertions_set
