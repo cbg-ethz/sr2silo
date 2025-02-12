@@ -134,13 +134,8 @@ class AAInsertionSet:
         """Set the amino acid insertions for a particular gene."""
         self.aa_insertions_set[gene_name] = aa_insertions
 
-    def items(self):
-        return self.aa_insertions_set.items()
-
     def __str__(self) -> str:
-        serialized = {}
-        for gene in self.genes:
-            serialized[str(gene)] = self.aa_insertions_set[gene]
+        serialized = {str(gene): self.aa_insertions_set[gene] for gene in self.genes}
         return str(serialized)
 
 
@@ -148,38 +143,20 @@ class AASequenceSet:
     """Class to represent the set of amino acid sequences for a full set of genes."""
 
     def __init__(self, genes: List[GeneName]):
-        """Initialize the AASequenceSet with an empty set of sequences for each gene."""
-
-        aa_sequence_set = {}
-
-        for gene in genes:
-            aa_sequence_set[gene] = ""
-
+        # Initialize with an empty sequence for each gene
+        self.sequences = {gene: "" for gene in genes}
         self.genes = genes
-        self.aa_sequence_set = aa_sequence_set
 
-    def set_sequence_for_gene(self, gene_name: str, aa_sequence: str):
+    def set_sequence(self, gene_name: str, aa_sequence: str):
         """Set the amino acid sequence for a particular gene."""
-        self.aa_sequence_set[gene_name] = aa_sequence
+        self.sequences[gene_name] = aa_sequence
 
-    def to_dict(self) -> Dict[str, str]:
-        serialized = {}
-        for gene in self.genes:
-            serialized[str(gene)] = self.aa_sequence_set[gene]
-
-        print(serialized)
-        return serialized
-
-    def items(self):
-        return self.aa_sequence_set.items()
+    def to_dict(self) -> dict:
+        # Return a dictionary with gene names as keys
+        return {str(gene): seq for gene, seq in self.sequences.items()}
 
     def __str__(self) -> str:
-        serialized = {}
-        for gene in self.genes:
-            serialized[str(gene)] = self.aa_sequence_set[gene]
-
-        return str(serialized)
-
+        return str(self.to_dict())
 
 
 class GeneName:
