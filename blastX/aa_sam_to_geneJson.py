@@ -102,13 +102,13 @@ class ReadStore:
         self.conn.executemany(query, data)
         self.conn.commit()
 
-    def bulk_update_aa_alignments(self, records: list[tuple[str, str, dict]]):
+    def bulk_update_aa_alignments(self, records: list[tuple[str, AAInsertionSet, dict]]):
         """Bulk update multiple AA alignments."""
         query = "UPDATE reads SET aligned_aa_seq=?, aa_insertions=? WHERE read_id=?"
         data = [
             (
                 aligned_aa_seq,
-                json.dumps({k: [str(i) for i in v] for k, v in aa_insertions.items()}),
+                aa_insertions.to_dict(),
                 read_id,
             )
             for aligned_aa_seq, aa_insertions, read_id in records
@@ -116,6 +116,7 @@ class ReadStore:
         self.conn.executemany(query, data)
         self.conn.commit()
 
+    # TODO: this cannot work as there are way to many reads to load into memory
     def get_all_reads(self) -> list[AlignedRead]:
         """Retrieve all reads from the store."""
         cursor = self.conn.execute("SELECT * FROM reads")
@@ -131,6 +132,27 @@ class ReadStore:
             )
             all_reads.append(read)
         return all_reads
+
+    def get_read(self, read_id: str) -> AlignedRead:
+        """Retrieve a read by its ID from the store."""
+        cursor = self.conn.execute("SELECT * FROM reads WHERE read_id=?", (read_id,))
+        row = cursor.fetchone()
+        if row:
+            aa_insertions = json.loads(row[5]) if row[5] else {}
+            print(aa_insertions)
+            nuc_insertions = json.loads(row[3]) if row[3] else []
+            print(nuc_insertions)
+
+            return AlignedRead(
+                read_id=row[0],
+                unaligned_nucleotide_sequences=row[1],
+                aligned_nucleotide_sequences=row[2],
+                nucleotide_insertions=aa_insertions,
+                aligned_amino_acid_sequences=row[4],
+                amino_acid_insertions=nuc_insertions,
+            )
+        else:
+            return None
 
     def dump_all_json(self) -> str:
         """Dump all reads in the store to a JSON string."""
@@ -197,13 +219,15 @@ def main():
     nuc_reference_length = len(nuc_reference)
     logging.info(f"Loaded nucleotide reference with length {nuc_reference_length}")
 
+    # Load gene reference
     gene_dict = convert.get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
     logging.info(f"Loaded gene reference with genes: {gene_dict.keys()}")
 
 
-
     with tempfile.NamedTemporaryFile(delete=False) as temp_db:
-        read_store = ReadStore(db_path=temp_db.name)
+        #read_store = ReadStore(db_path=temp_db.name)
+        read_store = ReadStore(db_path="read_store.db")
+        logging.info(f"Using temporary database at {temp_db.name}")
 
         ## Process nucleotide alignment reads incrementally
         logging.info("Processing nucleotide alignments")
@@ -247,9 +271,8 @@ def main():
                         read_id=read_id,
                         unaligned_nucleotide_sequences=seq,
                         aligned_nucleotide_sequences=aligned_nuc_seq,
-                        # TODO: Add support for nucleotide insertions
-                        nucleotide_insertions=[],
-                        amino_acid_insertions = None,
+                        nucleotide_insertions= list(),
+                        amino_acid_insertions = AAInsertionSet(gene_dict.items()),
                         aligned_amino_acid_sequences= None,
                     )
 
@@ -305,14 +328,15 @@ def main():
                         aa_insertions,
                         aa_deletions,
                     ) = convert.sam_to_seq_and_indels(seq, cigar)
-                    # Build a dict for AA insertions with all genes as keys
-                    aa_ins_dict = {gene: [] for gene in gene_dict.keys()}
-                    aa_ins_dict[gene_name] = aa_insertions
+
                     padded_aa_alignment = pad_alignment(
                         aa_aligned, pos, gene_dict[gene_name].gene_length
                     )
+
+                    ## update the insertions set with the new insertions
+
                     batch_aa_records.append(
-                        (padded_aa_alignment, aa_ins_dict, read_id)
+                        (padded_aa_alignment, aa_insertions, read_id)
                     )
 
                     if len(batch_aa_records) >= BATCH_SIZE:
@@ -341,6 +365,10 @@ def main():
                 f.write(json.dumps(read_obj) + "\n")
 
 
+        print("try get read")
+        read =  read_store.get_read("AV233803:AV044:2411515907:1:11305:3061:3014")
+        print(read.to_json())
+
         # read in the last JSON as AlignedRead object
         with open(final_json_fp, "r") as f:
             #for line in f:
@@ -352,7 +380,7 @@ def main():
             read = AlignedRead(**json.loads(last_line))
             print(read.to_json())
 
-        os.remove(temp_db.name)
+        # os.remove(temp_db.name)
 
 
 if __name__ == "__main__":
