@@ -22,6 +22,7 @@ from sr2silo.process.interface import (
     Gene,
     NucInsertion,
     AASequenceSet,
+    GeneName,
 )
 import sr2silo.process.convert as convert
 from sr2silo.process import pad_alignment
@@ -91,6 +92,7 @@ def main():
 
     # Load gene reference
     gene_dict = convert.get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
+    gene_names = [GeneName(k) for k in gene_dict.keys()]
     logging.info(f"Loaded gene reference with genes: {gene_dict.keys()}")
 
 
@@ -140,8 +142,8 @@ def main():
                     unaligned_nucleotide_sequences=seq,
                     aligned_nucleotide_sequences=aligned_nuc_seq,
                     nucleotide_insertions= list(),
-                    amino_acid_insertions = AAInsertionSet(gene_dict.items()),
-                    aligned_amino_acid_sequences= AASequenceSet(gene_dict.keys()),
+                    amino_acid_insertions = AAInsertionSet(gene_names),
+                    aligned_amino_acid_sequences= AASequenceSet(gene_names),
                 )
 
                 aligned_reads.update({read_id: read})
@@ -200,7 +202,6 @@ def main():
                 aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(gene_name, aa_ins)
                 aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence_for_gene(gene_name, padded_aa_alignment)
 
-    print (aligned_reads.keys())
     for read_id, read in list(aligned_reads.items())[-3:]:
         print(read.to_json())
 

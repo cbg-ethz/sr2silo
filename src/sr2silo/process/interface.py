@@ -59,8 +59,8 @@ class AlignedRead:
             raise TypeError(f"amino_acid_insertions must be an AAInsertionSet, got {type(self.amino_acid_insertions).__name__}")
         if not isinstance(self.aligned_amino_acid_sequences, AASequenceSet):
             raise TypeError(f"aligned_amino_acid_sequences must be a dict, got {type(self.aligned_amino_acid_sequences).__name__}")
-        if not all(isinstance(k, str) and isinstance(v, str) for k, v in self.aligned_amino_acid_sequences.items()):
-            raise TypeError("All keys and values in aligned_amino_acid_sequences must be str")
+
+
 
     def to_dict(self) -> Dict[str, any]:  # noqa
         return {
@@ -77,6 +77,8 @@ class AlignedRead:
 
     def to_json(self) -> str:
         json_representation = {
+            "readId": self.read_id,
+
             "nucleotideInsertions": {
                 "main": self.nucleotide_insertions.__str__(),
             },
@@ -90,7 +92,7 @@ class AlignedRead:
                 "main": self.unaligned_nucleotide_sequences,
             },
             "alignedAminoAcidSequences": {
-                k: v for k, v in self.aligned_amino_acid_sequences.items()
+                self.aligned_amino_acid_sequences.__str__()
             },
         }
 
@@ -100,7 +102,7 @@ class AlignedRead:
 
 
 class Gene:
-    def __init__(self, gene_name: str, gene_length: int):
+    def __init__(self, gene_name: GeneName, gene_length: int):
         self.gene_name = gene_name
         self.gene_length = gene_length
 
@@ -114,7 +116,7 @@ class Gene:
 class AAInsertionSet:
     """Class to represent the set of amino acid insertions for a full set of genes."""
 
-    def __init__(self, genes: List[Gene]):
+    def __init__(self, genes: List[GeneName]):
         """Initialize the AAInsertionSet with an empty set of insertions for each gene."""
         aa_insertions_set = {}
 
@@ -123,6 +125,14 @@ class AAInsertionSet:
 
         self.aa_insertions_set = aa_insertions_set
 
+        self.genes = genes
+        self._validate_types()
+
+    def _validate_types(self):
+        if not all(isinstance(k, GeneName) for k in self.aa_insertions_set.keys()):
+            raise TypeError("All keys in aa_insertions_set must be GeneName instances")
+        if not all(isinstance(v, list) for v in self.aa_insertions_set.values()):
+            raise TypeError("All values in aa_insertions_set must be lists")
 
     def set_insertions_for_gene(
         self, aa_insertions: List[AAInsertion], gene_name: str
@@ -134,19 +144,24 @@ class AAInsertionSet:
         return self.aa_insertions_set.items()
 
     def __str__(self) -> str:
-        return str(self.aa_insertions_set)
+        serialized = {}
+        for gene in self.genes:
+            serialized[str(gene)] = self.aa_insertions_set[gene]
+        return str(serialized)
 
 
 class AASequenceSet:
     """Class to represent the set of amino acid sequences for a full set of genes."""
 
-    def __init__(self, genes: List[Gene]):
+    def __init__(self, genes: List[GeneName]):
         """Initialize the AASequenceSet with an empty set of sequences for each gene."""
+
         aa_sequence_set = {}
 
         for gene in genes:
             aa_sequence_set[gene] = ""
 
+        self.genes = genes
         self.aa_sequence_set = aa_sequence_set
 
     def set_sequence_for_gene(self, gene_name: str, aa_sequence: str):
@@ -154,12 +169,28 @@ class AASequenceSet:
         self.aa_sequence_set[gene_name] = aa_sequence
 
     def to_dict(self) -> Dict[str, str]:
-        return self.aa_sequence_set
+        serialized = {}
+        for gene in self.genes:
+            serialized[str(gene)] = self.aa_sequence_set[gene]
+
+        print(serialized)
+        return serialized
 
     def items(self):
         return self.aa_sequence_set.items()
 
     def __str__(self) -> str:
-        return str(self.aa_sequence_set)
+        serialized = {}
+        for gene in self.genes:
+            serialized[str(gene)] = self.aa_sequence_set[gene]
+
+        return str(serialized)
 
 
+
+class GeneName:
+    def __init__(self, gene_name: str):
+        self.gene_name = gene_name
+
+    def __str__(self) -> str:
+        return self.gene_name
