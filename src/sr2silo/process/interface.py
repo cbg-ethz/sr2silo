@@ -1,4 +1,3 @@
-
 """Implements Genomic Data Structures"""
 
 
@@ -78,22 +77,17 @@ class AlignedRead:
     def to_json(self) -> str:
         json_representation = {
             "readId": self.read_id,
-
             "nucleotideInsertions": {
                 "main": self.nucleotide_insertions.__str__(),
             },
-            "aminoAcidInsertions": {
-                self.amino_acid_insertions.__str__(),
-            },
+            "aminoAcidInsertions": self.amino_acid_insertions.__str__(),
             "alignedNucleotideSequences": {
                 "main": self.aligned_nucleotide_sequences,
             },
             "unalignedNucleotideSequences": {
                 "main": self.unaligned_nucleotide_sequences,
             },
-            "alignedAminoAcidSequences": {
-                self.aligned_amino_acid_sequences.__str__()
-            },
+            "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.__str__(),
         }
 
         print(json_representation)
