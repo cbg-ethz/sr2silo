@@ -143,7 +143,7 @@ class AASequenceSet:
     """Class to represent the set of amino acid sequences for a full set of genes."""
 
     def __init__(self, genes: List[GeneName]):
-        # Initialize with an empty sequence for each gene
+        """ Initialize with an empty sequence for each gene"""
         self.sequences = {gene: "" for gene in genes}
         self.genes = genes
 
@@ -152,7 +152,7 @@ class AASequenceSet:
         self.sequences[gene_name] = aa_sequence
 
     def to_dict(self) -> dict:
-        # Return a dictionary with gene names as keys
+        """Return a dictionary with gene names as keys"""
         return {str(gene): seq for gene, seq in self.sequences.items()}
 
     def __str__(self) -> str:
