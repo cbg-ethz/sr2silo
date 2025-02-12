@@ -59,7 +59,9 @@ class AlignedRead:
         if not isinstance(self.aligned_amino_acid_sequences, AASequenceSet):
             raise TypeError(f"aligned_amino_acid_sequences must be a dict, got {type(self.aligned_amino_acid_sequences).__name__}")
 
-
+    def set_nuc_insertion(self, nuc_insertion: NucInsertion):
+        """Append a nucleotide insertion to the list of nucleotide insertions."""
+        self.nucleotide_insertions.append(nuc_insertion)
 
     def to_dict(self) -> Dict[str, any]:  # noqa
         return {
@@ -74,25 +76,27 @@ class AlignedRead:
     def get_amino_acid_insertions(self) -> AAInsertionSet:
         return self.amino_acid_insertions
 
+    def __str__(self) -> str:
+        return str(self.to_dict())
+
     def to_json(self) -> str:
         json_representation = {
             "readId": self.read_id,
             "nucleotideInsertions": {
-                "main": self.nucleotide_insertions.__str__(),
+                "main": [str(ins) for ins in self.nucleotide_insertions],
             },
             "aminoAcidInsertions": self.amino_acid_insertions.__str__(),
             "alignedNucleotideSequences": {
                 "main": self.aligned_nucleotide_sequences,
             },
             "unalignedNucleotideSequences": {
-                "main": self.unaligned_nucleotide_sequences,
+                 "main": self.unaligned_nucleotide_sequences,
             },
-            "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.__str__(),
+             "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.__str__(),
         }
 
-        print(json_representation)
-        return json.dumps(json_representation, indent=4)
-
+        return json_representation
+        #return json.dumps(json_representation, indent=4)
 
 
 class Gene:
@@ -111,32 +115,19 @@ class AAInsertionSet:
     """Class to represent the set of amino acid insertions for a full set of genes."""
 
     def __init__(self, genes: List[GeneName]):
-        """Initialize the AAInsertionSet with an empty set of insertions for each gene."""
-        aa_insertions_set = {}
+        """Initialize with an empty set of insertions for each gene."""
+        self.aa_insertions = {str(gene): [] for gene in genes}
 
-        for gene in genes:
-            aa_insertions_set[gene] = []
-
-        self.aa_insertions_set = aa_insertions_set
-
-        self.genes = genes
-        self._validate_types()
-
-    def _validate_types(self):
-        if not all(isinstance(k, GeneName) for k in self.aa_insertions_set.keys()):
-            raise TypeError("All keys in aa_insertions_set must be GeneName instances")
-        if not all(isinstance(v, list) for v in self.aa_insertions_set.values()):
-            raise TypeError("All values in aa_insertions_set must be lists")
-
-    def set_insertions_for_gene(
-        self, aa_insertions: List[AAInsertion], gene_name: str
-    ):
+    def set_insertions_for_gene(self, gene_name: GeneName, aa_insertions: List[AAInsertion]):
         """Set the amino acid insertions for a particular gene."""
-        self.aa_insertions_set[gene_name] = aa_insertions
+        self.aa_insertions[gene_name] = aa_insertions
+
+    def to_dict(self) -> dict:
+        """Return a dictionary with gene names as keys."""
+        return {str(gene): [str(ins) for ins in ins_per_gene] for gene, ins_per_gene in self.aa_insertions.items()}
 
     def __str__(self) -> str:
-        serialized = {str(gene): self.aa_insertions_set[gene] for gene in self.genes}
-        return str(serialized)
+        return str(self.to_dict())
 
 
 class AASequenceSet:

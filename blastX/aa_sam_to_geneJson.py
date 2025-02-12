@@ -164,7 +164,7 @@ def main():
             nuc_ins = NucInsertion(position=pos, sequence=seq)
             nuc_ins_record = (read_id, nuc_ins)
 
-            aligned_reads[read_id].nucleotide_insertions.append(nuc_ins)
+            aligned_reads[read_id].set_nuc_insertion(nuc_ins)
 
 
     # Process AA alignment file and update corresponding reads
@@ -194,15 +194,13 @@ def main():
                 padded_aa_alignment = pad_alignment(
                     aa_aligned, pos, gene_dict[gene_name].gene_length
                 )
-
                 ## update the insertions set with the new insertions
-
                 aa_ins = AAInsertion(position=pos, sequence=aa_insertions)
-
                 aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(gene_name, aa_ins)
                 aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(gene_name, padded_aa_alignment)
 
-    for read_id, read in list(aligned_reads.items())[-3:]:
+    for read_id, read in list(aligned_reads.items()):
+        #print(read)
         print(read.to_json())
 
 
