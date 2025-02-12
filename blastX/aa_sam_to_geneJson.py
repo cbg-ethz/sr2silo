@@ -196,12 +196,12 @@ def main():
                 )
                 ## update the insertions set with the new insertions
                 aa_ins = AAInsertion(position=pos, sequence=aa_insertions)
+
                 aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(gene_name, aa_ins)
                 aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(gene_name, padded_aa_alignment)
 
     for read_id, read in list(aligned_reads.items()):
-        #print(read)
-        print(read.to_json())
+        print(read)
 
 
 if __name__ == "__main__":

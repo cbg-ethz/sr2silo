@@ -77,26 +77,22 @@ class AlignedRead:
         return self.amino_acid_insertions
 
     def __str__(self) -> str:
-        return str(self.to_dict())
-
-    def to_json(self) -> str:
         json_representation = {
             "readId": self.read_id,
             "nucleotideInsertions": {
                 "main": [str(ins) for ins in self.nucleotide_insertions],
             },
             "aminoAcidInsertions": self.amino_acid_insertions.__str__(),
-            "alignedNucleotideSequences": {
-                "main": self.aligned_nucleotide_sequences,
-            },
-            "unalignedNucleotideSequences": {
-                 "main": self.unaligned_nucleotide_sequences,
-            },
-             "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.__str__(),
+            #"alignedNucleotideSequences": {
+            #    "main": self.aligned_nucleotide_sequences,
+            #},
+            #"unalignedNucleotideSequences": {
+            #     "main": self.unaligned_nucleotide_sequences,
+            #},
+            # "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.__str__(),
         }
 
-        return json_representation
-        #return json.dumps(json_representation, indent=4)
+        return str(json_representation)
 
 
 class Gene:
@@ -124,7 +120,7 @@ class AAInsertionSet:
 
     def to_dict(self) -> dict:
         """Return a dictionary with gene names as keys."""
-        return {str(gene): [str(ins) for ins in ins_per_gene] for gene, ins_per_gene in self.aa_insertions.items()}
+        return {str(gene): [str(ins) for ins in ins_per_gene] for gene, ins_per_gene in self.aa_insertions.items() if isinstance(ins_per_gene, list)}
 
     def __str__(self) -> str:
         return str(self.to_dict())
