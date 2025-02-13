@@ -66,3 +66,36 @@ def test_normalize_reads(sam_with_insert_data):
             output_insertions_str == sam_with_insert_data["insertions"]
         ), "The output insertions data does not match the expected insertions data"
 
+
+
+def test_sort_bam_file():
+    """Test the sort_bam_file function."""
+
+    raise NotImplementedError
+
+
+def test_create_index():
+    """Test the index_bam_file function."""
+
+    raise NotImplementedError
+
+
+def test_bam_to_fasta():
+    """Test the bam_to_fasta function."""
+
+    raise NotImplementedError
+
+def test_pad_alignment():
+    """Test the pad_alignment function."""
+
+    raise NotImplementedError
+
+def test_sam_to_seq_and_indels():
+    """Test the sam_to_seq_and_indels function."""
+
+    raise NotImplementedError
+
+def test_get_gene_set_from_reference():
+    """Test the get_gene_set_from_reference function."""
+
+    raise NotImplementedError
