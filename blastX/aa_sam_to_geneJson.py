@@ -2,140 +2,20 @@
 """
 from __future__ import annotations
 
-import json
 import logging
-import os
-import tempfile
-import time
 from pathlib import Path
 
-import psutil
-import pysam
-from tqdm import tqdm
-import json
-
-
 from sr2silo.process.interface import (
-    AAInsertion,
-    AAInsertionSet,
     AlignedRead,
-    Gene,
-    NucInsertion,
-    AASequenceSet,
     GeneName,
 )
 import sr2silo.process.convert as convert
-from sr2silo.process import pad_alignment
 import sr2silo.process as process
+import sr2silo.process.translate_align as translate_align
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
-# TODO: make these static functions of the AlignedRead class
-def read_in_AligendReads_nuc_seq(fastq_nuc_aligment_file : Path, nuc_reference_length : int, gene_set : GeneSet) -> dict[AlignedRead]:
-    """Incrementally read in aligned reads from a FASTQ file with indels
-
-    Args:
-        fastq_nuc_aligment_file (Path): Path to the FASTQ file, with positions of alignment, produced by `bam_to_fastq_handle_indels`
-        nuc_reference_length (int): Length of the nucleotide reference genome
-        gene_set (GeneSet): Set of genes to be used for alignment of amino acid sequences
-
-    Returns:
-        dict[AlignedRead]: Dictionary of read IDs to AlignedRead objects
-    """
-    aligned_reads = dict()
-    batch_nuc_records = []
-    with open(fastq_nuc_aligment_file, "r") as f:
-        total_lines = sum(1 for _ in f) // 5  # Each entry consists of 5 lines
-        f.seek(0)  # Reset file pointer to the beginning
-        with tqdm(
-            total=total_lines, desc="Processing nucleotide alignments"
-        ) as pbar:
-            while True:
-                lines = [f.readline().strip() for _ in range(5)]
-                if not lines[0]:
-                    break  # End of file
-                if not lines[0].startswith("@"):
-                    continue
-                if not (
-                    lines[0].startswith("@")
-                    and lines[2].startswith("+")
-                    and lines[4].startswith("alignment_position:")
-                ):
-                    logging.error(
-                        "Malformed FASTQ record encountered, skipping..."
-                    )
-                    continue
-                read_id = lines[0][1:]
-                seq = lines[1]
-                try:
-                    pos = int(lines[4].split(":", 1)[1])
-                except Exception as e:
-                    logging.error(
-                        f"Error parsing alignment position for {read_id}: {e}"
-                    )
-                    continue
-                aligned_nuc_seq = pad_alignment(seq, pos, nuc_reference_length)
-                read = AlignedRead(
-                    read_id=read_id,
-                    unaligned_nucleotide_sequences=seq,
-                    aligned_nucleotide_sequences=aligned_nuc_seq,
-                    nucleotide_insertions= list(),
-                    amino_acid_insertions = AAInsertionSet(gene_set.get_gene_name_list()),
-                    aligned_amino_acid_sequences= AASequenceSet(gene_set.get_gene_name_list()),
-                )
-                aligned_reads.update({read_id: read})
-    return aligned_reads
-
-# TODO: make these static functions of the AlignedRead class
-def read_in_AligendReads_nuc_ins(aligned_reads : dict[AlignedRead], fasta_nuc_insertions_file : Path) -> dict[AlignedRead]:
-
-    with open(fasta_nuc_insertions_file, "r") as f:
-        # read each line seperated by tabs, read_id, position, sequence, quality
-        for line in f:
-            fields = line.strip().split("\t")
-            read_id = fields[0]
-            pos = int(fields[1])
-            seq = fields[2]
-            # quality = fields[3]
-            nuc_ins = NucInsertion(position=pos, sequence=seq)
-            nuc_ins_record = (read_id, nuc_ins)
-
-            aligned_reads[read_id].set_nuc_insertion(nuc_ins)
-
-    return aligned_reads
-
-# TODO: make these static functions of the AlignedRead class
-def read_in_AlignedReads_aa_seq_and_ins(aligned_reads : dict[AlignedRead], fasta_aa_alignment_file : Path, gene_set : GeneSet) -> dict[AlignedRead]:
-    """Read in amino acid sequences and insertions from a FASTA file"""
-    with open(fasta_aa_alignment_file, "r") as f:
-        total_lines = sum(1 for _ in f)
-        f.seek(0)  # Reset file pointer to the beginning
-        with tqdm(total=total_lines, desc="Processing AA alignments") as pbar:
-            for line in f:
-                if line.startswith("@"):  # skip header of .sam file
-                    pbar.update(1)
-                    continue
-                fields = line.strip().split("\t")
-                read_id = fields[0]
-                gene_name = fields[2]
-                pos = int(fields[3])
-                cigar = fields[5]
-                seq = fields[9]
-                (
-                    aa_aligned,
-                    aa_insertions,
-                    aa_deletions,
-                ) = convert.sam_to_seq_and_indels(seq, cigar)
-                padded_aa_alignment = pad_alignment(
-                    aa_aligned, pos, gene_set.get_gene_length(gene_name)
-                )
-                aa_ins = [AAInsertion(position=pos, sequence=aa_insertions) for pos, ins in aa_insertions]
-                aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(gene_name, aa_ins)
-                aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(gene_name, padded_aa_alignment)
-    return aligned_reads
-
 
 
 def main():
@@ -197,14 +77,14 @@ def main():
     logging.info(f"Loaded gene reference with genes: {gene_set}")
 
     logging.info("Processing nucleotide alignments")
-    aligned_reads = read_in_AligendReads_nuc_seq(FASTQ_NUC_ALIGMENT_FILE, nuc_reference_length, gene_set)
+    aligned_reads = translate_align.read_in_AligendReads_nuc_seq(FASTQ_NUC_ALIGMENT_FILE, nuc_reference_length, gene_set)
 
     logging.info("Adding nucleotide insertions to reads")
-    aligned_reads = read_in_AligendReads_nuc_ins(aligned_reads, FASTA_NUC_INSERTIONS_FILE)
+    aligned_reads = translate_align.read_in_AligendReads_nuc_ins(aligned_reads, FASTA_NUC_INSERTIONS_FILE)
 
     # Process AA alignment file and update corresponding reads
     logging.info("Processing AA alignments")
-    aligned_reads = read_in_AlignedReads_aa_seq_and_ins(aligned_reads, AA_ALIGNMENT_FILE, gene_set)
+    aligned_reads = translate_align.read_in_AlignedReads_aa_seq_and_ins(aligned_reads, AA_ALIGNMENT_FILE, gene_set)
 
     for read_id, read in list(aligned_reads.items()):
         print(read)
