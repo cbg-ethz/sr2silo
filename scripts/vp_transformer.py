@@ -114,8 +114,9 @@ def process_directory(
 
     ##### Translate / Align / Normalize to JSON #####
 
-    # TODO: implement the the workflow from blastX/parse_translate_align.py
-
+    # TODO: implement the the workflow from sr2silo.process.translate_align.py
+    
+    raise NotImplementedError("Not yet implemented")
 
     #####   Compress & Upload to S3  #####
     file_to_upload = result_dir_transformed / "silo_input.ndjson"
