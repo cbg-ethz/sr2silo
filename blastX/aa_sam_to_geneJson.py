@@ -32,23 +32,6 @@ def main():
     AA_REFERENCE_FILE = Path("../resources/sars-cov-2/aa_reference_genomes.fasta")
     NUC_REFERENCE_FILE = Path("../resources/sars-cov-2/nuc_reference_genomes.fasta")
 
-    # Validate that all Resources are there before starting
-    (
-        NUC_REFERENCE_FILE,
-        AA_REFERENCE_FILE,
-        INPUT_NUC_ALIGMENT_FILE,
-        AA_ALIGNMENT_FILE,
-        FASTQ_NUC_ALIGMENT_FILE,
-    ) = [
-        Path(f)
-        for f in [
-            NUC_REFERENCE_FILE,
-            AA_REFERENCE_FILE,
-            INPUT_NUC_ALIGMENT_FILE,
-            AA_ALIGNMENT_FILE,
-            FASTQ_NUC_ALIGMENT_FILE,
-        ]
-    ]
     if not all(
         f.exists()
         for f in [NUC_REFERENCE_FILE, AA_REFERENCE_FILE, INPUT_NUC_ALIGMENT_FILE]
