@@ -32,8 +32,6 @@ logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-
-
 def main():
     """Main function to process SAM files and generate JSON output."""
     #INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
@@ -93,7 +91,6 @@ def main():
     gene_set = process.get_gene_set_from_ref(AA_REFERENCE_FILE)
     logging.info(f"Loaded gene reference with genes: {gene_set}")
 
-
     ## Process nucleotide alignment reads incrementally
     logging.info("Processing nucleotide alignments")
     aligned_reads = dict()
@@ -101,7 +98,6 @@ def main():
     with open(FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, "r") as f:
         total_lines = sum(1 for _ in f) // 5  # Each entry consists of 5 lines
         f.seek(0)  # Reset file pointer to the beginning
-
         with tqdm(
             total=total_lines, desc="Processing nucleotide alignments"
         ) as pbar:
@@ -120,7 +116,6 @@ def main():
                         "Malformed FASTQ record encountered, skipping..."
                     )
                     continue
-
                 read_id = lines[0][1:]
                 seq = lines[1]
                 try:
@@ -130,9 +125,7 @@ def main():
                         f"Error parsing alignment position for {read_id}: {e}"
                     )
                     continue
-
                 aligned_nuc_seq = pad_alignment(seq, pos, nuc_reference_length)
-
                 read = AlignedRead(
                     read_id=read_id,
                     unaligned_nucleotide_sequences=seq,
@@ -141,9 +134,7 @@ def main():
                     amino_acid_insertions = AAInsertionSet(gene_set.get_gene_name_list()),
                     aligned_amino_acid_sequences= AASequenceSet(gene_set.get_gene_name_list()),
                 )
-
                 aligned_reads.update({read_id: read})
-
 
     ## Add Nuc insertions to the Aligned Reads incrementally
     logging.info("Adding nucleotide insertions to reads")
@@ -155,13 +146,11 @@ def main():
             read_id = fields[0]
             pos = int(fields[1])
             seq = fields[2]
-            quality = fields[3] # not used
-
+            # quality = fields[3]
             nuc_ins = NucInsertion(position=pos, sequence=seq)
             nuc_ins_record = (read_id, nuc_ins)
 
             aligned_reads[read_id].set_nuc_insertion(nuc_ins)
-
 
     # Process AA alignment file and update corresponding reads
     logging.info("Processing AA alignments")
@@ -169,7 +158,6 @@ def main():
     with open(AA_ALIGNMENT_FILE, "r") as f:
         total_lines = sum(1 for _ in f)
         f.seek(0)  # Reset file pointer to the beginning
-
         with tqdm(total=total_lines, desc="Processing AA alignments") as pbar:
             for line in f:
                 if line.startswith("@"):  # skip header of .sam file
@@ -186,14 +174,10 @@ def main():
                     aa_insertions,
                     aa_deletions,
                 ) = convert.sam_to_seq_and_indels(seq, cigar)
-
-
                 padded_aa_alignment = pad_alignment(
                     aa_aligned, pos, gene_set.get_gene_length(gene_name)
                 )
-                ## update the insertions set with the new insertions
-                aa_ins = AAInsertion(position=pos, sequence=aa_insertions)
-
+                aa_ins = [AAInsertion(position=pos, sequence=aa_insertions) for pos, ins in aa_insertions]
                 aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(gene_name, aa_ins)
                 aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(gene_name, padded_aa_alignment)
 
