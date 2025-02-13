@@ -106,6 +106,35 @@ def read_in_AligendReads_nuc_ins(fasta_nuc_insertions_file : Path, aligned_reads
 
     return aligned_reads
 
+# TODO: make these static functions of the AlignedRead class
+def read_in_AlignedReads_aa_seq_and_ins(fasta_aa_alignment_file : Path, aligned_reads : dict[AlignedRead]) -> dict[AlignedRead]:
+    """Read in amino acid sequences and insertions from a FASTA file"""
+    with open(fasta_aa_alignment_file, "r") as f:
+        total_lines = sum(1 for _ in f)
+        f.seek(0)  # Reset file pointer to the beginning
+        with tqdm(total=total_lines, desc="Processing AA alignments") as pbar:
+            for line in f:
+                if line.startswith("@"):  # skip header of .sam file
+                    pbar.update(1)
+                    continue
+                fields = line.strip().split("\t")
+                read_id = fields[0]
+                gene_name = fields[2]
+                pos = int(fields[3])
+                cigar = fields[5]
+                seq = fields[9]
+                (
+                    aa_aligned,
+                    aa_insertions,
+                    aa_deletions,
+                ) = convert.sam_to_seq_and_indels(seq, cigar)
+                padded_aa_alignment = pad_alignment(
+                    aa_aligned, pos, gene_set.get_gene_length(gene_name)
+                )
+                aa_ins = [AAInsertion(position=pos, sequence=aa_insertions) for pos, ins in aa_insertions]
+                aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(gene_name, aa_ins)
+                aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(gene_name, padded_aa_alignment)
+    retrun aligned_reads
 
 def main():
     """Main function to process SAM files and generate JSON output."""
@@ -173,32 +202,7 @@ def main():
 
     # Process AA alignment file and update corresponding reads
     logging.info("Processing AA alignments")
-    batch_aa_records = []
-    with open(AA_ALIGNMENT_FILE, "r") as f:
-        total_lines = sum(1 for _ in f)
-        f.seek(0)  # Reset file pointer to the beginning
-        with tqdm(total=total_lines, desc="Processing AA alignments") as pbar:
-            for line in f:
-                if line.startswith("@"):  # skip header of .sam file
-                    pbar.update(1)
-                    continue
-                fields = line.strip().split("\t")
-                read_id = fields[0]
-                gene_name = fields[2]
-                pos = int(fields[3])
-                cigar = fields[5]
-                seq = fields[9]
-                (
-                    aa_aligned,
-                    aa_insertions,
-                    aa_deletions,
-                ) = convert.sam_to_seq_and_indels(seq, cigar)
-                padded_aa_alignment = pad_alignment(
-                    aa_aligned, pos, gene_set.get_gene_length(gene_name)
-                )
-                aa_ins = [AAInsertion(position=pos, sequence=aa_insertions) for pos, ins in aa_insertions]
-                aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(gene_name, aa_ins)
-                aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(gene_name, padded_aa_alignment)
+    aligned_reads = read_in_AlignedReads_aa_seq_and_ins(AA_ALIGNMENT_FILE, aligned_reads)
 
     for read_id, read in list(aligned_reads.items()):
         print(read)
