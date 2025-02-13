@@ -289,21 +289,21 @@ def parse_translate_align(nuc_reference_fp: Path, aa_reference_fp : Path, nuc_al
         raise FileNotFoundError("One or more input files are missing")
 
     # sort and index the input BAM file
-    INPUT_NUC_ALIGMENT_FILE_sorted_indexed = Path("input/combined_sorted.bam")
+    nuc_aligment_sorted_indexed_fp = Path("input/combined_sorted.bam")
     convert.sort_and_index_bam(
-        nuc_alignment_fp, INPUT_NUC_ALIGMENT_FILE_sorted_indexed
+        nuc_alignment_fp, nuc_aligment_sorted_indexed_fp
     )
 
     logging.info("Parsing Nucliotide: BAM FASTQ conversion (with INDELS)")
     convert.bam_to_fastq_handle_indels(
-        INPUT_NUC_ALIGMENT_FILE_sorted_indexed,
+        nuc_aligment_sorted_indexed_fp,
         FASTQ_NUC_ALIGMENT_FILE,
         FASTA_NUC_INSERTIONS_FILE,
     )
 
     # Call translation and alignment to prepare the files for downstream processing.
     nuc_to_aa_alignment(
-        in_nuc_alignment_fp=INPUT_NUC_ALIGMENT_FILE_sorted_indexed,
+        in_nuc_alignment_fp=nuc_aligment_sorted_indexed_fp,
         in_aa_reference_fp=aa_reference_fp,
         out_aa_alignment_fp=AA_ALIGNMENT_FILE,
     )
