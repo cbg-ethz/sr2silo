@@ -19,8 +19,6 @@ SHELL ["conda", "run", "-n", "sr2silo", "/bin/bash", "-c"]
 # Copy the current directory contents into the container at /app
 COPY . /app
 
-# Build the Rust project as a Python extension
-RUN cd silo_input_transformer && maturin develop --release
 
 # Install the sr2silo package
 RUN pip install -e .
