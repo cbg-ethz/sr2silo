@@ -44,7 +44,6 @@ def main():
     AA_ALIGNMENT_FILE = "diamond_blastx.sam"
     AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
     NUC_REFERENCE_FILE = "../resources/sars-cov-2/nuc_reference_genomes.fasta"
-    BATCH_SIZE = 10000  # adjust as needed
 
     # Validate that all Resources are there before starting
     (
@@ -91,16 +90,13 @@ def main():
     logging.info(f"Loaded nucleotide reference with length {nuc_reference_length}")
 
     # Load gene reference
-    gene_dict = convert.get_genes_and_lengths_from_ref(AA_REFERENCE_FILE)
-    gene_names = [GeneName(k) for k in gene_dict.keys()]
-    logging.info(f"Loaded gene reference with genes: {gene_dict.keys()}")
+    gene_set = process.get_gene_set_from_ref(AA_REFERENCE_FILE)
+    logging.info(f"Loaded gene reference with genes: {gene_set}")
 
-
-    # make list of AlignedRead objects
-    aligned_reads = dict()
 
     ## Process nucleotide alignment reads incrementally
     logging.info("Processing nucleotide alignments")
+    aligned_reads = dict()
     batch_nuc_records = []
     with open(FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, "r") as f:
         total_lines = sum(1 for _ in f) // 5  # Each entry consists of 5 lines
@@ -142,8 +138,8 @@ def main():
                     unaligned_nucleotide_sequences=seq,
                     aligned_nucleotide_sequences=aligned_nuc_seq,
                     nucleotide_insertions= list(),
-                    amino_acid_insertions = AAInsertionSet(gene_names),
-                    aligned_amino_acid_sequences= AASequenceSet(gene_names),
+                    amino_acid_insertions = AAInsertionSet(gene_set.get_gene_name_list()),
+                    aligned_amino_acid_sequences= AASequenceSet(gene_set.get_gene_name_list()),
                 )
 
                 aligned_reads.update({read_id: read})
@@ -191,8 +187,9 @@ def main():
                     aa_deletions,
                 ) = convert.sam_to_seq_and_indels(seq, cigar)
 
+
                 padded_aa_alignment = pad_alignment(
-                    aa_aligned, pos, gene_dict[gene_name].gene_length
+                    aa_aligned, pos, gene_set.get_gene_length(gene_name)
                 )
                 ## update the insertions set with the new insertions
                 aa_ins = AAInsertion(position=pos, sequence=aa_insertions)

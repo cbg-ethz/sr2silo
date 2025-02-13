@@ -95,17 +95,58 @@ class AlignedRead:
         return str(json_representation)
 
 
+class GeneName:
+    """Class to represent a gene name in its short form."""
+    def __init__(self, name: str):
+        self.name = name
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Gene:
     def __init__(self, gene_name: GeneName, gene_length: int):
-        self.gene_name = gene_name
+        self.name = gene_name
         self.gene_length = gene_length
 
     def to_dict(self) -> Dict[str, int | str]:
         return {
-            "gene_name": self.gene_name,
+            "gene_name": self.name,
             "gene_length": self.gene_length,
         }
 
+
+class GeneSet:
+    """Class to represent a set of genes for a pathogen"""
+    def __init__(self, genes: List[Gene]):
+        """Initialize with a list of genes."""
+        self.genes = {}
+        for gene in genes:
+            self.genes[str(gene.name)] = gene
+
+    def set_gene_length(self, gene_name: GeneName, gene_length: int):
+        """Set the length of a gene."""
+        self.genes[str(name)].gene_length = gene_length
+
+    def get_gene(self, gene_name: GeneName) -> Gene:
+        """Return a gene by name."""
+        return self.genes[str(gene_name)]
+
+    def get_gene_length(self, gene_name: GeneName) -> int:
+        """Return the length of a gene."""
+        return self.genes[str(gene_name)].gene_length
+
+    def get_gene_name_list(self) -> List[GeneName]:
+        """Return a list of genes."""
+        return list(self.genes.keys())
+
+    def to_dict(self) -> Dict[str, Dict[str, int | str]]:
+        """Return a dictionary with gene names as keys and gene
+           leght as values."""
+        return ({str(k): v} for k,v in self.genes.items())
+
+    def __str__(self) -> str:
+        return str(self.to_dict())
 
 class AAInsertionSet:
     """Class to represent the set of amino acid insertions for a full set of genes."""
@@ -145,10 +186,3 @@ class AASequenceSet:
     def __str__(self) -> str:
         return str(self.to_dict())
 
-
-class GeneName:
-    def __init__(self, gene_name: str):
-        self.gene_name = gene_name
-
-    def __str__(self) -> str:
-        return self.gene_name

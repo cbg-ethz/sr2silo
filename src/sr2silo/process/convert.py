@@ -10,7 +10,7 @@ from typing import List, Union
 
 import pysam
 
-from sr2silo.process.interface import AAInsertion, Gene
+from sr2silo.process.interface import AAInsertion, Gene, GeneSet
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -409,8 +409,9 @@ def sam_to_seq_and_indels(
     return "".join(cleartext_sequence), insertions, deletions
 
 
-def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
-    """Load the gene ref fasta and get all the gene names."""
+def get_gene_set_from_ref(reference_fp: Path) -> GeneSet:
+    """Load the gene ref fasta get the GeneSet with
+       gene short names and lengths."""
     genes = dict()
 
     with open(reference_fp, "r") as f:
@@ -425,6 +426,9 @@ def get_genes_and_lengths_from_ref(reference_fp: Path) -> Dict[str, Gene]:
                 awaiting_next_line = False
             else:
                 continue
+
+    # convert to GeneSet
+    genes = GeneSet([gene for gene in genes.values()])
 
     return genes
 
