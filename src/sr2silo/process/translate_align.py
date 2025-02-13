@@ -289,7 +289,7 @@ def parse_translate_align(nuc_reference_fp: Path, aa_reference_fp : Path, nuc_al
         raise FileNotFoundError("One or more input files are missing")
 
     # sort and index the input BAM file
-    nuc_aligment_sorted_indexed_fp = Path("input/combined_sorted.bam")
+    nuc_aligment_sorted_indexed_fp = Path("combined_sorted.bam")
     convert.sort_and_index_bam(
         nuc_alignment_fp, nuc_aligment_sorted_indexed_fp
     )
