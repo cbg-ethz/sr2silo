@@ -7,7 +7,7 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 from tqdm import tqdm
 
@@ -17,11 +17,12 @@ from sr2silo.process.interface import (
     AAInsertionSet,
     AASequenceSet,
     AlignedRead,
+    GeneSet,
     NucInsertion,
 )
 
 
-# TODO: to use as orthogonal test agains blastX
+# TODO: to use as orthogonal test against blastX
 def translate_nextclade(
     input_files: List[Path], result_dir: Path, nextclade_reference: str
 ) -> None:
@@ -164,15 +165,17 @@ def nuc_to_aa_alignment(
 def read_in_AligendReads_nuc_seq(
     fastq_nuc_aligment_file: Path, nuc_reference_length: int, gene_set: GeneSet
 ) -> dict[AlignedRead]:
-    """Incrementally read in aligned reads from a FASTQ file with indels
+    """Read aligned reads from a FASTQ file with indels.
 
     Args:
-        fastq_nuc_aligment_file (Path): Path to the FASTQ file, with positions of alignment, produced by `bam_to_fastq_handle_indels`
-        nuc_reference_length (int): Length of the nucleotide reference genome
-        gene_set (GeneSet): Set of genes to be used for alignment of amino acid sequences
+        fastq_nuc_aligment_file (Path): Path to the FASTQ file with alignment
+                                        positions, produced by
+                                        `bam_to_fastq_handle_indels`.
+        nuc_reference_length (int): Length of the nucleotide reference genome.
+        gene_set (GeneSet): Set of genes for amino acid sequence alignment.
 
     Returns:
-        dict[AlignedRead]: Dictionary of read IDs to AlignedRead objects
+        dict[AlignedRead]: Dictionary of read IDs to AlignedRead objects.
     """
     aligned_reads = dict()
     with open(fastq_nuc_aligment_file, "r") as f:
@@ -220,7 +223,7 @@ def read_in_AlignedReads_nuc_ins(
     aligned_reads: dict[AlignedRead], fasta_nuc_insertions_file: Path
 ) -> dict[AlignedRead]:
     with open(fasta_nuc_insertions_file, "r") as f:
-        # read each line seperated by tabs, read_id, position, sequence, quality
+        # read each line separated by tabs, read_id, position, sequence, quality
         for line in f:
             fields = line.strip().split("\t")
             read_id = fields[0]
