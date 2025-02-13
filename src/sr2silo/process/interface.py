@@ -83,13 +83,13 @@ class AlignedRead:
                 "main": [str(ins) for ins in self.nucleotide_insertions],
             },
             "aminoAcidInsertions": self.amino_acid_insertions.__str__(),
-            #"alignedNucleotideSequences": {
-            #    "main": self.aligned_nucleotide_sequences,
-            #},
-            #"unalignedNucleotideSequences": {
-            #     "main": self.unaligned_nucleotide_sequences,
-            #},
-            # "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.__str__(),
+            "alignedNucleotideSequences": {
+                "main": self.aligned_nucleotide_sequences,
+            },
+            "unalignedNucleotideSequences": {
+                 "main": self.unaligned_nucleotide_sequences,
+            },
+             "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.__str__(),
         }
 
         return str(json_representation)
