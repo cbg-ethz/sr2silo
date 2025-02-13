@@ -3,25 +3,21 @@
 from __future__ import annotations
 
 import logging
-import subprocess
 import os
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import List
+
 from tqdm import tqdm
 
-
 import sr2silo.process.convert as convert
-
-
 from sr2silo.process.interface import (
     AAInsertion,
     AAInsertionSet,
-    AlignedRead,
-    Gene,
-    NucInsertion,
     AASequenceSet,
-    GeneName,
+    AlignedRead,
+    NucInsertion,
 )
 
 
@@ -92,7 +88,6 @@ def translate_nextclade(
             command = ["mv", f"{temp_dir}/results", str(result_path)]
 
 
-
 def nuc_to_aa_alignment(
     in_nuc_alignment_fp: Path,
     in_aa_reference_fp: Path,
@@ -133,9 +128,7 @@ def nuc_to_aa_alignment(
         # ==== Make Sequence DB ====
         logging.info("Diamond makedb")
         print("== Making Sequence DB ==")
-        result = os.system(
-            f"diamond makedb --in {in_aa_reference_fp} -d {db_ref_fp}"
-        )
+        result = os.system(f"diamond makedb --in {in_aa_reference_fp} -d {db_ref_fp}")
         if result != 0:
             raise RuntimeError(
                 "Error occurred while making sequence DB with diamond makedb"
@@ -168,8 +161,9 @@ def nuc_to_aa_alignment(
     return None
 
 
-
-def read_in_AligendReads_nuc_seq(fastq_nuc_aligment_file : Path, nuc_reference_length : int, gene_set : GeneSet) -> dict[AlignedRead]:
+def read_in_AligendReads_nuc_seq(
+    fastq_nuc_aligment_file: Path, nuc_reference_length: int, gene_set: GeneSet
+) -> dict[AlignedRead]:
     """Incrementally read in aligned reads from a FASTQ file with indels
 
     Args:
@@ -181,13 +175,10 @@ def read_in_AligendReads_nuc_seq(fastq_nuc_aligment_file : Path, nuc_reference_l
         dict[AlignedRead]: Dictionary of read IDs to AlignedRead objects
     """
     aligned_reads = dict()
-    batch_nuc_records = []
     with open(fastq_nuc_aligment_file, "r") as f:
         total_lines = sum(1 for _ in f) // 5  # Each entry consists of 5 lines
         f.seek(0)  # Reset file pointer to the beginning
-        with tqdm(
-            total=total_lines, desc="Processing nucleotide alignments"
-        ) as pbar:
+        with tqdm(total=total_lines, desc="Processing nucleotide alignments"):
             while True:
                 lines = [f.readline().strip() for _ in range(5)]
                 if not lines[0]:
@@ -199,9 +190,7 @@ def read_in_AligendReads_nuc_seq(fastq_nuc_aligment_file : Path, nuc_reference_l
                     and lines[2].startswith("+")
                     and lines[4].startswith("alignment_position:")
                 ):
-                    logging.error(
-                        "Malformed FASTQ record encountered, skipping..."
-                    )
+                    logging.error("Malformed FASTQ record encountered, skipping...")
                     continue
                 read_id = lines[0][1:]
                 seq = lines[1]
@@ -217,16 +206,19 @@ def read_in_AligendReads_nuc_seq(fastq_nuc_aligment_file : Path, nuc_reference_l
                     read_id=read_id,
                     unaligned_nucleotide_sequences=seq,
                     aligned_nucleotide_sequences=aligned_nuc_seq,
-                    nucleotide_insertions= list(),
-                    amino_acid_insertions = AAInsertionSet(gene_set.get_gene_name_list()),
-                    aligned_amino_acid_sequences= AASequenceSet(gene_set.get_gene_name_list()),
+                    nucleotide_insertions=list(),
+                    amino_acid_insertions=AAInsertionSet(gene_set.get_gene_name_list()),
+                    aligned_amino_acid_sequences=AASequenceSet(
+                        gene_set.get_gene_name_list()
+                    ),
                 )
                 aligned_reads.update({read_id: read})
     return aligned_reads
 
 
-def read_in_AligendReads_nuc_ins(aligned_reads : dict[AlignedRead], fasta_nuc_insertions_file : Path) -> dict[AlignedRead]:
-
+def read_in_AligendReads_nuc_ins(
+    aligned_reads: dict[AlignedRead], fasta_nuc_insertions_file: Path
+) -> dict[AlignedRead]:
     with open(fasta_nuc_insertions_file, "r") as f:
         # read each line seperated by tabs, read_id, position, sequence, quality
         for line in f:
@@ -236,13 +228,15 @@ def read_in_AligendReads_nuc_ins(aligned_reads : dict[AlignedRead], fasta_nuc_in
             seq = fields[2]
             # quality = fields[3]
             nuc_ins = NucInsertion(position=pos, sequence=seq)
-            nuc_ins_record = (read_id, nuc_ins)
 
             aligned_reads[read_id].set_nuc_insertion(nuc_ins)
 
     return aligned_reads
 
-def read_in_AlignedReads_aa_seq_and_ins(aligned_reads : dict[AlignedRead], fasta_aa_alignment_file : Path, gene_set : GeneSet) -> dict[AlignedRead]:
+
+def read_in_AlignedReads_aa_seq_and_ins(
+    aligned_reads: dict[AlignedRead], fasta_aa_alignment_file: Path, gene_set: GeneSet
+) -> dict[AlignedRead]:
     """Read in amino acid sequences and insertions from a FASTA file"""
     with open(fasta_aa_alignment_file, "r") as f:
         total_lines = sum(1 for _ in f)
@@ -266,16 +260,23 @@ def read_in_AlignedReads_aa_seq_and_ins(aligned_reads : dict[AlignedRead], fasta
                 padded_aa_alignment = convert.pad_alignment(
                     aa_aligned, pos, gene_set.get_gene_length(gene_name)
                 )
-                aa_ins = [AAInsertion(position=pos, sequence=aa_insertions) for pos, ins in aa_insertions]
-                aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(gene_name, aa_ins)
-                aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(gene_name, padded_aa_alignment)
+                aa_ins = [
+                    AAInsertion(position=pos, sequence=aa_insertions)
+                    for pos, ins in aa_insertions
+                ]
+                aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(
+                    gene_name, aa_ins
+                )
+                aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(
+                    gene_name, padded_aa_alignment
+                )
     return aligned_reads
 
 
-
-
-def parse_translate_align(nuc_reference_fp: Path, aa_reference_fp : Path, nuc_alignment_fp: Path) -> Dict[AlignedRead]:
-    """Parse nucliotides, translate and align amino acids the input files."""
+def parse_translate_align(
+    nuc_reference_fp: Path, aa_reference_fp: Path, nuc_alignment_fp: Path
+) -> Dict[AlignedRead]:
+    """Parse nucleotides, translate and align amino acids the input files."""
 
     # TODO: move to temp files
     FASTQ_NUC_ALIGMENT_FILE = Path("output_with_indels.fastq")
@@ -283,16 +284,13 @@ def parse_translate_align(nuc_reference_fp: Path, aa_reference_fp : Path, nuc_al
     AA_ALIGNMENT_FILE = Path("diamond_blastx.sam")
 
     if not all(
-        f.exists()
-        for f in [nuc_reference_fp, aa_reference_fp, nuc_alignment_fp]
+        f.exists() for f in [nuc_reference_fp, aa_reference_fp, nuc_alignment_fp]
     ):
         raise FileNotFoundError("One or more input files are missing")
 
     # sort and index the input BAM file
     nuc_aligment_sorted_indexed_fp = Path("combined_sorted.bam")
-    convert.sort_and_index_bam(
-        nuc_alignment_fp, nuc_aligment_sorted_indexed_fp
-    )
+    convert.sort_and_index_bam(nuc_alignment_fp, nuc_aligment_sorted_indexed_fp)
 
     logging.info("Parsing Nucliotide: BAM FASTQ conversion (with INDELS)")
     convert.bam_to_fastq_handle_indels(

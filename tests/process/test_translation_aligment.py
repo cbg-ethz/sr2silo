@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import sr2silo.process.translate_align as translate_align
+
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def test_translate():
@@ -25,11 +30,7 @@ def test_parse_translate_align():
     aa_ref_fp = Path("resources/sars-cov-2/aa_reference_genomes.fasta")
     nuc_alignment_fp = Path("tests/data/bam/combined.bam")
 
-    translate_align.parse_translate_align(
-        nuc_ref_fp,
-        aa_ref_fp,
-        nuc_alignment_fp
-    )
+    translate_align.parse_translate_align(nuc_ref_fp, aa_ref_fp, nuc_alignment_fp)
 
     # TODO: needs to verify output.
     logging.info("TODO: needs to verify output.")
@@ -37,15 +38,16 @@ def test_parse_translate_align():
     return True
 
 
-
 def test_read_in_AligendReads_nuc_seq():
     """Test the read_in_AligendReads_nuc_seq function."""
     raise NotImplementedError
+
 
 def test_read_in_AligendReads_nuc_ins():
     """Test the read_in_AligendReads_nuc_ins function."""
 
     raise NotImplementedError
+
 
 def test_read_in_AligendReads_aa_ins():
     """Test the read_in_AligendReads_aa_ins function."""
