@@ -162,7 +162,7 @@ def nuc_to_aa_alignment(
     return None
 
 
-def read_in_AligendReads_nuc_seq(
+def read_in_AlignedReads_nuc_seq(
     fastq_nuc_alignment_file: Path, nuc_reference_length: int, gene_set: GeneSet
 ) -> dict[AlignedRead]:
     """Read aligned reads from a FASTQ file with indels.
@@ -318,7 +318,7 @@ def parse_translate_align(
     logging.info(f"Loaded gene reference with genes: {gene_set}")
 
     logging.info("Processing nucleotide alignments")
-    aligned_reads = read_in_AligendReads_nuc_seq(
+    aligned_reads = read_in_AlignedReads_nuc_seq(
         FASTQ_NUC_ALIGNMENT_FILE, nuc_reference_length, gene_set
     )
 

@@ -39,7 +39,7 @@ def test_parse_translate_align():
 
 
 def test_read_in_AligendReads_nuc_seq():
-    """Test the read_in_AligendReads_nuc_seq function."""
+    """Test the read_in_AlignedReads_nuc_seq function."""
     raise NotImplementedError
 
 
