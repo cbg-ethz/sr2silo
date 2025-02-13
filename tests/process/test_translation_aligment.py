@@ -31,7 +31,10 @@ def test_parse_translate_align():
         nuc_alignment_fp
     )
 
-    assert True
+    # TODO: needs to verify output.
+    logging.info("TODO: needs to verify output.")
+
+    return True
 
 
 
