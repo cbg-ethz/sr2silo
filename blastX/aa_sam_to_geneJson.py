@@ -32,12 +32,21 @@ logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-def read_in_AligendReads_nuc_seq(fastq_nuc_aligment_file_with_indels : Path, nuc_reference_length : int, gene_set : GeneSet) -> dict[AlignedRead]:
-    ## Process nucleotide alignment reads incrementally
+def read_in_AligendReads_nuc_seq(fastq_nuc_aligment_file : Path, nuc_reference_length : int, gene_set : GeneSet) -> dict[AlignedRead]:
+    """Incrementally read in aligned reads from a FASTQ file with indels
+
+    Args:
+        fastq_nuc_aligment_file (Path): Path to the FASTQ file, with positions of alignment, produced by `bam_to_fastq_handle_indels`
+        nuc_reference_length (int): Length of the nucleotide reference genome
+        gene_set (GeneSet): Set of genes to be used for alignment of amino acid sequences
+
+    Returns:
+        dict[AlignedRead]: Dictionary of read IDs to AlignedRead objects
+    """
     logging.info("Processing nucleotide alignments")
     aligned_reads = dict()
     batch_nuc_records = []
-    with open(fastq_nuc_aligment_file_with_indels, "r") as f:
+    with open(fastq_nuc_aligment_file, "r") as f:
         total_lines = sum(1 for _ in f) // 5  # Each entry consists of 5 lines
         f.seek(0)  # Reset file pointer to the beginning
         with tqdm(
@@ -86,7 +95,7 @@ def main():
     #INPUT_NUC_ALIGMENT_FILE = "input/combined.bam"
     INPUT_NUC_ALIGMENT_FILE = "input/combined_sorted.bam"
     # INPUT_NUC_ALIGMENT_FILE = "input/REF_aln_trim.bam"
-    FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS = "output_with_indels.fastq"
+    FASTQ_NUC_ALIGMENT_FILE = "output_with_indels.fastq"
     FASTA_NUC_INSERTIONS_FILE = "output_ins.fasta"
     AA_ALIGNMENT_FILE = "diamond_blastx.sam"
     AA_REFERENCE_FILE = "../resources/sars-cov-2/aa_reference_genomes.fasta"
@@ -120,7 +129,7 @@ def main():
     logging.info("Parsing Nucliotide: BAM FASTQ conversion (with INDELS)")
     convert.bam_to_fastq_handle_indels(
         INPUT_NUC_ALIGMENT_FILE_sorted_indexed,
-        FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS,
+        FASTQ_NUC_ALIGMENT_FILE,
         FASTA_NUC_INSERTIONS_FILE,
     )
 
@@ -140,7 +149,7 @@ def main():
     gene_set = process.get_gene_set_from_ref(AA_REFERENCE_FILE)
     logging.info(f"Loaded gene reference with genes: {gene_set}")
 
-    aligned_reads = read_in_AligendReads_nuc_seq(FASTQ_NUC_ALIGMENT_FILE_WITH_INDELS, nuc_reference_length, gene_set)
+    aligned_reads = read_in_AligendReads_nuc_seq(FASTQ_NUC_ALIGMENT_FILE, nuc_reference_length, gene_set)
 
     ## Add Nuc insertions to the Aligned Reads incrementally
     logging.info("Adding nucleotide insertions to reads")
