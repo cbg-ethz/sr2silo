@@ -114,7 +114,7 @@ def process_directory(
 
     ##### Translate / Align / Normalize to JSON #####
 
-
+    # TODO: implement the the workflow from blastX/parse_translate_align.py
 
 
     #####   Compress & Upload to S3  #####

@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import List
 from tqdm import tqdm
 
+
 import sr2silo.process.convert as convert
 
-from sr2silo.process.convert import bam_to_fasta, pad_alignment
 
 from sr2silo.process.interface import (
     AAInsertion,
@@ -126,7 +126,7 @@ def nuc_to_aa_alignment(
 
     logging.info("Converting BAM to FASTQ for AA alignment")
     logging.info("FASTA conversion for AA alignment")
-    bam_to_fasta(in_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
+    convert.bam_to_fasta(in_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
 
     try:
         db_ref_fp = Path(in_aa_reference_fp.stem + ".temp.db")
@@ -212,7 +212,7 @@ def read_in_AligendReads_nuc_seq(fastq_nuc_aligment_file : Path, nuc_reference_l
                         f"Error parsing alignment position for {read_id}: {e}"
                     )
                     continue
-                aligned_nuc_seq = pad_alignment(seq, pos, nuc_reference_length)
+                aligned_nuc_seq = convert.pad_alignment(seq, pos, nuc_reference_length)
                 read = AlignedRead(
                     read_id=read_id,
                     unaligned_nucleotide_sequences=seq,
@@ -263,7 +263,7 @@ def read_in_AlignedReads_aa_seq_and_ins(aligned_reads : dict[AlignedRead], fasta
                     aa_insertions,
                     aa_deletions,
                 ) = convert.sam_to_seq_and_indels(seq, cigar)
-                padded_aa_alignment = pad_alignment(
+                padded_aa_alignment = convert.pad_alignment(
                     aa_aligned, pos, gene_set.get_gene_length(gene_name)
                 )
                 aa_ins = [AAInsertion(position=pos, sequence=aa_insertions) for pos, ins in aa_insertions]
@@ -272,3 +272,64 @@ def read_in_AlignedReads_aa_seq_and_ins(aligned_reads : dict[AlignedRead], fasta
     return aligned_reads
 
 
+
+
+def parse_translate_align(nuc_reference_fp: Path, aa_reference_fp : Path, nuc_alignment_fp: Path) -> Dict[AlignedRead]:
+    """Parse nucliotides, translate and align amino acids the input files."""
+
+    # TODO: move to temp files
+    FASTQ_NUC_ALIGMENT_FILE = Path("output_with_indels.fastq")
+    FASTA_NUC_INSERTIONS_FILE = Path("output_ins.fasta")
+    AA_ALIGNMENT_FILE = Path("diamond_blastx.sam")
+
+    if not all(
+        f.exists()
+        for f in [nuc_reference_fp, aa_reference_fp, nuc_alignment_fp]
+    ):
+        raise FileNotFoundError("One or more input files are missing")
+
+    # sort and index the input BAM file
+    INPUT_NUC_ALIGMENT_FILE_sorted_indexed = Path("input/combined_sorted.bam")
+    convert.sort_and_index_bam(
+        nuc_alignment_fp, INPUT_NUC_ALIGMENT_FILE_sorted_indexed
+    )
+
+    logging.info("Parsing Nucliotide: BAM FASTQ conversion (with INDELS)")
+    convert.bam_to_fastq_handle_indels(
+        INPUT_NUC_ALIGMENT_FILE_sorted_indexed,
+        FASTQ_NUC_ALIGMENT_FILE,
+        FASTA_NUC_INSERTIONS_FILE,
+    )
+
+    # Call translation and alignment to prepare the files for downstream processing.
+    nuc_to_aa_alignment(
+        in_nuc_alignment_fp=INPUT_NUC_ALIGMENT_FILE_sorted_indexed,
+        in_aa_reference_fp=aa_reference_fp,
+        out_aa_alignment_fp=AA_ALIGNMENT_FILE,
+    )
+
+    with open(nuc_reference_fp, "r") as f:
+        nuc_reference = f.read()
+    nuc_reference_length = len(nuc_reference)
+    logging.info(f"Loaded nucleotide reference with length {nuc_reference_length}")
+
+    gene_set = convert.get_gene_set_from_ref(aa_reference_fp)
+    logging.info(f"Loaded gene reference with genes: {gene_set}")
+
+    logging.info("Processing nucleotide alignments")
+    aligned_reads = read_in_AligendReads_nuc_seq(
+        FASTQ_NUC_ALIGMENT_FILE, nuc_reference_length, gene_set
+    )
+
+    logging.info("Adding nucleotide insertions to reads")
+    aligned_reads = read_in_AligendReads_nuc_ins(
+        aligned_reads, FASTA_NUC_INSERTIONS_FILE
+    )
+
+    # Process AA alignment file and update corresponding reads
+    logging.info("Processing AA alignments")
+    aligned_reads = read_in_AlignedReads_aa_seq_and_ins(
+        aligned_reads, AA_ALIGNMENT_FILE, gene_set
+    )
+
+    return aligned_reads

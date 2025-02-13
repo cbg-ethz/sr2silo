@@ -16,3 +16,10 @@ def test_translate():
         "nextstrain/sars-cov-2/XBB",
     )
     assert True
+
+
+def test_parse_translate_align():
+    """Test the parse_translate_align function."""
+
+    translate.parse_translate_align()
+    assert True
