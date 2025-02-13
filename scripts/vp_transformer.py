@@ -11,7 +11,6 @@ from pathlib import Path
 import click
 import yaml
 
-import silo_input_transformer
 from sr2silo.config import is_ci_environment
 from sr2silo.process import bam_to_sam, pair_normalize_reads, translate
 from sr2silo.s3 import compress_bz2, upload_file_to_s3
@@ -34,47 +33,6 @@ def load_config(config_file: Path) -> dict:
     except json.JSONDecodeError as e:
         logging.error(f"Error decoding JSON from config file: {config_file} - {e}")
         raise
-
-
-# TODO: this will be removed soon as Alexander integrates this on his side.
-def transform_to_ndjson(
-    sequence_file_directory: Path,
-    trafo_config_fp: Path,
-    output_dir: Path,
-    metadata_fp: Path,
-    database_config_fp: Path,
-    reference_genomes_fp: Path,
-    file_prefixes: dict = {
-        "amino_acid_sequence": "gene_",
-        "nucleotide_sequence": "nuc_",
-        "unaligned_nucleotide_sequence": "unaligned_",
-    },
-    batch_size: int = 1000,
-) -> None:
-    """Transforms the sequences to NDJSON format for SILO database."""
-
-    # make a trafo_config.yaml file
-    trafo_config = {
-        "file_inputs": {
-            "metadata": str(metadata_fp),
-            "database_config": str(database_config_fp),
-            "reference_genomes": str(reference_genomes_fp),
-            "sequence_file_directory": str(sequence_file_directory),
-        },
-        "file_prefixes": file_prefixes,
-        "output_dir": str(output_dir),
-        "batch_size": batch_size,
-    }
-    output_dir.mkdir(parents=True, exist_ok=True)  # Ensure the output directory exists
-    with trafo_config_fp.open("w") as f:
-        yaml.dump(trafo_config, f)
-    logging.info(f"Trafo config saved to: {trafo_config_fp}")
-
-    # run the silo_input_transformer with the trafo_config.yaml file
-    logging.info(f"Running silo_input_transformer with config: {trafo_config_fp}")
-    silo_input_transformer.run_with_config(str(trafo_config_fp))  # type: ignore
-    logging.info(f"Results saved to: {output_dir}")
-    return None
 
 
 def make_submission_file(result_dir: Path, srLink: str) -> Path:
@@ -170,30 +128,10 @@ def process_directory(
 
     logging.info(f"Results saved to: {results_dir_translated}")
 
-    ##### Wrangle to Nextclade format // silo_input_transformer inputs #####
-    result_dir_wrangled = result_dir / "wrangled"
-    path_to_files = wrangle_for_transformer(
-        input_dir=results_dir_translated,
-        output_dir=result_dir_wrangled,
-        fasta_file=fasta_file,
-        insertions_file=insertions_file,
-        metadata_file=metadata_file,
-        database_config_fp=database_config,
-    )
+    ## to BlastX here
 
-    ###### Transform to NDJSON ######
-    result_dir_transformed = result_dir / "transformed"
-    logging.debug(f"Transforming to NDJSON")
-    logging.debug(f"sequence_file_directory: {result_dir_wrangled}")
-    logging.debug(f"output_dir: {result_dir_transformed}")
-    transform_to_ndjson(
-        sequence_file_directory=result_dir_wrangled,
-        trafo_config_fp=result_dir / "trafo_config.yaml",
-        output_dir=result_dir_transformed,
-        metadata_fp=path_to_files["metadata_fp"],
-        database_config_fp=path_to_files["database_config_new_fp"],
-        reference_genomes_fp=path_to_files["reference_genomes_fp"],
-    )
+    # see PR #88
+
 
     #####   Compress & Upload to S3  #####
     file_to_upload = result_dir_transformed / "silo_input.ndjson"
