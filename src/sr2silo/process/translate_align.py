@@ -216,7 +216,7 @@ def read_in_AligendReads_nuc_seq(
     return aligned_reads
 
 
-def read_in_AligendReads_nuc_ins(
+def read_in_AlignedReads_nuc_ins(
     aligned_reads: dict[AlignedRead], fasta_nuc_insertions_file: Path
 ) -> dict[AlignedRead]:
     with open(fasta_nuc_insertions_file, "r") as f:
@@ -320,7 +320,7 @@ def parse_translate_align(
     )
 
     logging.info("Adding nucleotide insertions to reads")
-    aligned_reads = read_in_AligendReads_nuc_ins(
+    aligned_reads = read_in_AlignedReads_nuc_ins(
         aligned_reads, FASTA_NUC_INSERTIONS_FILE
     )
 

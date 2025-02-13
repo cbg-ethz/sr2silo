@@ -44,7 +44,7 @@ def test_read_in_AligendReads_nuc_seq():
 
 
 def test_read_in_AligendReads_nuc_ins():
-    """Test the read_in_AligendReads_nuc_ins function."""
+    """Test the read_in_AlignedReads_nuc_ins function."""
 
     raise NotImplementedError
 
