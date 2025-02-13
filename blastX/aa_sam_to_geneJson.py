@@ -32,6 +32,7 @@ logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+# TODO: make these static functions of the AlignedRead class
 def read_in_AligendReads_nuc_seq(fastq_nuc_aligment_file : Path, nuc_reference_length : int, gene_set : GeneSet) -> dict[AlignedRead]:
     """Incrementally read in aligned reads from a FASTQ file with indels
 
@@ -43,7 +44,6 @@ def read_in_AligendReads_nuc_seq(fastq_nuc_aligment_file : Path, nuc_reference_l
     Returns:
         dict[AlignedRead]: Dictionary of read IDs to AlignedRead objects
     """
-    logging.info("Processing nucleotide alignments")
     aligned_reads = dict()
     batch_nuc_records = []
     with open(fastq_nuc_aligment_file, "r") as f:
@@ -88,6 +88,23 @@ def read_in_AligendReads_nuc_seq(fastq_nuc_aligment_file : Path, nuc_reference_l
                 aligned_reads.update({read_id: read})
     return aligned_reads
 
+# TODO: make these static functions of the AlignedRead class
+def read_in_AligendReads_nuc_ins(fasta_nuc_insertions_file : Path, aligned_reads : dict[AlignedRead]) -> dict[AlignedRead]:
+
+    with open(fasta_nuc_insertions_file, "r") as f:
+        # read each line seperated by tabs, read_id, position, sequence, quality
+        for line in f:
+            fields = line.strip().split("\t")
+            read_id = fields[0]
+            pos = int(fields[1])
+            seq = fields[2]
+            # quality = fields[3]
+            nuc_ins = NucInsertion(position=pos, sequence=seq)
+            nuc_ins_record = (read_id, nuc_ins)
+
+            aligned_reads[read_id].set_nuc_insertion(nuc_ins)
+
+    return aligned_reads
 
 
 def main():
@@ -145,27 +162,14 @@ def main():
     nuc_reference_length = len(nuc_reference)
     logging.info(f"Loaded nucleotide reference with length {nuc_reference_length}")
 
-    # Load gene reference
     gene_set = process.get_gene_set_from_ref(AA_REFERENCE_FILE)
     logging.info(f"Loaded gene reference with genes: {gene_set}")
 
+    logging.info("Processing nucleotide alignments")
     aligned_reads = read_in_AligendReads_nuc_seq(FASTQ_NUC_ALIGMENT_FILE, nuc_reference_length, gene_set)
 
-    ## Add Nuc insertions to the Aligned Reads incrementally
     logging.info("Adding nucleotide insertions to reads")
-
-    with open(FASTA_NUC_INSERTIONS_FILE, "r") as f:
-        # read each line seperated by tabs, read_id, position, sequence, quality
-        for line in f:
-            fields = line.strip().split("\t")
-            read_id = fields[0]
-            pos = int(fields[1])
-            seq = fields[2]
-            # quality = fields[3]
-            nuc_ins = NucInsertion(position=pos, sequence=seq)
-            nuc_ins_record = (read_id, nuc_ins)
-
-            aligned_reads[read_id].set_nuc_insertion(nuc_ins)
+    aligned_reads = read_in_AligendReads_nuc_ins(FASTA_NUC_INSERTIONS_FILE, aligned_reads)
 
     # Process AA alignment file and update corresponding reads
     logging.info("Processing AA alignments")
