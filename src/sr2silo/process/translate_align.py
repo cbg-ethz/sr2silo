@@ -163,12 +163,12 @@ def nuc_to_aa_alignment(
 
 
 def read_in_AligendReads_nuc_seq(
-    fastq_nuc_aligment_file: Path, nuc_reference_length: int, gene_set: GeneSet
+    fastq_nuc_alignment_file: Path, nuc_reference_length: int, gene_set: GeneSet
 ) -> dict[AlignedRead]:
     """Read aligned reads from a FASTQ file with indels.
 
     Args:
-        fastq_nuc_aligment_file (Path): Path to the FASTQ file with alignment
+        fastq_nuc_alignment_file (Path): Path to the FASTQ file with alignment
                                         positions, produced by
                                         `bam_to_fastq_handle_indels`.
         nuc_reference_length (int): Length of the nucleotide reference genome.
@@ -178,7 +178,7 @@ def read_in_AligendReads_nuc_seq(
         dict[AlignedRead]: Dictionary of read IDs to AlignedRead objects.
     """
     aligned_reads = dict()
-    with open(fastq_nuc_aligment_file, "r") as f:
+    with open(fastq_nuc_alignment_file, "r") as f:
         total_lines = sum(1 for _ in f) // 5  # Each entry consists of 5 lines
         f.seek(0)  # Reset file pointer to the beginning
         with tqdm(total=total_lines, desc="Processing nucleotide alignments"):
@@ -282,7 +282,7 @@ def parse_translate_align(
     """Parse nucleotides, translate and align amino acids the input files."""
 
     # TODO: move to temp files
-    FASTQ_NUC_ALIGMENT_FILE = Path("output_with_indels.fastq")
+    FASTQ_NUC_ALIGNMENT_FILE = Path("output_with_indels.fastq")
     FASTA_NUC_INSERTIONS_FILE = Path("output_ins.fasta")
     AA_ALIGNMENT_FILE = Path("diamond_blastx.sam")
 
@@ -295,10 +295,10 @@ def parse_translate_align(
     nuc_aligment_sorted_indexed_fp = Path("combined_sorted.bam")
     convert.sort_and_index_bam(nuc_alignment_fp, nuc_aligment_sorted_indexed_fp)
 
-    logging.info("Parsing Nucliotide: BAM FASTQ conversion (with INDELS)")
+    logging.info("Parsing Nucleotides: BAM FASTQ conversion (with INDELS)")
     convert.bam_to_fastq_handle_indels(
         nuc_aligment_sorted_indexed_fp,
-        FASTQ_NUC_ALIGMENT_FILE,
+        FASTQ_NUC_ALIGNMENT_FILE,
         FASTA_NUC_INSERTIONS_FILE,
     )
 
@@ -319,7 +319,7 @@ def parse_translate_align(
 
     logging.info("Processing nucleotide alignments")
     aligned_reads = read_in_AligendReads_nuc_seq(
-        FASTQ_NUC_ALIGMENT_FILE, nuc_reference_length, gene_set
+        FASTQ_NUC_ALIGNMENT_FILE, nuc_reference_length, gene_set
     )
 
     logging.info("Adding nucleotide insertions to reads")
