@@ -269,7 +269,7 @@ class AASequenceSet:
         self.sequences = {gene: "" for gene in genes}
         self.genes = genes
 
-    def set_sequence(self, gene_name: str, aa_sequence: str):
+    def set_sequence(self, gene_name: GeneName, aa_sequence: str):
         """Set the amino acid sequence for a particular gene."""
         self.sequences[gene_name] = aa_sequence
 

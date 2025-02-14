@@ -12,10 +12,12 @@ import click
 import yaml
 
 from sr2silo.config import is_ci_environment
-from sr2silo.process import bam_to_sam, pair_normalize_reads, translate_nextclade
+from sr2silo.process import parse_translate_align
 from sr2silo.s3 import compress_bz2, upload_file_to_s3
 from sr2silo.silo import LapisClient, Submission, wrangle_for_transformer
 from sr2silo.vpipe import Sample
+
+
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -62,7 +64,8 @@ def process_directory(
     sample_id: str,
     batch_id: str,
     result_dir: Path,
-    nextclade_reference: str,
+    nuc_reference: str,
+    aa_reference: str,
     timeline_file: Path,
     primers_file: Path,
     file_name: str = "REF_aln_trim.bam",
@@ -74,7 +77,10 @@ def process_directory(
         input_dir (Path): The directory to process. i.e. the directory containing the BAM file.
                           to reach samples/A1_05_2024_10_08/20241024_2411515907/alignments/
         result_dir (Path): The directory to save the results.
-        nextclade_reference (str): The reference to use for nextclade.
+        nuc_reference (str): The nucliotide reference from the resources folder.
+                          see resources/ e.g. "sars-cov-2"
+        aa_reference (str): The amino acid reference from the resources folder.
+                            see resources/ e.g. "sars-cov-2"
         timeline_file (Path): The timeline file to cross-reference the metadata.
         primers_file (Path): The primers file to cross-reference the metadata.
         file_name (str): The name of the file to process
@@ -103,7 +109,12 @@ def process_directory(
     sample_to_process.enrich_metadata(timeline_file, primers_file)
     metadata = sample_to_process.get_metadata()
     # add nextclade reference to metadata
-    metadata["nextclade_reference"] = nextclade_reference
+    resource_fp = Path("resources") / nuc_reference
+    nuc_reference_fp = resource_fp / "nuc_reference_genomes.fasta"
+    aa_reference_fp = resource_fp / "aa_reference_genomes.fasta"
+
+    metadata["nuc_reference"] = nuc_reference
+    metadata["aa_reference"] = aa_reference
     metadata_file = result_dir / "metadata.json"
     result_dir.mkdir(parents=True, exist_ok=True)
     with metadata_file.open("w") as f:
@@ -112,14 +123,22 @@ def process_directory(
 
     #####  Merge & Pair reads #####
 
+    ## TODO: to implement from smallgenomeutils
+
     ##### Translate / Align / Normalize to JSON #####
 
-    # TODO: implement the the workflow from sr2silo.process.translate_align.py
-    
-    raise NotImplementedError("Not yet implemented")
+    aligned_reads = parse_translate_align(nuc_reference_fp, aa_reference_fp, sample_fp)
+
+    # TODO wrangle the aligned reads to aligned_reads_with_metadata and write to a file
+
+    # write the aligned reads to a file
+    aligned_reads_fp = result_dir /  "silo_input.ndjson"
+    with aligned_reads_fp.open("w") as f:
+        for read in aligned_reads:
+            f.write(read.to_str() + "\n")
 
     #####   Compress & Upload to S3  #####
-    file_to_upload = result_dir_transformed / "silo_input.ndjson"
+    file_to_upload = aligned_reads_fp
     compressed_file = result_dir_transformed / "silo_input.ndjson.bz2"
     logging.info(f"Compressing file: {file_to_upload}")
     compress_bz2(file_to_upload, compressed_file)
@@ -168,10 +187,16 @@ def process_directory(
 )
 @click.option("--primer_file", envvar="PRIMER_FILE", help="Path to the primers file.")
 @click.option(
-    "--nextclade_reference",
-    envvar="NEXTCLADE_REFERENCE",
+    "--nuc_reference",
+    envvar="NUC_REFERENCE",
     default="sars-cov-2",
-    help="Nextclade reference.",
+    help="see folder names in resources/",
+)
+@click.option(
+    "--aa_reference",
+    envvar="AA_REFERENCE",
+    default="sars-cov-2",
+    help="see folder names in resources/",
 )
 def main(
     sample_dir,
@@ -180,7 +205,7 @@ def main(
     result_dir,
     timeline_file,
     primer_file,
-    nextclade_reference,
+    nuc_reference,
     database_config: Path = Path("scripts/database_config.yaml"),
 ):
     """Process a sample directory."""
@@ -188,7 +213,8 @@ def main(
     logging.info(f"Saving results to: {result_dir}")
     logging.info(f"Using timeline file: {timeline_file}")
     logging.info(f"Using primers file: {primer_file}")
-    logging.info(f"Using Nextclade reference: {nextclade_reference}")
+    logging.info(f"Using nucliotide reference: {nuc_reference}")
+    logging.info(f"Using amino acid reference: {aa_reference}")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
     logging.info(f"Using database_config: {database_config}")
@@ -203,7 +229,8 @@ def main(
         result_dir=Path("results"),
         timeline_file=Path("timeline.tsv"),
         primers_file=Path("primers.yaml"),
-        nextclade_reference=nextclade_reference,
+        nuc_reference=nuc_reference,
+        aa_reference=aa_reference,
         database_config=Path("scripts/database_config.yaml"),
     )
 
