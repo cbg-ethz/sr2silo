@@ -6,7 +6,7 @@ import logging
 import re
 import tempfile
 from pathlib import Path
-from typing import List, Union
+from typing import List, Tuple, Union
 
 import pysam
 
@@ -411,7 +411,7 @@ def sam_to_seq_and_indels(
 
 def get_gene_set_from_ref(reference_fp: Path) -> GeneSet:
     """Load the gene ref fasta get the GeneSet with
-       gene short names and lengths."""
+    gene short names and lengths."""
     genes = dict()
 
     with open(reference_fp, "r") as f:
@@ -433,7 +433,6 @@ def get_gene_set_from_ref(reference_fp: Path) -> GeneSet:
     return genes
 
 
-
 def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
     """
     Function to sort and index the input BAM file,
@@ -445,18 +444,16 @@ def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
     """
 
     # check if sorted and indexed
-    if not is_bam_sorted(input_bam_fp) or not is_bam_indexed(
-        input_bam_fp
-    ):
+    if not is_bam_sorted(input_bam_fp) or not is_bam_indexed(input_bam_fp):
         logging.info("Sorting and indexing the input BAM file")
-        _sort_and_index_bam(
-            input_bam_fp, output_bam_fp
-        )
+        _sort_and_index_bam(input_bam_fp, output_bam_fp)
     else:
         # copy the input BAM file to the output BAM file
         output_bam_fp.write_bytes(input_bam_fp.read_bytes())
-        logging.info("Input BAM file is already sorted and indexed, \
-                      copying to output")
+        logging.info(
+            "Input BAM file is already sorted and indexed, \
+                      copying to output"
+        )
 
 
 def _sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
