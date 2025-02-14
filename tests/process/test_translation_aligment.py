@@ -6,6 +6,8 @@ import logging
 from pathlib import Path
 
 import sr2silo.process.translate_align as translate_align
+from sr2silo.process.translate_align import AlignedRead
+
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -24,18 +26,27 @@ def test_translate():
 
 
 def test_parse_translate_align():
-    """Test the parse_translate_align function."""
+    """Test the parse_translate_align function.
+
+      Current dataset misses Amino Acid Insertions - i.e. not tested here.
+    """
 
     nuc_ref_fp = Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
     aa_ref_fp = Path("resources/sars-cov-2/aa_reference_genomes.fasta")
     nuc_alignment_fp = Path("tests/data/bam/combined.bam")
 
-    translate_align.parse_translate_align(nuc_ref_fp, aa_ref_fp, nuc_alignment_fp)
+    aligned_reads = translate_align.parse_translate_align(nuc_ref_fp, aa_ref_fp, nuc_alignment_fp)
 
-    # TODO: needs to verify output.
-    logging.info("TODO: needs to verify output.")
+    # load the expected aligned reads
+    expected_aligned_reads = []
+    with open("tests/data/process/aligned_reads.ndjson") as f:
+        for line in f:
+            # read in each line
+            aligned_read = AlignedRead.from_str(line)
 
-    return True
+            expected_aligned_reads.append(aligned_read)
+
+    assert aligned_reads == expected_aligned_reads
 
 
 def test_read_in_AligendReads_nuc_seq():

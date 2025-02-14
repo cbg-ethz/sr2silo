@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from typing import Dict, List
+import json
+import logging
+
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 class NucInsertion:
@@ -76,36 +80,71 @@ class AlignedRead:
         """Append a nucleotide insertion to the list of nucleotide insertions."""
         self.nucleotide_insertions.append(nuc_insertion)
 
-    def to_dict(self) -> Dict[str, any]:  # noqa
-        return {
-            "read_id": self.read_id,
-            "unaligned_nucleotide_sequences": self.unaligned_nucleotide_sequences,
-            "aligned_nucleotide_sequences": self.aligned_nucleotide_sequences,
-            "nucleotide_insertions": self.nucleotide_insertions,
-            "amino_acid_insertions": self.amino_acid_insertions,
-            "aligned_amino_acid_sequences": self.aligned_amino_acid_sequences,
-        }
-
     def get_amino_acid_insertions(self) -> AAInsertionSet:
         return self.amino_acid_insertions
 
-    def __str__(self) -> str:
+
+    def to_dict(self) -> Dict[str, any]:
+        # Format nucleotide insertions according to the desired schema.
+        formatted_nuc_ins = [f"{ins.position} : {ins.sequence}" for ins in self.nucleotide_insertions]
         json_representation = {
             "readId": self.read_id,
             "nucleotideInsertions": {
-                "main": [str(ins) for ins in self.nucleotide_insertions],
+                "main": formatted_nuc_ins,
             },
-            "aminoAcidInsertions": self.amino_acid_insertions.__str__(),
+            "aminoAcidInsertions": self.amino_acid_insertions.to_dict(),
             "alignedNucleotideSequences": {
                 "main": self.aligned_nucleotide_sequences,
             },
             "unalignedNucleotideSequences": {
                 "main": self.unaligned_nucleotide_sequences,
             },
-            "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.__str__(),
+            "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.to_dict(),
         }
+        return json_representation
 
-        return str(json_representation)
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @staticmethod
+    def from_str(data: str) -> AlignedRead:
+        """Create an AlignedRead object from a string."""
+        data = data.strip()  # Remove extra whitespace
+
+        # Parse the json data to a dict
+        json_data = json.loads(data)
+        json_data = json.loads(json_data)
+        # parse the json data to a dict
+
+        read_id = json_data["readId"]
+        unaligned_nucleotide_sequences = json_data["unalignedNucleotideSequences"]["main"]
+        aligned_nucleotide_sequences = json_data["alignedNucleotideSequences"]["main"]
+        nucleotide_insertions = []
+        if json_data["nucleotideInsertions"]["main"]:
+            nucleotide_insertions = [NucInsertion(int(ins.split(" : ")[0]), ins.split(" : ")[1]) for ins in json_data["nucleotideInsertions"]["main"]]
+        amino_acid_insertions = AAInsertionSet.from_dict(json_data["aminoAcidInsertions"])
+        aligned_amino_acid_sequences = AASequenceSet.from_dict(json_data["alignedAminoAcidSequences"])
+
+        # validate all the arguemtns are of the correct type
+        assert isinstance(read_id, str)
+        assert isinstance(unaligned_nucleotide_sequences, str)
+        assert isinstance(aligned_nucleotide_sequences, str)
+        assert all(isinstance(i, NucInsertion) for i in nucleotide_insertions)
+        assert isinstance(amino_acid_insertions, AAInsertionSet)
+        assert isinstance(aligned_amino_acid_sequences, AASequenceSet)
+
+        try :
+            return AlignedRead(
+                read_id,
+                unaligned_nucleotide_sequences,
+                aligned_nucleotide_sequences,
+                nucleotide_insertions,
+                amino_acid_insertions,
+                aligned_amino_acid_sequences,
+            )
+        except TypeError as e:
+            logging.error("Error constructing AlignedRead with data: " + repr(json_data))
+            raise e
 
 
 class GeneName:
@@ -185,6 +224,13 @@ class AAInsertionSet:
             if isinstance(ins_per_gene, list)
         }
 
+    def from_dict(data: dict) -> AAInsertionSet:
+        """Create an AAInsertionSet object from a dictionary."""
+        aa_insertions = AAInsertionSet([])
+        for gene_name, ins_list in data.items():
+            aa_insertions.aa_insertions[gene_name] = [AAInsertion(int(ins.split(" : ")[0]), ins.split(" : ")[1]) for ins in ins_list]
+        return aa_insertions
+
     def __str__(self) -> str:
         return str(self.to_dict())
 
@@ -204,6 +250,13 @@ class AASequenceSet:
     def to_dict(self) -> dict:
         """Return a dictionary with gene names as keys"""
         return {str(gene): seq for gene, seq in self.sequences.items()}
+
+    def from_dict(data: dict) -> AASequenceSet:
+        """Create an AASequenceSet object from a dictionary."""
+        aa_sequences = AASequenceSet([])
+        for gene_name, seq in data.items():
+            aa_sequences.sequences[gene_name] = seq
+        return aa_sequences
 
     def __str__(self) -> str:
         return str(self.to_dict())
