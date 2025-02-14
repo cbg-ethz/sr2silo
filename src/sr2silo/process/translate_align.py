@@ -278,7 +278,7 @@ def read_in_AlignedReads_aa_seq_and_ins(
 
 def parse_translate_align(
     nuc_reference_fp: Path, aa_reference_fp: Path, nuc_alignment_fp: Path
-) -> Dict[AlignedRead]:
+) -> Dict[str, AlignedRead]:
     """Parse nucleotides, translate and align amino acids the input files."""
 
     # TODO: move to temp files
@@ -286,7 +286,11 @@ def parse_translate_align(
     FASTA_NUC_INSERTIONS_FILE = Path("output_ins.fasta")
     AA_ALIGNMENT_FILE = Path("diamond_blastx.sam")
 
-    missing_files = [str(f) for f in [nuc_reference_fp, aa_reference_fp, nuc_alignment_fp] if not f.exists()]
+    missing_files = [
+        str(f)
+        for f in [nuc_reference_fp, aa_reference_fp, nuc_alignment_fp]
+        if not f.exists()
+    ]
     if missing_files:
         raise FileNotFoundError(f"Missing input files: {', '.join(missing_files)}")
     # sort and index the input BAM file

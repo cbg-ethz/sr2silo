@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Dict, List
 import json
 import logging
+from typing import Dict, List
 
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 class NucInsertion:
@@ -57,11 +59,13 @@ class AlignedRead:
             raise TypeError(f"read_id must be a str, got {type(self.read_id).__name__}")
         if not isinstance(self.unaligned_nucleotide_sequences, str):
             raise TypeError(
-                f"unaligned_nucleotide_sequences must be a str, got {type(self.unaligned_nucleotide_sequences).__name__}"
+                f"unaligned_nucleotide_sequences must be a str, got "
+                f"{type(self.unaligned_nucleotide_sequences).__name__}"
             )
         if not isinstance(self.aligned_nucleotide_sequences, str):
             raise TypeError(
-                f"aligned_nucleotide_sequences must be a str, got {type(self.aligned_nucleotide_sequences).__name__}"
+                f"aligned_nucleotide_sequences must be a str, got "
+                f"{type(self.aligned_nucleotide_sequences).__name__}"
             )
         if not all(isinstance(i, NucInsertion) for i in self.nucleotide_insertions):
             raise TypeError(
@@ -69,11 +73,13 @@ class AlignedRead:
             )
         if not isinstance(self.amino_acid_insertions, AAInsertionSet):
             raise TypeError(
-                f"amino_acid_insertions must be an AAInsertionSet, got {type(self.amino_acid_insertions).__name__}"
+                f"amino_acid_insertions must be an AAInsertionSet, got "
+                f"{type(self.amino_acid_insertions).__name__}"
             )
         if not isinstance(self.aligned_amino_acid_sequences, AASequenceSet):
             raise TypeError(
-                f"aligned_amino_acid_sequences must be a dict, got {type(self.aligned_amino_acid_sequences).__name__}"
+                f"aligned_amino_acid_sequences must be a dict, got "
+                f"{type(self.aligned_amino_acid_sequences).__name__}"
             )
 
     def set_nuc_insertion(self, nuc_insertion: NucInsertion):
@@ -83,10 +89,11 @@ class AlignedRead:
     def get_amino_acid_insertions(self) -> AAInsertionSet:
         return self.amino_acid_insertions
 
-
     def to_dict(self) -> Dict[str, any]:
         # Format nucleotide insertions according to the desired schema.
-        formatted_nuc_ins = [f"{ins.position} : {ins.sequence}" for ins in self.nucleotide_insertions]
+        formatted_nuc_ins = [
+            f"{ins.position} : {ins.sequence}" for ins in self.nucleotide_insertions
+        ]
         json_representation = {
             "readId": self.read_id,
             "nucleotideInsertions": {
@@ -117,15 +124,24 @@ class AlignedRead:
         # parse the json data to a dict
 
         read_id = json_data["readId"]
-        unaligned_nucleotide_sequences = json_data["unalignedNucleotideSequences"]["main"]
+        unaligned_nucleotide_sequences = json_data["unalignedNucleotideSequences"][
+            "main"
+        ]
         aligned_nucleotide_sequences = json_data["alignedNucleotideSequences"]["main"]
         nucleotide_insertions = []
         if json_data["nucleotideInsertions"]["main"]:
-            nucleotide_insertions = [NucInsertion(int(ins.split(" : ")[0]), ins.split(" : ")[1]) for ins in json_data["nucleotideInsertions"]["main"]]
-        amino_acid_insertions = AAInsertionSet.from_dict(json_data["aminoAcidInsertions"])
-        aligned_amino_acid_sequences = AASequenceSet.from_dict(json_data["alignedAminoAcidSequences"])
+            nucleotide_insertions = [
+                NucInsertion(int(ins.split(" : ")[0]), ins.split(" : ")[1])
+                for ins in json_data["nucleotideInsertions"]["main"]
+            ]
+        amino_acid_insertions = AAInsertionSet.from_dict(
+            json_data["aminoAcidInsertions"]
+        )
+        aligned_amino_acid_sequences = AASequenceSet.from_dict(
+            json_data["alignedAminoAcidSequences"]
+        )
 
-        # validate all the arguemtns are of the correct type
+        # validate all the arguments are of the correct type
         assert isinstance(read_id, str)
         assert isinstance(unaligned_nucleotide_sequences, str)
         assert isinstance(aligned_nucleotide_sequences, str)
@@ -133,7 +149,7 @@ class AlignedRead:
         assert isinstance(amino_acid_insertions, AAInsertionSet)
         assert isinstance(aligned_amino_acid_sequences, AASequenceSet)
 
-        try :
+        try:
             return AlignedRead(
                 read_id,
                 unaligned_nucleotide_sequences,
@@ -143,7 +159,9 @@ class AlignedRead:
                 aligned_amino_acid_sequences,
             )
         except TypeError as e:
-            logging.error("Error constructing AlignedRead with data: " + repr(json_data))
+            logging.error(
+                "Error constructing AlignedRead with data: " + repr(json_data)
+            )
             raise e
 
 
@@ -228,7 +246,10 @@ class AAInsertionSet:
         """Create an AAInsertionSet object from a dictionary."""
         aa_insertions = AAInsertionSet([])
         for gene_name, ins_list in data.items():
-            aa_insertions.aa_insertions[gene_name] = [AAInsertion(int(ins.split(" : ")[0]), ins.split(" : ")[1]) for ins in ins_list]
+            aa_insertions.aa_insertions[gene_name] = [
+                AAInsertion(int(ins.split(" : ")[0]), ins.split(" : ")[1])
+                for ins in ins_list
+            ]
         return aa_insertions
 
     def __str__(self) -> str:
