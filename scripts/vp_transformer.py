@@ -14,10 +14,8 @@ import yaml
 from sr2silo.config import is_ci_environment
 from sr2silo.process import parse_translate_align
 from sr2silo.s3 import compress_bz2, upload_file_to_s3
-from sr2silo.silo import LapisClient, Submission, wrangle_for_transformer
+from sr2silo.silo import LapisClient, Submission
 from sr2silo.vpipe import Sample
-
-
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -132,7 +130,7 @@ def process_directory(
     # TODO wrangle the aligned reads to aligned_reads_with_metadata and write to a file
 
     # write the aligned reads to a file
-    aligned_reads_fp = result_dir /  "silo_input.ndjson"
+    aligned_reads_fp = result_dir / "silo_input.ndjson"
     with aligned_reads_fp.open("w") as f:
         for read in aligned_reads:
             f.write(read.to_str() + "\n")
@@ -206,6 +204,7 @@ def main(
     timeline_file,
     primer_file,
     nuc_reference,
+    aa_reference,
     database_config: Path = Path("scripts/database_config.yaml"),
 ):
     """Process a sample directory."""
