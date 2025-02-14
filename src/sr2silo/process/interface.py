@@ -15,10 +15,12 @@ class NucInsertion:
     """A nuclotide insertion."""
 
     def __init__(self, position: int, sequence: str):
+        """Initialize with a position and a sequence."""
         self.position = position
         self.sequence = sequence
 
     def __str__(self) -> str:
+        """toString method."""
         return f"{self.position} : {self.sequence}"
 
 
@@ -55,6 +57,7 @@ class AlignedRead:
         self._validate_types()
 
     def _validate_types(self):
+        """Validate the types of the attributes."""
         if not isinstance(self.read_id, str):
             raise TypeError(f"read_id must be a str, got {type(self.read_id).__name__}")
         if not isinstance(self.unaligned_nucleotide_sequences, str):
@@ -87,10 +90,11 @@ class AlignedRead:
         self.nucleotide_insertions.append(nuc_insertion)
 
     def get_amino_acid_insertions(self) -> AAInsertionSet:
+        """Return the amino acid insertions."""
         return self.amino_acid_insertions
 
     def to_dict(self) -> Dict[str, any]:
-        # Format nucleotide insertions according to the desired schema.
+        """Return a dictionary / json representation of the object."""
         formatted_nuc_ins = [
             f"{ins.position} : {ins.sequence}" for ins in self.nucleotide_insertions
         ]
@@ -111,6 +115,7 @@ class AlignedRead:
         return json_representation
 
     def __str__(self) -> str:
+        """toString method ad JSON string."""
         return json.dumps(self.to_dict())
 
     @staticmethod
@@ -121,7 +126,6 @@ class AlignedRead:
         # Parse the json data to a dict
         json_data = json.loads(data)
         json_data = json.loads(json_data)
-        # parse the json data to a dict
 
         read_id = json_data["readId"]
         unaligned_nucleotide_sequences = json_data["unalignedNucleotideSequences"][
@@ -177,6 +181,7 @@ class GeneName:
 
 class Gene:
     def __init__(self, gene_name: GeneName, gene_length: int):
+        """Initialize with a gene name and a gene length."""
         self.name = gene_name
         self.gene_length = gene_length
 

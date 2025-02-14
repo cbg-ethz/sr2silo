@@ -222,6 +222,8 @@ def read_in_AlignedReads_nuc_seq(
 def read_in_AlignedReads_nuc_ins(
     aligned_reads: dict[AlignedRead], fasta_nuc_insertions_file: Path
 ) -> dict[AlignedRead]:
+    """Read in nucleotide insertions from a FASTA file and update the reads."""
+
     with open(fasta_nuc_insertions_file, "r") as f:
         # read each line separated by tabs, read_id, position, sequence, quality
         for line in f:
@@ -281,7 +283,7 @@ def parse_translate_align(
 ) -> Dict[str, AlignedRead]:
     """Parse nucleotides, translate and align amino acids the input files."""
 
-    # TODO: move to temp files
+    # TODO: move to temp files, once all tests are built
     FASTQ_NUC_ALIGNMENT_FILE = Path("output_with_indels.fastq")
     FASTA_NUC_INSERTIONS_FILE = Path("output_ins.fasta")
     AA_ALIGNMENT_FILE = Path("diamond_blastx.sam")
