@@ -286,11 +286,9 @@ def parse_translate_align(
     FASTA_NUC_INSERTIONS_FILE = Path("output_ins.fasta")
     AA_ALIGNMENT_FILE = Path("diamond_blastx.sam")
 
-    if not all(
-        f.exists() for f in [nuc_reference_fp, aa_reference_fp, nuc_alignment_fp]
-    ):
-        raise FileNotFoundError("One or more input files are missing")
-
+    missing_files = [str(f) for f in [nuc_reference_fp, aa_reference_fp, nuc_alignment_fp] if not f.exists()]
+    if missing_files:
+        raise FileNotFoundError(f"Missing input files: {', '.join(missing_files)}")
     # sort and index the input BAM file
     nuc_aligment_sorted_indexed_fp = Path("combined_sorted.bam")
     convert.sort_and_index_bam(nuc_alignment_fp, nuc_aligment_sorted_indexed_fp)
