@@ -17,6 +17,7 @@ from sr2silo.process.interface import (
     AAInsertionSet,
     AASequenceSet,
     AlignedRead,
+    GeneName,
     GeneSet,
     NucInsertion,
 )
@@ -240,8 +241,10 @@ def read_in_AlignedReads_nuc_ins(
 
 
 def read_in_AlignedReads_aa_seq_and_ins(
-    aligned_reads: dict[AlignedRead], fasta_aa_alignment_file: Path, gene_set: GeneSet
-) -> dict[AlignedRead]:
+    aligned_reads: Dict[str, AlignedRead],
+    fasta_aa_alignment_file: Path,
+    gene_set: GeneSet,
+) -> Dict[str, AlignedRead]:
     """Read in amino acid sequences and insertions from a FASTA file"""
     with open(fasta_aa_alignment_file, "r") as f:
         total_lines = sum(1 for _ in f)
@@ -253,7 +256,7 @@ def read_in_AlignedReads_aa_seq_and_ins(
                     continue
                 fields = line.strip().split("\t")
                 read_id = fields[0]
-                gene_name = fields[2]
+                gene_name = GeneName(fields[2])
                 pos = int(fields[3])
                 cigar = fields[5]
                 seq = fields[9]
