@@ -217,10 +217,10 @@ class GeneSet:
         """Return a list of genes."""
         return list(self.genes.keys())
 
-    def to_dict(self) -> Dict[str, Dict[str, int | str]]:
+    def to_dict(self) -> Dict[str, Dict[str, GeneName | int]]:
         """Return a dictionary with gene names as keys and gene
         leght as values."""
-        return ({str(k): v} for k, v in self.genes.items())
+        return {str(k): v.to_dict() for k, v in self.genes.items()}
 
     def __str__(self) -> str:
         return str(self.to_dict())
