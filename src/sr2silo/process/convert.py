@@ -10,7 +10,7 @@ from typing import List, Tuple, Union
 
 import pysam
 
-from sr2silo.process.interface import AAInsertion, Gene, GeneSet, GeneName
+from sr2silo.process.interface import AAInsertion, Gene, GeneName, GeneSet
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -416,7 +416,7 @@ def sam_to_seq_and_indels(
 
 def get_gene_set_from_ref(reference_fp: Path) -> GeneSet:
     """Load the gene ref fasta and create a GeneSet with gene short
-       names and lengths."""
+    names and lengths."""
     genes = dict()
     with open(reference_fp, "r") as f:
         # Strip lines and ignore blank lines

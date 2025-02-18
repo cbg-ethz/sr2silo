@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -185,7 +185,7 @@ class Gene:
         self.name = gene_name
         self.gene_length = gene_length
 
-    def to_dict(self) -> Dict[str, GeneName | int ]:
+    def to_dict(self) -> Dict[str, GeneName | int]:
         return {
             "gene_name": self.name,
             "gene_length": self.gene_length,
@@ -231,7 +231,7 @@ class AAInsertionSet:
 
     def __init__(self, genes: List[GeneName]):
         """Initialize with an empty set of insertions for each gene."""
-        self.aa_insertions = {str(gene): [] for gene in genes}
+        self.aa_insertions = {gene: [] for gene in genes}
 
     def set_insertions_for_gene(
         self, gene_name: GeneName, aa_insertions: List[AAInsertion]
