@@ -268,9 +268,12 @@ def read_in_AlignedReads_aa_seq_and_ins(
                 padded_aa_alignment = convert.pad_alignment(
                     aa_aligned, pos, gene_set.get_gene_length(gene_name)
                 )
+
+                print(f"type of aa_insertions: {type(aa_insertions)}")
+
                 aa_ins = [
                     AAInsertion(position=ins_pos, sequence=ins_seq)
-                    for ins_pos, ins_seq in aa_insertions
+                    for ins_pos, ins_seq in aa_insertions  # pyright: ignore
                 ]
                 aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(
                     gene_name, aa_ins

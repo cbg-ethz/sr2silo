@@ -10,7 +10,7 @@ from typing import List, Tuple, Union
 
 import pysam
 
-from sr2silo.process.interface import AAInsertion, Gene, GeneSet, GeneName
+from sr2silo.process.interface import AAInsertion, Gene, GeneName, GeneSet
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -409,7 +409,10 @@ def sam_to_seq_and_indels(
             pass
 
     # convert insertions to AAInsertion objects
-    insertions = [AAInsertion(position, sequence) for position, sequence in insertions]
+    insertions = [
+        AAInsertion(position=ins_pos, sequence=ins_seq)
+        for ins_pos, ins_seq in insertions
+    ]
 
     return "".join(cleartext_sequence), insertions, deletions
 

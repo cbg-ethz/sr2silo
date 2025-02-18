@@ -15,9 +15,9 @@ from sr2silo.process.convert import (
     bam_to_fastq_handle_indels,
     normalize_reads,
     pad_alignment,
-    sam_to_seq_and_indels
+    sam_to_seq_and_indels,
 )
-from sr2silo.process.interface import AAInsertion, AAInsertionSet, AASequenceSet, AlignedRead, Gene, GeneName, GeneSet
+from sr2silo.process.interface import AAInsertion
 
 
 def test_bam_to_sam(bam_data: Dict):
@@ -138,6 +138,19 @@ def test_sam_to_seq_and_indels():
 
     cleartext, insertions, deletions = sam_to_seq_and_indels(seq, cigar)
 
+    # assert the types of the outputs
+    assert isinstance(cleartext, str), "cleartext is not a string"
+    assert isinstance(insertions, list), "insertions is not a list"
+    assert isinstance(deletions, list), "deletions is not a list"
+
+    # assert the elements of insertiosn and deletions
+    for ins in insertions:
+        assert isinstance(
+            ins, AAInsertion
+        ), "insertions contains a non-AAInsertion object"
+    for del_ in deletions:
+        assert isinstance(del_, tuple), "deletions contains a non-tuple object"
+
     assert (
         cleartext == expected_cleartext
     ), f"Expected cleartext {expected_cleartext}, got {cleartext}"
@@ -209,13 +222,15 @@ def test_bam_to_fastq_handle_indels(dummy_alignment, tmp_path):
 
     expected_insertion = "read1\t102\tT\tA\n"
     insertion_content = insertions_file.read_text()
-    assert (
-        insertion_content == expected_insertion
-    ), f"Insertion output mismatch:\nExpected:\n{expected_insertion}\nGot:\n{insertion_content}"
+    assert insertion_content == expected_insertion, (
+        f"Insertion output mismatch:\nExpected:\n{expected_insertion}\n"
+        f"Got:\n{insertion_content}"
+    )
 
 
 def test_get_gene_set_from_ref_malformed_no_sequence(tmp_path):
-    """Test get_gene_set_from_ref with a FASTA file that has header(s) but no sequence lines."""
+    """Test get_gene_set_from_ref with a FASTA file that has header(s) but no
+    sequence lines."""
     malformed = tmp_path / "malformed.fasta"
     # Write a header without a following sequence line.
     malformed.write_text(">GeneX\n")
@@ -227,10 +242,10 @@ def test_get_gene_set_from_ref_malformed_no_sequence(tmp_path):
         gene_set.get_gene_name_list() == []
     ), "Expected empty gene set for header without sequence"
 
+    def test_get_gene_set_from_ref_malformed_blank_lines(tmp_path):
+        """Test get_gene_set_from_ref with a FASTA file that has multiple headers
+        and blank sequence lines."""
 
-def test_get_gene_set_from_ref_malformed_blank_lines(tmp_path):
-    """Test get_gene_set_from_ref with a FASTA file that has multiple headers and blank sequence lines."""
-    malformed = tmp_path / "malformed2.fasta"
     # Create file with headers with blank sequence lines
     content = """>GeneA
     >GeneB
