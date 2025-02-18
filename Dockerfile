@@ -5,7 +5,7 @@ FROM continuumio/miniconda3
 WORKDIR /app
 
 # Install build-essential package for gcc and other build tools - required for the Rust project
-RUN apt-get update && apt-get install -y build-essential curl
+RUN apt-get update && apt-get install -y build-essential
 
 # Copy the current directory contents into the container at /app
 COPY . /app
