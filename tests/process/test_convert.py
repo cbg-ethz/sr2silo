@@ -15,9 +15,9 @@ from sr2silo.process.convert import (
     bam_to_fastq_handle_indels,
     normalize_reads,
     pad_alignment,
-    sam_to_seq_and_indels,
+    sam_to_seq_and_indels
 )
-from sr2silo.process.interface import AAInsertion
+from sr2silo.process.interface import AAInsertion, AAInsertionSet, AASequenceSet, AlignedRead, Gene, GeneName, GeneSet
 
 
 def test_bam_to_sam(bam_data: Dict):

@@ -10,7 +10,7 @@ from typing import List, Tuple, Union
 
 import pysam
 
-from sr2silo.process.interface import AAInsertion, Gene, GeneName, GeneSet
+from sr2silo.process.interface import AAInsertion, Gene, GeneSet, GeneName
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"

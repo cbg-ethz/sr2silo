@@ -217,10 +217,16 @@ class GeneSet:
         """Return a list of genes."""
         return list(self.genes.keys())
 
-    def to_dict(self) -> Dict[str, Dict[str, GeneName | int]]:
+    def to_dict(self) -> Dict[str, Dict[str, Any]]:
         """Return a dictionary with gene names as keys and gene
-        leght as values."""
-        return {str(k): v.to_dict() for k, v in self.genes.items()}
+        length as values."""
+        return {
+            str(k): {
+                "gene_name": str(v.name),
+                "gene_length": v.gene_length
+            }
+            for k, v in self.genes.items()
+        }
 
     def __str__(self) -> str:
         return str(self.to_dict())
@@ -242,7 +248,7 @@ class AAInsertionSet:
     def to_dict(self) -> dict:
         """Return a dictionary with gene names as keys."""
         return {
-            str(gene): [str(ins) for ins in ins_per_gene]
+            str(gene): [f"{ins.position} : {ins.sequence}" for ins in ins_per_gene]
             for gene, ins_per_gene in self.aa_insertions.items()
             if isinstance(ins_per_gene, list)
         }
