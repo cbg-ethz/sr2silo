@@ -174,6 +174,7 @@ def test_read_in_AlignedReads_aa_seq_and_ins_multiple(
 
     # Patch sam_to_seq_and_indels to return fixed values:
     def fake_sam_to_seq_and_indels(seq, cigar):
+        """Return fixed values for testing."""
         return (expected_seq, expected_insertions, [(30, 1)])
 
     monkeypatch.setattr(
@@ -212,9 +213,7 @@ def test_read_in_AlignedReads_aa_seq_and_ins_multiple(
     # Retrieve AA sequences and check they were set correctly.
     aa_seq_dict = updated_reads[read_id].aligned_amino_acid_sequences.to_dict()
     expected_padded_str = expected_padded
-    assert (
-        aa_seq_dict.get(gene_name_str) == expected_padded_str
-    ), (
+    assert aa_seq_dict.get(gene_name_str) == expected_padded_str, (
         f"Expected padded sequence {expected_padded_str}, "
         f"got {aa_seq_dict.get(gene_name_str)}"
     )

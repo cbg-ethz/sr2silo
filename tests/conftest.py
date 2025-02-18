@@ -101,20 +101,21 @@ def temp_dir():
         yield Path(tmpdirname)
 
 
-# Dummy read object
 class DummyRead:
+    """A dummy read object for testing purposes."""
+
     def __init__(self):
         self.query_name = "read1"
         self.query_sequence = "ACTG"
         self.query_qualities = [30, 31, 32, 33]
         self.reference_start = 100
-        # CIGAR: match 2, insertion 1, match 1
         self.cigartuples = [(0, 2), (1, 1), (0, 1)]
         self.is_unmapped = False
 
 
-# Dummy BAM file that yields one dummy read
 class DummyBam:
+    """A dummy BAM file that yields one dummy read."""
+
     def __enter__(self):
         return self
 
@@ -122,11 +123,13 @@ class DummyBam:
         pass
 
     def fetch(self):
+        """Yield a dummy read."""
         yield DummyRead()
 
 
-# Dummy replacement for pysam.AlignmentFile
 class DummyAlignmentFile:
+    """A dummy replacement for pysam.AlignmentFile."""
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -139,7 +142,6 @@ class DummyAlignmentFile:
 
 @pytest.fixture
 def dummy_alignment(monkeypatch):
-    # Replace pysam.AlignmentFile with our dummy class.
+    """Fixture to replace pysam.AlignmentFile with a dummy class."""
     monkeypatch.setattr(pysam, "AlignmentFile", DummyAlignmentFile)
-    # Return a dummy BAM file path (not used by the dummy AlignmentFile).
     return Path("dummy.bam")

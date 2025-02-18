@@ -28,10 +28,12 @@ class AAInsertion:
     """An amino acid insertion."""
 
     def __init__(self, position: int, sequence: str):
+        """Initialize with a position and a sequence."""
         self.position = position
         self.sequence = sequence
 
     def __str__(self) -> str:
+        """toString method."""
         return f"{self.position} : {self.sequence}"
 
 
@@ -173,9 +175,11 @@ class GeneName:
     """Class to represent a gene name in its short form."""
 
     def __init__(self, name: str):
+        """Initialize with a gene name."""
         self.name = name
 
     def __str__(self) -> str:
+        """toString method."""
         return self.name
 
 
@@ -221,10 +225,7 @@ class GeneSet:
         """Return a dictionary with gene names as keys and gene
         length as values."""
         return {
-            str(k): {
-                "gene_name": str(v.name),
-                "gene_length": v.gene_length
-            }
+            str(k): {"gene_name": str(v.name), "gene_length": v.gene_length}
             for k, v in self.genes.items()
         }
 
