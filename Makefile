@@ -1,11 +1,14 @@
 .PHONY: create-env
 create-env:
-	@echo "Creating Conda environment..."
-	conda env create -f environment.yml
+	@if conda info --envs | awk '{print $$1}' | grep -wq sr2silo; then \
+	    echo "Conda environment sr2silo already exists. Skipping creation."; \
+	else \
+	    echo "Creating Conda environment..."; \
+	    conda env create -f environment.yml; \
+	fi
 
 .PHONY: activate-env
 activate-env:
-	activate-env:
 	@echo "Activate the environment with: conda activate sr2silo"
 
 .PHONY: install-poetry
