@@ -139,3 +139,9 @@ output
 
 # Secret files
 secrets
+
+# Common Dev / Testing Dirs
+loculus_submission
+notebooks
+out
+results

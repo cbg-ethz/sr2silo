@@ -7,7 +7,7 @@ BATCH_ID="20241024_2411515907"
 RESULTS_DIR="./tests/data/samples_original/A1_05_2024_10_08/20241024_2411515907/timeline_A1_05_2024_10_08.tsv"
 TIMELINE_FILE="./tests/data/samples_original/A1_05_2024_10_08/20241024_2411515907/timeline_A1_05_2024_10_08.tsv"
 PRIMERS_FILE="./tests/data/samples_large/primers.yaml"
-NEXTCLADE_REFERENCE="sars-cov2"
+NUC_REFERENCE="sars-cov2"
 DATABASE_CONFIG="./scripts/database_config.yaml"
 
 # Run the Python script with the arguments
@@ -18,4 +18,4 @@ python scripts/vp_transformer.py \
     --result_dir "$RESULTS_DIR" \
     --timeline_file "$TIMELINE_FILE" \
     --primer_file "$PRIMERS_FILE" \
-    --nextclade_reference "$NEXTCLADE_REFERENCE"
+    --nuc_reference "$NUC_REFERENCE" \

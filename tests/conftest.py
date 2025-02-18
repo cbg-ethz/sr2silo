@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import List
 
+import pysam
 import pytest
 from _pytest.nodes import Item
 
@@ -98,3 +99,49 @@ def temp_dir():
     """Return a temporary directory as a Path object."""
     with tempfile.TemporaryDirectory() as tmpdirname:
         yield Path(tmpdirname)
+
+
+class DummyRead:
+    """A dummy read object for testing purposes."""
+
+    def __init__(self):
+        self.query_name = "read1"
+        self.query_sequence = "ACTG"
+        self.query_qualities = [30, 31, 32, 33]
+        self.reference_start = 100
+        self.cigartuples = [(0, 2), (1, 1), (0, 1)]
+        self.is_unmapped = False
+
+
+class DummyBam:
+    """A dummy BAM file that yields one dummy read."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def fetch(self):
+        """Yield a dummy read."""
+        yield DummyRead()
+
+
+class DummyAlignmentFile:
+    """A dummy replacement for pysam.AlignmentFile."""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __enter__(self):
+        return DummyBam()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+
+@pytest.fixture
+def dummy_alignment(monkeypatch):
+    """Fixture to replace pysam.AlignmentFile with a dummy class."""
+    monkeypatch.setattr(pysam, "AlignmentFile", DummyAlignmentFile)
+    return Path("dummy.bam")
