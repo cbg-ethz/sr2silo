@@ -28,17 +28,11 @@ jobs:
           environment-file: environment.yml
           activate-environment: sr2silo
 
-      - name: Install Poetry
+      - name: Setup environment using Makefile
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate sr2silo
-          conda install -c conda-forge poetry
-
-      - name: Install the module
-        run: |
-          source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo
-          poetry install --with dev --no-interaction
+          make setup
 
       - name: Run unit tests
         run: |
