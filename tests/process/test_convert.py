@@ -11,7 +11,12 @@ from typing import Dict
 import pytest
 
 from sr2silo.process import bam_to_sam
-from sr2silo.process.convert import normalize_reads
+from sr2silo.process.convert import (
+    normalize_reads,
+    pad_alignment,
+    sam_to_seq_and_indels,
+)
+from sr2silo.process.interface import AAInsertion
 
 
 def test_bam_to_sam(bam_data: Dict):
@@ -93,7 +98,6 @@ def test_bam_to_fasta():
 
 def test_pad_alignment():
     """Test the pad_alignment function with various inputs."""
-    from sr2silo.process.convert import pad_alignment
 
     # Test with string input and default unknown_char 'N'
     seq = "ACTG"
@@ -116,9 +120,35 @@ def test_pad_alignment():
 
 
 def test_sam_to_seq_and_indels():
-    """Test the sam_to_seq_and_indels function."""
+    """Test the sam_to_seq_and_indels function, including AAInsertion conversion."""
 
-    raise NotImplementedError
+    # Example from the docstring:
+    # sequence = "AGCTTAGCTAGCTT"
+    # cigar = "5M1I5M1D3M"
+    seq = "AGCTTAGCTAGCTT"
+    cigar = "5M1I5M1D3M"
+
+    # Expected:
+    # - Cleartext: "AGCTTGCTAGCTT" [matches from 5M, 5M, 3M]
+    # - Insertion: one insertion at position 5 with base "A"
+    # - Deletion: one deletion at position 10 with length 1
+    expected_cleartext = "AGCTTGCTAGCTT"
+    expected_deletions = [(10, 1)]
+
+    cleartext, insertions, deletions = sam_to_seq_and_indels(seq, cigar)
+
+    assert (
+        cleartext == expected_cleartext
+    ), f"Expected cleartext {expected_cleartext}, got {cleartext}"
+    assert (
+        deletions == expected_deletions
+    ), f"Expected deletions {expected_deletions}, got {deletions}"
+    assert len(insertions) == 1, f"Expected 1 insertion, got {len(insertions)}"
+    # Check that the insertion is an instance of AAInsertion and has correct attributes.
+    ins = insertions[0]
+    assert isinstance(ins, AAInsertion), "Insertion is not an instance of AAInsertion"
+    assert ins.position == 5, f"Expected insertion position 5, got {ins.position}"
+    assert ins.sequence == "A", f"Expected insertion sequence 'A', got {ins.sequence}"
 
 
 def test_get_gene_set_from_reference():
