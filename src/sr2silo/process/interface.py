@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Dict, List
+from typing import Dict, List, Any
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -93,7 +93,7 @@ class AlignedRead:
         """Return the amino acid insertions."""
         return self.amino_acid_insertions
 
-    def to_dict(self) -> Dict[str, any]:
+    def to_dict(self) -> Dict[str, Any]:
         """Return a dictionary / json representation of the object."""
         formatted_nuc_ins = [
             f"{ins.position} : {ins.sequence}" for ins in self.nucleotide_insertions
@@ -185,7 +185,7 @@ class Gene:
         self.name = gene_name
         self.gene_length = gene_length
 
-    def to_dict(self) -> Dict[str, int | str]:
+    def to_dict(self) -> Dict[str, GeneName | int ]:
         return {
             "gene_name": self.name,
             "gene_length": self.gene_length,
@@ -247,7 +247,11 @@ class AAInsertionSet:
             if isinstance(ins_per_gene, list)
         }
 
-    def from_dict(data: dict) -> AAInsertionSet:
+    def __str__(self) -> str:
+        return str(self.to_dict())
+
+    @staticmethod
+    def from_dict(data: Dict) -> AAInsertionSet:
         """Create an AAInsertionSet object from a dictionary."""
         aa_insertions = AAInsertionSet([])
         for gene_name, ins_list in data.items():
@@ -256,9 +260,6 @@ class AAInsertionSet:
                 for ins in ins_list
             ]
         return aa_insertions
-
-    def __str__(self) -> str:
-        return str(self.to_dict())
 
 
 class AASequenceSet:
@@ -277,6 +278,7 @@ class AASequenceSet:
         """Return a dictionary with gene names as keys"""
         return {str(gene): seq for gene, seq in self.sequences.items()}
 
+    @staticmethod
     def from_dict(data: dict) -> AASequenceSet:
         """Create an AASequenceSet object from a dictionary."""
         aa_sequences = AASequenceSet([])

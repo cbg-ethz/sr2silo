@@ -10,7 +10,7 @@ from typing import List, Tuple, Union
 
 import pysam
 
-from sr2silo.process.interface import AAInsertion, Gene, GeneSet
+from sr2silo.process.interface import AAInsertion, Gene, GeneSet, GeneName
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -424,7 +424,7 @@ def get_gene_set_from_ref(reference_fp: Path) -> GeneSet:
     i = 0
     while i < len(lines):
         if lines[i].startswith(">"):
-            gene_name = lines[i][1:].strip()
+            gene_name = GeneName(lines[i][1:].strip())
             sequence = ""
             # If the next line exists and is not a header, use it as the sequence
             if i + 1 < len(lines) and not lines[i + 1].startswith(">"):
@@ -499,7 +499,7 @@ def is_bam_sorted(bam_file):
     try:
         bam = pysam.AlignmentFile(bam_file, "rb")  # Open in read-binary mode
         is_sorted = (
-            bam.header.get("HD", {}).get("SO") == "coordinate"
+            bam.header.get("HD", {}).get("SO") == "coordinate"  # pyright: ignore
         )  # pyright: ignore
         bam.close()  # Important: Close the file!
         return is_sorted
