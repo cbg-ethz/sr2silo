@@ -92,9 +92,27 @@ def test_bam_to_fasta():
 
 
 def test_pad_alignment():
-    """Test the pad_alignment function."""
+    """Test the pad_alignment function with various inputs."""
+    from sr2silo.process.convert import pad_alignment
 
-    raise NotImplementedError
+    # Test with string input and default unknown_char 'N'
+    seq = "ACTG"
+    ref_start = 2
+    ref_length = 10  # Expected: "NNACTGNNNN" (2 left, 4 right)
+    expected = "NNACTGNNNN"
+    result = pad_alignment(seq, ref_start, ref_length)
+    assert result == expected, f"Expected {expected}, got {result}"
+
+    # Test with list input, same parameters
+    seq_list = ["A", "C", "T", "G"]
+    expected = "NNACTGNNNN"
+    result = pad_alignment(seq_list, ref_start, ref_length)
+    assert result == expected, f"Expected {expected}, got {result}"
+
+    # Test with custom unknown_char '-' (variation of deletion char)
+    expected = "--ACTG----"
+    result = pad_alignment(seq, ref_start, ref_length, unknown_char="-")
+    assert result == expected, f"Expected {expected}, got {result}"
 
 
 def test_sam_to_seq_and_indels():
