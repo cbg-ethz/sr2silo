@@ -70,7 +70,7 @@ def bam_to_fasta(bam_file: Path, fasta_file: Path):
     if not fasta_file.suffix.endswith(".fasta"):
         raise ValueError("Output file is not a FASTA file")
 
-    with pysam.AlignmentFile(bam_file, "rb") as bam:
+    with pysam.AlignmentFile(str(bam_file), "rb") as bam:
         with open(fasta_file, "w") as fq:
             for read in bam.fetch():
                 if not read.is_unmapped:
@@ -104,8 +104,10 @@ def bam_to_fastq_handle_indels(
     bam_file, fastq_file, insertions_file, deletion_char="-"
 ):
     """
-    Convert a BAM file to a FASTQ file, removing insertions and adding a special character for deletions.
-    Save the insertions to a separate file. Include alignment positions in the FASTQ file.
+    Convert a BAM file to a FASTQ file, removing insertions and adding a
+    special character for deletions.
+    Save the insertions to a separate file.
+    Include alignment positions in the FASTQ file.
 
     Used to look at the cleartext nucleotide sequence of the reads.
 
@@ -119,8 +121,8 @@ def bam_to_fastq_handle_indels(
     ) as fastq, open(insertions_file, "w") as insertions:
         for read in bam.fetch():
             if not read.is_unmapped:
-                query_sequence = read.query_sequence
-                query_qualities = read.query_qualities
+                query_sequence = read.query_sequence if read.query_sequence else ""
+                query_qualities = read.query_qualities if read.query_qualities else ""
                 new_sequence = []
                 new_qualities = []
                 insertion_positions = []
@@ -128,6 +130,9 @@ def bam_to_fastq_handle_indels(
                 query_pos = 0
                 ref_align_start = read.reference_start
                 ref_pos = read.reference_start
+
+                if read.cigartuples is None:
+                    continue
 
                 for cigar in read.cigartuples:
                     if cigar[0] == 0:  # Match or mismatch
@@ -480,11 +485,14 @@ def is_bam_sorted(bam_file):
         bam_file (str): Path to the BAM file.
 
     Returns:
-        bool: True if the BAM file is sorted, False otherwise.  Returns None if there's an issue opening the file.
+        bool: True if the BAM file is sorted, False otherwise.
+        Returns None if there's an issue opening the file.
     """
     try:
         bam = pysam.AlignmentFile(bam_file, "rb")  # Open in read-binary mode
-        is_sorted = bam.header.get("HD", {}).get("SO") == "coordinate"
+        is_sorted = (
+            bam.header.get("HD", {}).get("SO") == "coordinate"
+        )  # pyright: ignore
         bam.close()  # Important: Close the file!
         return is_sorted
     except ValueError as e:
@@ -502,7 +510,8 @@ def is_bam_indexed(bam_file):
         bam_file (str): Path to the BAM file.
 
     Returns:
-        bool: True if the BAM file has an index, False otherwise. Returns None if there's an issue opening the file.
+        bool: True if the BAM file has an index, False otherwise.
+        Returns None if there's an issue opening the file.
     """
     try:
         bam = pysam.AlignmentFile(bam_file, "rb")

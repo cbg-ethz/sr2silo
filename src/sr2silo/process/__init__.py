@@ -16,8 +16,10 @@ from sr2silo.process.interface import (
     AAInsertionSet,
     AlignedRead,
     Gene,
+    GeneSet,
     NucInsertion,
 )
+from sr2silo.process.translate_align import nuc_to_aa_alignment
 
 __all__ = [
     "bam_to_sam",

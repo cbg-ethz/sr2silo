@@ -12,6 +12,7 @@ import pytest
 
 from sr2silo.process import bam_to_sam
 from sr2silo.process.convert import (
+    bam_to_fastq_handle_indels,
     normalize_reads,
     pad_alignment,
     sam_to_seq_and_indels,
@@ -168,3 +169,46 @@ def test_get_gene_set_from_ref():
         assert (
             gene_length > 0
         ), f"Expected gene length for {expected} to be > 0, got {gene_length}"
+
+
+def test_bam_to_fastq_handle_indels(dummy_alignment, tmp_path):
+    """
+    Test bam_to_fastq_handle_indels using the dummy AlignmentFile from conf_test.py.
+    The dummy read has:
+      - query_sequence "ACTG"
+      - query_qualities [30, 31, 32, 33]
+      - cigartuples: [(0,2), (1,1), (0,1)]
+      - reference_start: 100
+    Expected FASTQ record:
+      @read1
+      ACG
+      +
+      ?@B
+      alignment_position:100
+    Expected insertion file:
+      read1    102    T    A
+    """
+    # Create temporary files for FASTQ and insertions
+    fastq_file = tmp_path / "output.fastq"
+    insertions_file = tmp_path / "insertions.txt"
+
+    # dummy_alignment is provided by the fixture
+    bam_to_fastq_handle_indels(dummy_alignment, fastq_file, insertions_file)
+
+    expected_fastq = (
+        "@read1\n"
+        "ACG\n"  # from match of 2 bases ("AC") and then match of 1 ("G")
+        "+\n"
+        "?@B\n"  # qualities: chr(30+33)="?" , chr(31+33)="@" , chr(33+33)="B"
+        "alignment_position:100\n"
+    )
+    fastq_content = fastq_file.read_text()
+    assert (
+        fastq_content == expected_fastq
+    ), f"FASTQ output mismatch:\nExpected:\n{expected_fastq}\nGot:\n{fastq_content}"
+
+    expected_insertion = "read1\t102\tT\tA\n"
+    insertion_content = insertions_file.read_text()
+    assert (
+        insertion_content == expected_insertion
+    ), f"Insertion output mismatch:\nExpected:\n{expected_insertion}\nGot:\n{insertion_content}"
