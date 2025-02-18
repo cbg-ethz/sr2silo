@@ -151,7 +151,20 @@ def test_sam_to_seq_and_indels():
     assert ins.sequence == "A", f"Expected insertion sequence 'A', got {ins.sequence}"
 
 
-def test_get_gene_set_from_reference():
-    """Test the get_gene_set_from_reference function."""
+def test_get_gene_set_from_ref():
+    """Test the get_gene_set_from_ref function using the real AA reference file."""
+    from pathlib import Path
 
-    raise NotImplementedError
+    from sr2silo.process.convert import get_gene_set_from_ref
+
+    aa_ref_fp = Path("resources/sars-cov-2/aa_reference_genomes.fasta")
+    gene_set = get_gene_set_from_ref(aa_ref_fp)
+    gene_names = gene_set.get_gene_name_list()
+
+    # Assert that expected gene names are present and their lengths are > 0.
+    for expected in ["E", "S", "ORF1a", "ORF7a"]:
+        assert expected in gene_names, f"Expected gene {expected} to be in gene set"
+        gene_length = gene_set.get_gene_length(expected)
+        assert (
+            gene_length > 0
+        ), f"Expected gene length for {expected} to be > 0, got {gene_length}"
