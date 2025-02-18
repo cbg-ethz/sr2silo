@@ -13,7 +13,13 @@ activate-env:
 
 .PHONY: install-poetry
 install-poetry:
-	@echo "Installing Poetry dependencies..."
+	@echo "Checking for Poetry..."
+	@if ! command -v poetry >/dev/null 2>&1; then \
+	    echo "Poetry not found. Installing Poetry..."; \
+	    curl -sSL https://install.python-poetry.org | python3 -; \
+	    export PATH="$$HOME/.local/bin:$$PATH"; \
+	fi; \
+	echo "Installing Poetry dependencies..."; \
 	poetry install
 
 .PHONY: setup
