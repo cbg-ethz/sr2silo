@@ -147,7 +147,7 @@ def bam_to_fastq_handle_indels(
                     elif cigar[0] == 1:  # Insertion
                         insertion_seq = query_sequence[query_pos : query_pos + cigar[1]]
                         insertion_qual = [
-                            chr(q + 33)
+                            chr(int(q) + 33)
                             for q in query_qualities[query_pos : query_pos + cigar[1]]
                         ]
                         insertion_positions.append(
@@ -415,27 +415,35 @@ def sam_to_seq_and_indels(
 
 
 def get_gene_set_from_ref(reference_fp: Path) -> GeneSet:
-    """Load the gene ref fasta get the GeneSet with
-    gene short names and lengths."""
+    """Load the gene ref fasta and create a GeneSet with gene short
+       names and lengths."""
     genes = dict()
-
     with open(reference_fp, "r") as f:
-        awaiting_next_line = False
-        for line in f:
-            if line.startswith(">"):
-                gene = line[1:].strip()
-                awaiting_next_line = True
-            elif awaiting_next_line:
-                reference_length = len(line.strip())
-                genes[gene] = Gene(gene, reference_length)
-                awaiting_next_line = False
+        # Strip lines and ignore blank lines
+        lines = [line.strip() for line in f if line.strip()]
+    i = 0
+    while i < len(lines):
+        if lines[i].startswith(">"):
+            gene_name = lines[i][1:].strip()
+            sequence = ""
+            # If the next line exists and is not a header, use it as the sequence
+            if i + 1 < len(lines) and not lines[i + 1].startswith(">"):
+                sequence = lines[i + 1].strip()
+                i += 2
             else:
-                continue
-
-    # convert to GeneSet
-    genes = GeneSet([gene for gene in genes.values()])
-
-    return genes
+                i += 1
+            if sequence:
+                genes[gene_name] = Gene(gene_name, len(sequence))
+        else:
+            i += 1
+    gene_set = GeneSet(list(genes.values()))
+    # Optional warnings
+    if not gene_set.get_gene_name_list():
+        logging.warning("No genes found in the reference file")
+    if len(gene_set.get_gene_name_list()) < len(lines) / 2:
+        logging.warning("Some genes were skipped in the reference file")
+        logging.warning("Parsed genes: %s", gene_set.get_gene_name_list())
+    return gene_set
 
 
 def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:

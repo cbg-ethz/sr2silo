@@ -212,3 +212,42 @@ def test_bam_to_fastq_handle_indels(dummy_alignment, tmp_path):
     assert (
         insertion_content == expected_insertion
     ), f"Insertion output mismatch:\nExpected:\n{expected_insertion}\nGot:\n{insertion_content}"
+
+
+def test_get_gene_set_from_ref_malformed_no_sequence(tmp_path):
+    """Test get_gene_set_from_ref with a FASTA file that has header(s) but no sequence lines."""
+    malformed = tmp_path / "malformed.fasta"
+    # Write a header without a following sequence line.
+    malformed.write_text(">GeneX\n")
+    from sr2silo.process.convert import get_gene_set_from_ref
+
+    gene_set = get_gene_set_from_ref(malformed)
+    # Expect GeneSet to be empty since no sequence was provided.
+    assert (
+        gene_set.get_gene_name_list() == []
+    ), "Expected empty gene set for header without sequence"
+
+
+def test_get_gene_set_from_ref_malformed_blank_lines(tmp_path):
+    """Test get_gene_set_from_ref with a FASTA file that has multiple headers and blank sequence lines."""
+    malformed = tmp_path / "malformed2.fasta"
+    # Create file with headers with blank sequence lines
+    content = """>GeneA
+    >GeneB
+    AGCTAGCT
+    >GeneC
+
+    """
+    malformed.write_text(content)
+    from sr2silo.process.convert import get_gene_set_from_ref
+
+    gene_set = get_gene_set_from_ref(malformed)
+    # Expect only GeneB to be added (GeneA and GeneC have blank sequences)
+    gene_names = gene_set.get_gene_name_list()
+    assert "GeneB" in gene_names, "Expected GeneB to be parsed"
+    assert (
+        "GeneA" not in gene_names
+    ), "Expected GeneA to be skipped due to missing sequence"
+    assert (
+        "GeneC" not in gene_names
+    ), "Expected GeneC to be skipped due to missing sequence"
