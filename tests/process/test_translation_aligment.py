@@ -77,6 +77,7 @@ def test_parse_translate_align(aligned_reads):
             )
 
 
+@pytest.mark.skip(reason="Not implemented")
 def test_read_in_AligendReads_nuc_seq():
     """Test the read_in_AlignedReads_nuc_seq function."""
     raise NotImplementedError
@@ -117,6 +118,7 @@ def test_read_in_AligendReads_nuc_ins(aligned_reads):
         )
 
 
+@pytest.mark.skip(reason="Not implemented")
 def test_read_in_AligendReads_aa_ins():
     """Test the read_in_AlignedReads_aa_ins function."""
     raise NotImplementedError

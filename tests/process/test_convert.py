@@ -6,12 +6,15 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from typing import Dict
+
+import pytest
 
 from sr2silo.process import bam_to_sam
 from sr2silo.process.convert import normalize_reads
 
 
-def test_bam_to_sam(bam_data):
+def test_bam_to_sam(bam_data: Dict):
     """Test the bam_to_sam function."""
 
     print(bam_data)
@@ -67,18 +70,21 @@ def test_normalize_reads(sam_with_insert_data):
         ), "The output insertions data does not match the expected insertions data"
 
 
+@pytest.mark.skip(reason="Not implemented")
 def test_sort_bam_file():
     """Test the sort_bam_file function."""
 
     raise NotImplementedError
 
 
+@pytest.mark.skip(reason="Not implemented")
 def test_create_index():
     """Test the index_bam_file function."""
 
     raise NotImplementedError
 
 
+@pytest.mark.skip(reason="Not implemented")
 def test_bam_to_fasta():
     """Test the bam_to_fasta function."""
 
