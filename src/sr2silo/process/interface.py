@@ -6,78 +6,12 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, RootModel, ValidationError, model_validator
+from sr2silo.silo_aligned_read import AlignedReadSchema
+from pydantic import ValidationError
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
-
-# --- New Pydantic schemas for AlignedRead JSON format ---
-class ReadMetadata(BaseModel):
-    read_id: str
-    sequencing_date: str
-    location_name: str
-    batch_id: str
-    read_length: str
-    primer_protocol: str
-    location_code: str
-    flow_cell_serial_number: str
-    nextclade_reference: str
-    sequencing_well_position: str
-    sample_id: str
-    sampling_date: str
-    primer_protocol_name: str
-
-
-class AlignedNucleotideSequences(BaseModel):
-    main: str
-
-
-class UnalignedNucleotideSequences(BaseModel):
-    main: str
-
-
-class NucleotideInsertions(BaseModel):
-    main: List[str]
-
-
-class AminoAcidSequences(RootModel):
-    root: Dict[str, Optional[str]]
-
-
-class AminoAcidInsertions(RootModel):
-    root: Dict[str, List[str]]
-
-
-class AlignedReadSchema(BaseModel):
-    metadata: Optional[ReadMetadata] = None
-    nucleotideInsertions: NucleotideInsertions
-    aminoAcidInsertions: AminoAcidInsertions
-    alignedNucleotideSequences: AlignedNucleotideSequences
-    unalignedNucleotideSequences: UnalignedNucleotideSequences
-    alignedAminoAcidSequences: AminoAcidSequences
-
-    @model_validator(mode="before")
-    def add_default_metadata(cls, values):
-        if "metadata" not in values or values["metadata"] is None:
-            values["metadata"] = {
-                "read_id": values.get("readId", ""),
-                "sequencing_date": "",
-                "location_name": "",
-                "batch_id": "",
-                "read_length": "",
-                "primer_protocol": "",
-                "location_code": "",
-                "flow_cell_serial_number": "",
-                "nextclade_reference": "",
-                "sequencing_well_position": "",
-                "sample_id": "",
-                "sampling_date": "",
-                "primer_protocol_name": "",
-            }
-        return values
-
 
 class NucInsertion:
     """A nuclotide insertion."""
@@ -169,6 +103,14 @@ class AlignedRead:
         """Return the amino acid insertions."""
         return self.amino_acid_insertions
 
+    def set_metadata(self, metadata: Dict[str, str]):
+        """Set the metadata."""
+        self.metadata = metadata
+
+    def get_metadata(self) -> Optional[Dict[str, str]]:
+        """Return the metadata."""
+        return self.metadata
+
     def to_dict(self) -> Dict[str, Any]:
         """Return a dictionary / json representation of the object."""
         formatted_nuc_ins = [
@@ -201,7 +143,7 @@ class AlignedRead:
             schema = AlignedReadSchema(**self.to_dict())
             print(schema.model_dump_json(indent=2, exclude_none=True))
         except ValidationError as e:
-            print("JSON structure validation error:", e)
+            raise e
 
     def __str__(self) -> str:
         """toString method as pretty JSON string."""

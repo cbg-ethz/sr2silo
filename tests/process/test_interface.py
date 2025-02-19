@@ -1,72 +1,142 @@
-"""A placeholder test file for the interface module."""
+"""A tests for the interface module."""
 
 from __future__ import annotations
 
+from sr2silo.silo_aligned_read import ReadMetadata
+
 import pytest
+from pydantic import ValidationError
+
+from sr2silo.process.interface import (
+    NucInsertion,
+    AAInsertion,
+    AlignedRead,
+    GeneName,
+    Gene,
+    GeneSet,
+    AAInsertionSet,
+    AASequenceSet,
+)
 
 
-# Placeholder tests for NucInsertion
-@pytest.mark.skip(reason="Not yet implemented")
 def test_nuc_insertion():
     """Test NucInsertion functionality."""
-    raise NotImplementedError
+    insertion = NucInsertion(10, "ACTG")
+    assert insertion.position == 10
+    assert insertion.sequence == "ACTG"
+    assert str(insertion) == "10 : ACTG"
 
 
-# Placeholder tests for AAInsertion
-@pytest.mark.skip(reason="Not yet implemented")
 def test_aa_insertion():
     """Test AAInsertion functionality."""
-    raise NotImplementedError
+    insertion = AAInsertion(5, "MKT")
+    assert insertion.position == 5
+    assert insertion.sequence == "MKT"
+    assert str(insertion) == "5 : MKT"
 
 
-# Placeholder tests for AlignedRead
-@pytest.mark.skip(reason="Not yet implemented")
 def test_aligned_read():
     """Test AlignedRead functionality."""
-    raise NotImplementedError
+    read = AlignedRead(
+        read_id="read1",
+        unaligned_nucleotide_sequences="ACTG",
+        aligned_nucleotide_sequences="ACTG",
+        nucleotide_insertions=[NucInsertion(10, "ACTG")],
+        amino_acid_insertions=AAInsertionSet([GeneName("gene1")]),
+        aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
+    )
+    assert read.read_id == "read1"
+    assert read.unaligned_nucleotide_sequences == "ACTG"
+    assert read.aligned_nucleotide_sequences == "ACTG"
+    assert len(read.nucleotide_insertions) == 1
+    assert isinstance(read.nucleotide_insertions[0], NucInsertion)
+    assert isinstance(read.amino_acid_insertions, AAInsertionSet)
+    assert isinstance(read.aligned_amino_acid_sequences, AASequenceSet)
 
 
-# Placeholder tests for GeneName
-@pytest.mark.skip(reason="Not yet implemented")
 def test_gene_name():
     """Test GeneName functionality."""
-    raise NotImplementedError
+    gene_name = GeneName("gene1")
+    assert gene_name.name == "gene1"
+    assert str(gene_name) == "gene1"
 
 
-# Placeholder tests for Gene
-@pytest.mark.skip(reason="Not yet implemented")
 def test_gene():
     """Test Gene functionality."""
-    raise NotImplementedError
+    gene_name = GeneName("gene1")
+    gene = Gene(gene_name, 1000)
+    assert gene.name == gene_name
+    assert gene.gene_length == 1000
+    assert gene.to_dict() == {"gene_name": gene_name, "gene_length": 1000}
 
 
-# Placeholder tests for GeneSet
-@pytest.mark.skip(reason="Not yet implemented")
 def test_gene_set():
     """Test GeneSet functionality."""
-    raise NotImplementedError
+    gene1 = Gene(GeneName("gene1"), 1000)
+    gene2 = Gene(GeneName("gene2"), 2000)
+    gene_set = GeneSet([gene1, gene2])
+    assert gene_set.get_gene(GeneName("gene1")) == gene1
+    assert gene_set.get_gene_length(GeneName("gene2")) == 2000
+    assert gene_set.to_dict() == {
+        "gene1": {"gene_name": "gene1", "gene_length": 1000},
+        "gene2": {"gene_name": "gene2", "gene_length": 2000},
+    }
 
 
-# Placeholder tests for AAInsertionSet
-@pytest.mark.skip(reason="Not yet implemented")
 def test_aa_insertion_set():
     """Test AAInsertionSet functionality."""
-    raise NotImplementedError
+    gene_name = GeneName("gene1")
+    aa_insertion_set = AAInsertionSet([gene_name])
+    aa_insertion_set.set_insertions_for_gene(gene_name, [AAInsertion(5, "MKT")])
+    assert aa_insertion_set.to_dict() == {"gene1": ["5 : MKT"]}
 
 
-# Placeholder tests for AASequenceSet
-@pytest.mark.skip(reason="Not yet implemented")
 def test_aa_sequence_set():
     """Test AASequenceSet functionality."""
-    raise NotImplementedError
+    gene_name = GeneName("gene1")
+    aa_sequence_set = AASequenceSet([gene_name])
+    aa_sequence_set.set_sequence(gene_name, "MKT")
+    assert aa_sequence_set.to_dict() == {"gene1": "MKT"}
 
 
-# test the to_silo_json method
-def test_to_silo_json(aligned_reads):
+def test_to_silo_json():
     """Test to_silo_json functionality."""
+    aligned_reads = {
+        "read1": AlignedRead(
+            read_id="read1",
+            unaligned_nucleotide_sequences="ACTG",
+            aligned_nucleotide_sequences="ACTG",
+            nucleotide_insertions=[NucInsertion(10, "ACTG")],
+            amino_acid_insertions=AAInsertionSet([GeneName("gene1")]),
+            aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
+        )
+    }
+    # add mock metadata to aligned_reads
+    metadata = {
+        "sequencing_date": "2024-10-18",
+        "location_name": "Zürich (ZH)",
+        "batch_id": "20241018_AAG55WNM5",
+        "read_length": "250",
+        "primer_protocol": "v532",
+        "location_code": "10",
+        "flow_cell_serial_number": "AAG55WNM5",
+        "nextclade_reference": "sars-cov-2",
+        "sequencing_well_position": "A1",
+        "sample_id": "A1_10_2024_09_30",
+        "sampling_date": "2024-09-30",
+        "primer_protocol_name": "SARS-CoV-2 ARTIC V5.3.2",
+    }
+
+    for read_id, read in aligned_reads.items():
+        read_metadata = metadata.copy()
+        read_metadata["read_id"] = read_id
+        validated_metadata = ReadMetadata(**read_metadata)
+        read.set_metadata(validated_metadata)
 
     # for all reads in aligned_reads, test the to_silo_json method
     for read in aligned_reads.values():
-        print(read.to_silo_json())
+        try:
+            read.to_silo_json()
+        except ValidationError as e:
+            pytest.fail(f"Validation error: {e}")
 
-    raise NotImplementedError
