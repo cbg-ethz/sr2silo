@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
-from sr2silo.silo_aligned_read import AlignedReadSchema
+from sr2silo.silo_aligned_read import AlignedReadSchema, ReadMetadata
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -52,7 +52,7 @@ class AlignedRead:
         nucleotide_insertions: List[NucInsertion],
         amino_acid_insertions: AAInsertionSet,
         aligned_amino_acid_sequences: AASequenceSet,
-        metadata: Optional[Dict[str, str]] = None,
+        metadata: Optional[Union[Dict[str, str], ReadMetadata]] = None,
     ):
         """Initialize with a AlignedRead object."""
         self.read_id = read_id
@@ -92,9 +92,12 @@ class AlignedRead:
                 f"aligned_amino_acid_sequences must be a dict, got "
                 f"{type(self.aligned_amino_acid_sequences).__name__}"
             )
-        if self.metadata is not None and not isinstance(self.metadata, dict):
+        if self.metadata is not None and not isinstance(
+            self.metadata, (dict, ReadMetadata)
+        ):
             raise TypeError(
-                f"metadata must be a dict, got {type(self.metadata).__name__}"
+                "metadata must be a dict or ReadMetadata, "
+                "got {type(self.metadata).__name__}"
             )
 
     def set_nuc_insertion(self, nuc_insertion: NucInsertion):
@@ -105,11 +108,14 @@ class AlignedRead:
         """Return the amino acid insertions."""
         return self.amino_acid_insertions
 
-    def set_metadata(self, metadata: Dict[str, str]):
-        """Set the metadata."""
-        self.metadata = metadata
+    def set_metadata(self, metadata: Union[Dict[str, str], BaseModel]):
+        """Set the metadata. If a BaseModel is provided, convert it to dict."""
+        if isinstance(metadata, BaseModel):
+            self.metadata = metadata.model_dump()
+        else:
+            self.metadata = metadata
 
-    def get_metadata(self) -> Optional[Dict[str, str]]:
+    def get_metadata(self) -> Optional[Union[Dict[str, str], BaseModel]]:
         """Return the metadata."""
         return self.metadata
 
