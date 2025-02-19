@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 import logging
 from pathlib import Path
-from typing import Dict
 
 import pytest
 
@@ -35,24 +34,6 @@ def test_translate():
         "nextstrain/sars-cov-2/XBB",
     )
     assert True
-
-
-@pytest.fixture
-def aligned_reads() -> Dict[str, AlignedRead]:
-    """
-    Small mock data with 42 real reads from the combined.bam file.
-
-    Current dataset misses Amino Acid Insertions - i.e. not tested here.
-    """
-
-    nuc_ref_fp = Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
-    aa_ref_fp = Path("resources/sars-cov-2/aa_reference_genomes.fasta")
-    nuc_alignment_fp = Path("tests/data/bam/combined.bam")
-
-    aligned_reads = translate_align.parse_translate_align(
-        nuc_ref_fp, aa_ref_fp, nuc_alignment_fp
-    )
-    return aligned_reads
 
 
 def test_parse_translate_align(aligned_reads):

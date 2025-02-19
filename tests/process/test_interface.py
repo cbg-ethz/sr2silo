@@ -59,3 +59,14 @@ def test_aa_insertion_set():
 def test_aa_sequence_set():
     """Test AASequenceSet functionality."""
     raise NotImplementedError
+
+
+# test the to_silo_json method
+def test_to_silo_json(aligned_reads):
+    """Test to_silo_json functionality."""
+
+    # for all reads in aligned_reads, test the to_silo_json method
+    for read in aligned_reads.values():
+        print(read.to_silo_json())
+
+    raise NotImplementedError

@@ -6,9 +6,78 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel, RootModel, ValidationError, root_validator
+
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
+
+# --- New Pydantic schemas for AlignedRead JSON format ---
+class ReadMetadata(BaseModel):
+
+    read_id: str
+    sequencing_date: str
+    location_name: str
+    batch_id: str
+    read_length: str
+    primer_protocol: str
+    location_code: str
+    flow_cell_serial_number: str
+    nextclade_reference: str
+    sequencing_well_position: str
+    sample_id: str
+    sampling_date: str
+    primer_protocol_name: str
+
+
+class AlignedNucleotideSequences(BaseModel):
+    main: str
+
+
+class UnalignedNucleotideSequences(BaseModel):
+    main: str
+
+
+class NucleotideInsertions(BaseModel):
+    main: List[str]
+
+
+class AminoAcidSequences(RootModel):
+    root: Dict[str, Optional[str]]
+
+
+class AminoAcidInsertions(RootModel):
+    root: Dict[str, List[str]]
+
+
+class AlignedReadSchema(BaseModel):
+    metadata: Optional[ReadMetadata] = None
+    nucleotideInsertions: NucleotideInsertions
+    aminoAcidInsertions: AminoAcidInsertions
+    alignedNucleotideSequences: AlignedNucleotideSequences
+    unalignedNucleotideSequences: UnalignedNucleotideSequences
+    alignedAminoAcidSequences: AminoAcidSequences
+
+    @root_validator(pre=True)
+    def add_default_metadata(cls, values):
+        if "metadata" not in values or values["metadata"] is None:
+            values["metadata"] = {
+                "read_id": values.get("readId", ""),
+                "sequencing_date": "",
+                "location_name": "",
+                "batch_id": "",
+                "read_length": "",
+                "primer_protocol": "",
+                "location_code": "",
+                "flow_cell_serial_number": "",
+                "nextclade_reference": "",
+                "sequencing_well_position": "",
+                "sample_id": "",
+                "sampling_date": "",
+                "primer_protocol_name": "",
+            }
+        return values
 
 
 class NucInsertion:
@@ -124,7 +193,16 @@ class AlignedRead:
             json_representation["metadata"] = self.metadata
         return json_representation
 
-    # TODO: add to_silo_json method with read_id nested in metadata
+    def to_silo_json(self) -> None:
+        """
+        Validate the aligned read dict using a pydantic schema and print a
+        nicely formatted JSON string conforming to the DB requirements.
+        """
+        try:
+            schema = AlignedReadSchema(**self.to_dict())
+            print(schema.model_dump_json(indent=2, exclude_none=True))
+        except ValidationError as e:
+            print("JSON structure validation error:", e)
 
     def __str__(self) -> str:
         """toString method as pretty JSON string."""

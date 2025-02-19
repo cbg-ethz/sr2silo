@@ -129,14 +129,14 @@ def nuc_to_aa_alignment(
         db_ref_fp = Path(in_aa_reference_fp.stem + ".temp.db")
         # ==== Make Sequence DB ====
         logging.info("Diamond makedb")
-        print("== Making Sequence DB ==")
+        logging.info("== Making Sequence DB ==")
         result = os.system(f"diamond makedb --in {in_aa_reference_fp} -d {db_ref_fp}")
         if result != 0:
             raise RuntimeError(
                 "Error occurred while making sequence DB with diamond makedb"
             )
     except Exception as e:
-        print(f"An error occurred while making sequence DB: {e}")
+        logging.error(f"An error occurred while making sequence DB: {e}")
         raise
 
     try:
@@ -153,7 +153,7 @@ def nuc_to_aa_alignment(
                 "Error occurred while aligning to AA with diamond blastx"
             )
     except Exception as e:
-        print(f"An error occurred while aligning to AA: {e}")
+        logging.error(f"An error occurred while aligning to AA: {e}")
         raise
     finally:
         # Ensure the temporary fasta file is deleted
@@ -268,8 +268,6 @@ def read_in_AlignedReads_aa_seq_and_ins(
                 padded_aa_alignment = convert.pad_alignment(
                     aa_aligned, pos, gene_set.get_gene_length(gene_name)
                 )
-
-                print(f"type of aa_insertions: {type(aa_insertions)}")
 
                 aa_ins = [
                     AAInsertion(position=ins_pos, sequence=ins_seq)
