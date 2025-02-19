@@ -6,12 +6,14 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from sr2silo.silo_aligned_read import AlignedReadSchema
 from pydantic import ValidationError
+
+from sr2silo.silo_aligned_read import AlignedReadSchema
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
 
 class NucInsertion:
     """A nuclotide insertion."""

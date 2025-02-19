@@ -1,12 +1,16 @@
 """SILO-specific pydantic schemas for AlignedRead JSON format."""
 
 from __future__ import annotations
-import json
-import logging
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, RootModel, model_validator
 
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+import logging
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel, RootModel
+
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 
 # --- SILO-specific pydantic schemas for AlignedRead JSON format ---
 class ReadMetadata(BaseModel):
@@ -24,20 +28,26 @@ class ReadMetadata(BaseModel):
     sampling_date: str
     primer_protocol_name: str
 
+
 class AlignedNucleotideSequences(BaseModel):
     main: str
+
 
 class UnalignedNucleotideSequences(BaseModel):
     main: str
 
+
 class NucleotideInsertions(BaseModel):
     main: List[str]
+
 
 class AminoAcidSequences(RootModel):
     root: Dict[str, Optional[str]]
 
+
 class AminoAcidInsertions(RootModel):
     root: Dict[str, List[str]]
+
 
 class AlignedReadSchema(BaseModel):
     metadata: Optional[ReadMetadata] = None
@@ -46,4 +56,3 @@ class AlignedReadSchema(BaseModel):
     alignedNucleotideSequences: AlignedNucleotideSequences
     unalignedNucleotideSequences: UnalignedNucleotideSequences
     alignedAminoAcidSequences: AminoAcidSequences
-

@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-from sr2silo.silo_aligned_read import ReadMetadata
-
 import pytest
 from pydantic import ValidationError
 
 from sr2silo.process.interface import (
-    NucInsertion,
     AAInsertion,
-    AlignedRead,
-    GeneName,
-    Gene,
-    GeneSet,
     AAInsertionSet,
     AASequenceSet,
+    AlignedRead,
+    Gene,
+    GeneName,
+    GeneSet,
+    NucInsertion,
 )
+from sr2silo.silo_aligned_read import ReadMetadata
 
 
 def test_nuc_insertion():
@@ -139,4 +138,3 @@ def test_to_silo_json():
             read.to_silo_json()
         except ValidationError as e:
             pytest.fail(f"Validation error: {e}")
-
