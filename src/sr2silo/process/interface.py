@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, RootModel, ValidationError, root_validator
+from pydantic import BaseModel, RootModel, ValidationError, model_validator
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -15,7 +15,6 @@ logging.basicConfig(
 
 # --- New Pydantic schemas for AlignedRead JSON format ---
 class ReadMetadata(BaseModel):
-
     read_id: str
     sequencing_date: str
     location_name: str
@@ -59,7 +58,7 @@ class AlignedReadSchema(BaseModel):
     unalignedNucleotideSequences: UnalignedNucleotideSequences
     alignedAminoAcidSequences: AminoAcidSequences
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
     def add_default_metadata(cls, values):
         if "metadata" not in values or values["metadata"] is None:
             values["metadata"] = {
