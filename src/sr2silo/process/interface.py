@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -48,14 +48,16 @@ class AlignedRead:
         nucleotide_insertions: List[NucInsertion],
         amino_acid_insertions: AAInsertionSet,
         aligned_amino_acid_sequences: AASequenceSet,
+        metadata: Optional[Dict[str, str]] = None,
     ):
+        """Initialize with a AlignedRead object."""
         self.read_id = read_id
         self.unaligned_nucleotide_sequences = unaligned_nucleotide_sequences
         self.aligned_nucleotide_sequences = aligned_nucleotide_sequences
         self.nucleotide_insertions = nucleotide_insertions
         self.amino_acid_insertions = amino_acid_insertions
         self.aligned_amino_acid_sequences = aligned_amino_acid_sequences
-
+        self.metadata = metadata
         self._validate_types()
 
     def _validate_types(self):
@@ -86,6 +88,10 @@ class AlignedRead:
                 f"aligned_amino_acid_sequences must be a dict, got "
                 f"{type(self.aligned_amino_acid_sequences).__name__}"
             )
+        if self.metadata is not None and not isinstance(self.metadata, dict):
+            raise TypeError(
+                f"metadata must be a dict, got {type(self.metadata).__name__}"
+            )
 
     def set_nuc_insertion(self, nuc_insertion: NucInsertion):
         """Append a nucleotide insertion to the list of nucleotide insertions."""
@@ -114,11 +120,15 @@ class AlignedRead:
             },
             "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.to_dict(),
         }
+        if self.metadata:
+            json_representation["metadata"] = self.metadata
         return json_representation
 
+    # TODO: add to_silo_json method with read_id nested in metadata
+
     def __str__(self) -> str:
-        """toString method ad JSON string."""
-        return json.dumps(self.to_dict())
+        """toString method as pretty JSON string."""
+        return json.dumps(self.to_dict(), indent=2)
 
     @staticmethod
     def from_str(data: str) -> AlignedRead:
