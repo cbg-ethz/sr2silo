@@ -89,6 +89,9 @@ def process_directory(
 
     # TODO: absolb all these intermediary files into a temporary directory
 
+    ## print PWD
+    logging.info(f"Current working directory: {os.getcwd()}")
+
     # check that one was given a directory and not a file and it exists
     if not input_dir.is_dir():
         logging.error(f"Input directory not found, is it a directory?: {input_dir}")
@@ -107,7 +110,7 @@ def process_directory(
     sample_to_process.enrich_metadata(timeline_file, primers_file)
     metadata = sample_to_process.get_metadata()
     # add nextclade reference to metadata
-    resource_fp = Path("resources") / nuc_reference
+    resource_fp = Path("./resources") / nuc_reference
     nuc_reference_fp = resource_fp / "nuc_reference_genomes.fasta"
     aa_reference_fp = resource_fp / "aa_reference_genomes.fasta"
 
@@ -222,15 +225,15 @@ def main(
     logging.info(f"Running in CI environment: {ci_env}")
 
     process_directory(
-        input_dir=Path("sample"),
+        input_dir=Path(sample_dir),
         sample_id=sample_id,
         batch_id=batch_id,
-        result_dir=Path("results"),
-        timeline_file=Path("timeline.tsv"),
-        primers_file=Path("primers.yaml"),
+        result_dir=Path(result_dir),
+        timeline_file=Path(timeline_file),
+        primers_file=Path(primer_file),
         nuc_reference=nuc_reference,
         aa_reference=aa_reference,
-        database_config=Path("scripts/database_config.yaml"),
+        database_config=Path(database_config),
     )
 
 
