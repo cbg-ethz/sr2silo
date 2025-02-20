@@ -134,9 +134,14 @@ def process_directory(
 
     # write the aligned reads to a file
     aligned_reads_fp = result_dir / "silo_input.ndjson"
+
     with aligned_reads_fp.open("w") as f:
-        for read in aligned_reads:
-            f.write(read.to_str() + "\n")
+        for read in aligned_reads.values():
+            try:
+                f.write(read.to_silo_json() + "\n")
+            except Exception as e:
+                logging.error(f"Error writing read to file: {e}")
+                logging.error(f"Read: {read}")
 
     #####   Compress & Upload to S3  #####
     file_to_upload = aligned_reads_fp
