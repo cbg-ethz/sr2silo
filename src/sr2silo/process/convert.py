@@ -331,6 +331,7 @@ def pad_alignment(
     return padded_alignment
 
 
+# TODO: identify weather used for only AA or Nuc as well, adjust types // description
 def sam_to_seq_and_indels(
     seq: str, cigar: str
 ) -> Tuple[str, List[AAInsertion], List[Tuple[int, int]]]:

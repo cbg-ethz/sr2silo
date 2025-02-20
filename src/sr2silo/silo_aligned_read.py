@@ -16,18 +16,19 @@ class ReadMetadata(BaseModel):
     """SILO-specific pydantic schema for ReadMetadata JSON format."""
 
     read_id: str
+    sample_id: str
+    batch_id: str
+    sampling_date: str
     sequencing_date: str
     location_name: str
-    batch_id: str
     read_length: str
     primer_protocol: str
     location_code: str
     flow_cell_serial_number: str
-    nextclade_reference: str
     sequencing_well_position: str
-    sample_id: str
-    sampling_date: str
     primer_protocol_name: str
+    nuc_reference: str
+    aa_reference: str
 
 
 class AlignedNucleotideSequences(BaseModel):
