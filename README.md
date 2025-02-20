@@ -19,11 +19,9 @@
 
 ### Wrangling Short-Read Genomic Alignments for SILO Database
 
-This project will wrangle short-read genomic alignments, for example from wastewater-sampling, into a format for easy import into the SILO sequencing database.
+This project will wrangle short-read genomic alignments, for example from wastewater-sampling, into a format for easy import into [Loculus](https://github.com/loculus-project/loculus) and its sequence database SILO.
 
-### Purpose for V-Pipe's integration with Loculus
-
-sr2silo is designed to process a nucliotide alignments from `.bam` files with metadata, translate and align reads in amino acids, gracefully handling all insertions and deletions and upload the results to the [Loculus](https://github.com/loculus-project/loculus) backend, to be parsed by its custom database [LAPIS-SILO](https://github.com/GenSpectrum/LAPIS-SILO).
+sr2silo is designed to process a nucliotide alignments from `.bam` files with metadata, translate and align reads in amino acids, gracefully handling all insertions and deletions and upload the results to the backend [LAPIS-SILO](https://github.com/GenSpectrum/LAPIS-SILO).
 
 ## Project Organization
 
