@@ -40,35 +40,35 @@ To build the package and maintain dependencies, we use [Poetry](https://python-p
 In particular, it's good to install it and become familiar with its basic functionalities by reading the documentation.
 
 
-### Setting up the Development Environment
+### Setting up the Environment for Development
 
-1. Create and activate the conda environment from the `environment.yml` file:
-  ```bash
-  conda env create -f environment.yml
-  conda activate sr2silo
-  ```
+1. Clone the repository:
+   ```bash
+   git clone <repo-url>
+   cd sr2silo
+   ```
 
+2. Build and set up the Conda environment using the Makefile:
+   ```bash
+   make setup
+   ```
+   This command creates the Conda environment (if not already created), installs Poetry, and sets up Diamond.
 
-2. Set up the environment with development tools:
-  ```bash
-  poetry install --with dev
-  poetry run pre-commit install
-  ```
+3. Activate the environment:
+   ```bash
+   conda activate sr2silo
+   ```
 
-Then, you will be able to run tests:
-```bash
-$ poetry run pytest
-```
-... or check the types:
-```bash
-$ poetry run pyright
-```
+4. Install additional development dependencies:
+   ```bash
+   poetry install --with dev
+   poetry run pre-commit install
+   ```
 
-Alternatively, you may prefer to work with the right Python environment using:
-```bash
-$ poetry shell
-$ pytest
-```
+5. Run tests:
+   ```bash
+   poetry run pytest
+   ```
 
 ### [WIP]: Run V-Pipe to SILO Transformation
 This is currently implemented as script and under heavy development.
