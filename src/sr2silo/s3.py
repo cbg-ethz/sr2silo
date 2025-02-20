@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import bz2
 import logging
+import os
 import shutil
 from pathlib import Path
 
@@ -12,6 +13,10 @@ from botocore.exceptions import NoCredentialsError
 from moto import mock_aws
 
 from sr2silo.config import is_ci_environment
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def compress_bz2(input_fp: Path, output_fp: Path) -> None:
@@ -26,8 +31,8 @@ def compress_bz2(input_fp: Path, output_fp: Path) -> None:
             shutil.copyfileobj(f_in, f_out)
 
 
-def get_aws_credentials():
-    """Get AWS credentials from Docker secrets.
+def _get_aws_credentials(secrets_dir: Path) -> tuple[str, str, str]:
+    """Get AWS credentials secrets.
 
     Returns:
         Tuple[str, str, str]: AWS access key ID, AWS secret access key,
@@ -37,14 +42,87 @@ def get_aws_credentials():
         RuntimeError: If any of the required secrets are missing.
     """
     try:
-        with open("/run/secrets/aws_access_key_id") as f:
+        with open(secrets_dir / "aws_access_key_id") as f:
             aws_access_key_id = f.read().strip()
-        with open("/run/secrets/aws_secret_access_key") as f:
+        with open(secrets_dir / "aws_secret_access_key") as f:
             aws_secret_access_key = f.read().strip()
-        with open("/run/secrets/aws_default_region") as f:
+        with open(secrets_dir / "aws_default_region") as f:
             aws_default_region = f.read().strip()
     except FileNotFoundError as e:
         raise RuntimeError("Required secret is missing: " + str(e))
+
+    return aws_access_key_id, aws_secret_access_key, aws_default_region
+
+
+def get_aws_credentials_from_docker_secrets():
+    """Get AWS credentials from Docker secrets.
+
+    Returns:
+        Tuple[str, str, str]: AWS access key ID, AWS secret access key,
+        and AWS default region.
+
+    Raises:
+        RuntimeError: If any of the required secrets are missing.
+    """
+    return _get_aws_credentials(Path("/run/secrets/"))
+
+
+def _is_running_in_docker():
+    # Check if running in Docker by verifying the existence of /.dockerenv
+    if os.path.exists("/.dockerenv"):
+        return True
+    # Alternatively, check /proc/1/cgroup for docker indication
+    try:
+        with open("/proc/1/cgroup", "rt") as f:
+            if any("docker" in line for line in f):
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def get_aws_credentials():
+    """Get AWS credentials secrets.
+
+    Returns:
+        Tuple[str, str, str]: AWS access key ID, AWS secret access key,
+        and AWS default region.
+
+    Raises:
+        RuntimeError: If any of the required secrets are missing.
+    """
+
+    PROJECT_SECRETS_DIR = Path("./secrets")
+
+    if _is_running_in_docker() or is_ci_environment():
+        (
+            aws_access_key_id,
+            aws_secret_access_key,
+            aws_default_region,
+        ) = get_aws_credentials_from_docker_secrets()
+    elif (
+        os.getenv("AWS_ACCESS_KEY_ID")
+        and os.getenv("AWS_SECRET_ACCESS_KEY")
+        and os.getenv("AWS_DEFAULT_REGION")
+    ):
+        # Get AWS credentials from environment variables
+        aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
+        aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+        aws_default_region = os.getenv("AWS_DEFAULT_REGION")
+    # check secrets folder exists with
+    elif os.path.exists(PROJECT_SECRETS_DIR):
+        (
+            aws_access_key_id,
+            aws_secret_access_key,
+            aws_default_region,
+        ) = _get_aws_credentials(PROJECT_SECRETS_DIR)
+
+    else:
+        logging.error("AWS credentials not found.")
+        logging.error(
+            "Please specify via environment variables, or localy in /secrets folder."
+        )
+        raise RuntimeError("AWS credentials not found.")
 
     return aws_access_key_id, aws_secret_access_key, aws_default_region
 
