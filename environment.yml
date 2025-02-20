@@ -7,5 +7,3 @@ dependencies:
   - python=3.10
   - nextclade
   - poetry
-  - pydantic
-  - click

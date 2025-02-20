@@ -1,0 +1,71 @@
+"""SILO-specific pydantic schemas for AlignedRead JSON format."""
+
+from __future__ import annotations
+
+import logging
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel, RootModel
+
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+
+class ReadMetadata(BaseModel):
+    """SILO-specific pydantic schema for ReadMetadata JSON format."""
+
+    read_id: str
+    sequencing_date: str
+    location_name: str
+    batch_id: str
+    read_length: str
+    primer_protocol: str
+    location_code: str
+    flow_cell_serial_number: str
+    nextclade_reference: str
+    sequencing_well_position: str
+    sample_id: str
+    sampling_date: str
+    primer_protocol_name: str
+
+
+class AlignedNucleotideSequences(BaseModel):
+    """SILO-specific pydantic schema for AlignedNucleotideSequences JSON format."""
+
+    main: str
+
+
+class UnalignedNucleotideSequences(BaseModel):
+    """SILO-specific pydantic schema for UnalignedNucleotideSequences JSON format."""
+
+    main: str
+
+
+class NucleotideInsertions(BaseModel):
+    """SILO-specific pydantic schema for NucleotideInsertions JSON format."""
+
+    main: List[str]
+
+
+class AminoAcidSequences(RootModel):
+    """SILO-specific pydantic schema for AminoAcidSequences JSON format."""
+
+    root: Dict[str, Optional[str]]
+
+
+class AminoAcidInsertions(RootModel):
+    """SILO-specific pydantic schema for AminoAcidInsertions JSON format."""
+
+    root: Dict[str, List[str]]
+
+
+class AlignedReadSchema(BaseModel):
+    """SILO-specific pydantic schema for AlignedRead JSON format."""
+
+    metadata: Optional[ReadMetadata] = None
+    nucleotideInsertions: NucleotideInsertions
+    aminoAcidInsertions: AminoAcidInsertions
+    alignedNucleotideSequences: AlignedNucleotideSequences
+    unalignedNucleotideSequences: UnalignedNucleotideSequences
+    alignedAminoAcidSequences: AminoAcidSequences
