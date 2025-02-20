@@ -139,7 +139,7 @@ def process_directory(
     with aligned_reads_fp.open("w") as f:
         for read in aligned_reads.values():
             try:
-                f.write(read.to_silo_json() + "\n")
+                f.write(read.to_silo_json(indent=False) + "\n")
             except Exception as e:
                 logging.error(f"Error writing read to file SILO JSON {e}")
                 logging.error(f"Read ID: {read.read_id}")
