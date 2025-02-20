@@ -20,9 +20,10 @@
 ### Wrangling Short-Read Genomic Alignments for SILO Database
 
 This project will wrangle short-read genomic alignments, for example from wastewater-sampling, into a format for easy import into the SILO sequencing database.
-### Usage of the V-Pipe Docker
 
-The V-Pipe Docker is designed to process a single `.bam` file and upload the results to SILO.
+### Purpose for V-Pipe's integration with Loculus
+
+sr2silo is designed to process a nucliotide alignments from `.bam` files with metadata, translate and align reads in amino acids, gracefully handling all insertions and deletions and upload the results to the [Loculus](https://github.com/loculus-project/loculus) backend, to be parsed by its custom database [LAPIS-SILO](https://github.com/GenSpectrum/LAPIS-SILO).
 
 ## Project Organization
 
@@ -40,37 +41,29 @@ To build the package and maintain dependencies, we use [Poetry](https://python-p
 In particular, it's good to install it and become familiar with its basic functionalities by reading the documentation.
 
 
-### Setting up the Environment for Development
+### Installation
 
-1. Clone the repository:
-   ```bash
-   git clone <repo-url>
-   cd sr2silo
-   ```
-
-2. Build and set up the Conda environment using the Makefile:
+1. Build and set up the Conda environment using the Makefile:
    ```bash
    make setup
    ```
    This command creates the Conda environment (if not already created), installs Poetry, and sets up Diamond.
 
-3. Activate the environment:
-   ```bash
-   conda activate sr2silo
-   ```
+#### Additional Setup for Development
 
-4. Install additional development dependencies:
+2. Install additional development dependencies:
    ```bash
    poetry install --with dev
    poetry run pre-commit install
    ```
 
-5. Run tests:
+3. Run tests:
    ```bash
    poetry run pytest
    ```
 
-### [WIP]: Run V-Pipe to SILO Transformation
+### [WIP]: Run the processing
+
 This is currently implemented as script and under heavy development.
 To run, we recommend a build as a docker compose as it relies on other RUST components.
 
