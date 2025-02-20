@@ -19,10 +19,9 @@
 
 ### Wrangling Short-Read Genomic Alignments for SILO Database
 
-This project will wrangle short-read genomic alignments, for example from wastewater-sampling, into a format for easy import into the SILO sequencing database.
-### Usage of the V-Pipe Docker
+This project will wrangle short-read genomic alignments, for example from wastewater-sampling, into a format for easy import into [Loculus](https://github.com/loculus-project/loculus) and its sequence database SILO.
 
-The V-Pipe Docker is designed to process a single `.bam` file and upload the results to SILO.
+sr2silo is designed to process a nucliotide alignments from `.bam` files with metadata, translate and align reads in amino acids, gracefully handling all insertions and deletions and upload the results to the backend [LAPIS-SILO](https://github.com/GenSpectrum/LAPIS-SILO).
 
 ## Project Organization
 
@@ -40,37 +39,29 @@ To build the package and maintain dependencies, we use [Poetry](https://python-p
 In particular, it's good to install it and become familiar with its basic functionalities by reading the documentation.
 
 
-### Setting up the Development Environment
+### Installation
 
-1. Create and activate the conda environment from the `environment.yml` file:
-  ```bash
-  conda env create -f environment.yml
-  conda activate sr2silo
-  ```
+1. Build and set up the Conda environment using the Makefile:
+   ```bash
+   make setup
+   ```
+   This command creates the Conda environment (if not already created), installs Poetry, and sets up Diamond.
 
+#### Additional Setup for Development
 
-2. Set up the environment with development tools:
-  ```bash
-  poetry install --with dev
-  poetry run pre-commit install
-  ```
+2. Install additional development dependencies:
+   ```bash
+   poetry install --with dev
+   poetry run pre-commit install
+   ```
 
-Then, you will be able to run tests:
-```bash
-$ poetry run pytest
-```
-... or check the types:
-```bash
-$ poetry run pyright
-```
+3. Run tests:
+   ```bash
+   poetry run pytest
+   ```
 
-Alternatively, you may prefer to work with the right Python environment using:
-```bash
-$ poetry shell
-$ pytest
-```
+### [WIP]: Run the processing
 
-### [WIP]: Run V-Pipe to SILO Transformation
 This is currently implemented as script and under heavy development.
 To run, we recommend a build as a docker compose as it relies on other RUST components.
 
