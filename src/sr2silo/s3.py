@@ -18,6 +18,11 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+# Set logging level to WARNING for boto3 and botocore
+logging.getLogger("boto3").setLevel(logging.WARNING)
+logging.getLogger("botocore").setLevel(logging.WARNING)
+logging.getLogger("s3transfer").setLevel(logging.WARNING)
+
 
 def compress_bz2(input_fp: Path, output_fp: Path) -> None:
     """Compress a file using BZ2 compression.

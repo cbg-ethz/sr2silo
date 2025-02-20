@@ -18,7 +18,7 @@ from sr2silo.silo import LapisClient, Submission
 from sr2silo.vpipe import Sample
 
 logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 
