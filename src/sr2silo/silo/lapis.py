@@ -74,8 +74,17 @@ class LapisClient:
                 },
                 files={"metadataFile": tsv_file, "sequenceFile": fasta_file},
             )
-
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logging.error(f"Error submitting data to Lapis: {e}")
+            logging.error(f"Response: {response.text}")
+            if "Client Error: Not Found for url" in response.text:
+                logging.error(
+                    "Please check your submission URL or group ID / that your "
+                    "Group exists."
+                )
+            raise e
 
         if response.status_code == 200:
             logging.info("Upload successful.")

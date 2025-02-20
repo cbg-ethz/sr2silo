@@ -169,9 +169,14 @@ def process_directory(
         KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
         SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
     else:
-        # get the real environment variables
-        KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
-        SUBMISSION_URL = os.getenv("SUBMISSION_URL")
+        if os.getenv("KEYCLOAK_TOKEN_URL") or os.getenv("SUBMISSION_URL"):
+            KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
+            SUBMISSION_URL = os.getenv("SUBMISSION_URL")
+        else:
+            logging.warning("KEYCLOAK_TOKEN_URL and SUBMISSION_URL not set.")
+            logging.warning("Using default values.")
+            KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
+            SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
 
     client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL)  # type: ignore
     client.authenticate(username="testuser", password="testuser")
@@ -179,7 +184,15 @@ def process_directory(
     fasta_str = Submission.generate_placeholder_fasta(submission_ids)
     submission = Submission(fasta_str, input_fp)
     response = client.submit(group_id=1, data=submission)
-    logging.info(f"Submission response: {response}")
+    if response.status_code == 200:
+        logging.info("Submission successful.")
+        logging.info(
+            "You can approve the upload for release at:\n\n"
+            "https://wise-seqs.loculus.org/salmonella/submission/1/review"
+        )
+    else:
+        logging.error(f"Error submitting data to Lapis: {response}")
+        logging.error(f"Response: {response.text}")
 
 
 @click.command()
