@@ -92,12 +92,13 @@ class AlignedRead:
                 f"aligned_amino_acid_sequences must be a dict, got "
                 f"{type(self.aligned_amino_acid_sequences).__name__}"
             )
+        # TODO: rework what metadata is allowed to be
         if self.metadata is not None and not isinstance(
             self.metadata, (dict, ReadMetadata)
         ):
             raise TypeError(
                 "metadata must be a dict or ReadMetadata, "
-                "got {type(self.metadata).__name__}"
+                f"got {type(self.metadata).__name__}"
             )
 
     def set_nuc_insertion(self, nuc_insertion: NucInsertion):
@@ -139,6 +140,8 @@ class AlignedRead:
             "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.to_dict(),
         }
         if self.metadata:
+            if isinstance(self.metadata, dict):
+                self.metadata["read_id"] = self.read_id
             json_representation["metadata"] = self.metadata
         return json_representation
 

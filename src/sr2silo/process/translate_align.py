@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import subprocess
@@ -336,4 +337,32 @@ def parse_translate_align(
         aligned_reads, AA_ALIGNMENT_FILE, gene_set
     )
 
+    return aligned_reads
+
+
+def enrich_AlignedReads_with_metadata(
+    aligned_reads: Dict[str, AlignedRead],
+    metadata_fp: Path,
+) -> Dict[str, AlignedRead]:
+    """Enrich the AlignedReads with metadata from a TSV file."""
+
+    try:
+        with open(metadata_fp, "r") as file:
+            metadata = json.load(file)
+    except FileNotFoundError:
+        logging.error("Error: File not found")
+        raise FileNotFoundError
+    except json.JSONDecodeError as e:
+        logging.error("Error: Invalid JSON format")
+        raise json.JSONDecodeError(e.msg, e.doc, e.pos)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {e}")
+        raise e
+
+    if metadata:
+        for read_id, read in aligned_reads.items():
+            read.metadata = metadata
+    else:
+        logging.error("No metadata found in the file")
+        raise ValueError("No metadata found in the file")
     return aligned_reads

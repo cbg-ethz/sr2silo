@@ -19,7 +19,11 @@ from sr2silo.process.interface import (
     GeneSet,
     NucInsertion,
 )
-from sr2silo.process.translate_align import nuc_to_aa_alignment, parse_translate_align
+from sr2silo.process.translate_align import (
+    enrich_AlignedReads_with_metadata,
+    nuc_to_aa_alignment,
+    parse_translate_align,
+)
 
 __all__ = [
     "bam_to_sam",
@@ -34,4 +38,5 @@ __all__ = [
     "GeneSet",
     "get_gene_set_from_ref",
     "parse_translate_align",
+    "enrich_AlignedReads_with_metadata",
 ]

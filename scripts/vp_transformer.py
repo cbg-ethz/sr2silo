@@ -12,7 +12,7 @@ import click
 import yaml
 
 from sr2silo.config import is_ci_environment
-from sr2silo.process import parse_translate_align
+from sr2silo.process import enrich_AlignedReads_with_metadata, parse_translate_align
 from sr2silo.s3 import compress_bz2, upload_file_to_s3
 from sr2silo.silo import LapisClient, Submission
 from sr2silo.vpipe import Sample
@@ -129,6 +129,7 @@ def process_directory(
     ##### Translate / Align / Normalize to JSON #####
 
     aligned_reads = parse_translate_align(nuc_reference_fp, aa_reference_fp, sample_fp)
+    aligned_reads = enrich_AlignedReads_with_metadata(aligned_reads, metadata_file)
 
     # TODO wrangle the aligned reads to aligned_reads_with_metadata and write to a file
 
