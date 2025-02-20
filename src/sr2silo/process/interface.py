@@ -288,7 +288,6 @@ class AAInsertionSet:
         return {
             str(gene): [f"{ins.position} : {ins.sequence}" for ins in ins_per_gene]
             for gene, ins_per_gene in self.aa_insertions.items()
-            if isinstance(ins_per_gene, list)
         }
 
     def __str__(self) -> str:
