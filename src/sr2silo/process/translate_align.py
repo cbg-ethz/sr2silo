@@ -13,7 +13,6 @@ from tqdm import tqdm
 
 import sr2silo.process.convert as convert
 from sr2silo.process.interface import (
-    AAInsertion,
     AAInsertionSet,
     AASequenceSet,
     AlignedRead,
@@ -269,12 +268,8 @@ def read_in_AlignedReads_aa_seq_and_ins(
                     aa_aligned, pos, gene_set.get_gene_length(gene_name)
                 )
 
-                aa_ins = [
-                    AAInsertion(position=ins_pos, sequence=ins_seq)
-                    for ins_pos, ins_seq in aa_insertions  # pyright: ignore
-                ]
                 aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(
-                    gene_name, aa_ins
+                    gene_name, aa_insertions
                 )
                 aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(
                     gene_name, padded_aa_alignment
