@@ -140,12 +140,13 @@ def process_directory(
             try:
                 f.write(read.to_silo_json() + "\n")
             except Exception as e:
-                logging.error(f"Error writing read to file: {e}")
+                logging.error(f"Error writing read to file SILO JSON {e}")
+                logging.error(f"Read ID: {read.read_id}")
                 logging.error(f"Read: {read}")
 
     #####   Compress & Upload to S3  #####
     file_to_upload = aligned_reads_fp
-    compressed_file = result_dir_transformed / "silo_input.ndjson.bz2"
+    compressed_file = result_dir / "silo_input.ndjson.bz2"
     logging.info(f"Compressing file: {file_to_upload}")
     compress_bz2(file_to_upload, compressed_file)
 
