@@ -53,7 +53,7 @@ def create_index(bam_file: Path):
 
         # Open BamFile and save with 'bai' extension
         pysam.index(bam_file_str)
-        print(f"Index created for {bam_file}")
+        logging.info(f"Index created for {bam_file}")
     except Exception as e:
         print(f"An error occurred: {e}")
 
