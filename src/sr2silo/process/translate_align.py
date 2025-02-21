@@ -117,49 +117,58 @@ def nuc_to_aa_alignment(
         --max-hsps 1
         --block-size 0.5
     """
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir_path = Path(temp_dir)
 
-    # temporary fasta file for AA alignment
-    fasta_nuc_for_aa_alignment = out_aa_alignment_fp.with_suffix(".tmp.fasta")
-
-    logging.info("Converting BAM to FASTQ for AA alignment")
-    logging.info("FASTA conversion for AA alignment")
-    convert.bam_to_fasta(in_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
-
-    try:
-        db_ref_fp = Path(in_aa_reference_fp.stem + ".temp.db")
-        # ==== Make Sequence DB ====
-        logging.info("Diamond makedb")
-        logging.info("== Making Sequence DB ==")
-        result = os.system(f"diamond makedb --in {in_aa_reference_fp} -d {db_ref_fp}")
-        if result != 0:
-            raise RuntimeError(
-                f"Error occurred while making sequence DB with diamond makedb "
-                f"- Error Code: {result}"
-            )
-    except Exception as e:
-        logging.error(f"An error occurred while making sequence DB - Error Code: {e}")
-        raise
-
-    try:
-        # ==== Alignment ====
-        logging.info("Diamond blastx alignment")
-        result = os.system(
-            f"diamond blastx -d {db_ref_fp} -q {fasta_nuc_for_aa_alignment} "
-            f"-o {out_aa_alignment_fp} "
-            f"--evalue 1 --gapopen 6 --gapextend 2 --outfmt 101 --matrix BLOSUM62 "
-            f"--unal 0 --max-hsps 1 --block-size 0.5"
+        # temporary fasta file for AA alignment
+        fasta_nuc_for_aa_alignment = temp_dir_path / out_aa_alignment_fp.with_suffix(
+            ".fasta"
         )
-        if result != 0:
-            raise RuntimeError(
-                "Error occurred while aligning to AA with diamond blastx"
+
+        logging.info("Converting BAM to FASTQ for AA alignment")
+        logging.info("FASTA conversion for AA alignment")
+        convert.bam_to_fasta(in_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
+
+        # temporary file file for amino acid reference DB
+        db_ref_fp = temp_dir_path / Path(in_aa_reference_fp.stem + ".temp.db")
+        try:
+            # ==== Make Sequence DB ====
+            logging.info("Diamond makedb")
+            logging.info("== Making Sequence DB ==")
+            result = os.system(
+                f"diamond makedb --in {in_aa_reference_fp} -d {db_ref_fp}"
             )
-    except Exception as e:
-        logging.error(f"An error occurred while aligning to AA: {e}")
-        raise
-    finally:
-        # Ensure the temporary fasta file is deleted
-        if fasta_nuc_for_aa_alignment.exists():
-            fasta_nuc_for_aa_alignment.unlink()
+            if result != 0:
+                raise RuntimeError(
+                    f"Error occurred while making sequence DB with diamond makedb "
+                    f"- Error Code: {result}"
+                )
+        except Exception as e:
+            logging.error(
+                f"An error occurred while making sequence DB - Error Code: {e}"
+            )
+            raise
+
+        try:
+            # ==== Alignment ====
+            logging.info("Diamond blastx alignment")
+            result = os.system(
+                f"diamond blastx -d {db_ref_fp} -q {fasta_nuc_for_aa_alignment} "
+                f"-o {out_aa_alignment_fp} "
+                f"--evalue 1 --gapopen 6 --gapextend 2 --outfmt 101 --matrix BLOSUM62 "
+                f"--unal 0 --max-hsps 1 --block-size 0.5"
+            )
+            if result != 0:
+                raise RuntimeError(
+                    "Error occurred while aligning to AA with diamond blastx"
+                )
+        except Exception as e:
+            logging.error(f"An error occurred while aligning to AA: {e}")
+            raise
+        finally:
+            # Ensure the temporary fasta file is deleted
+            if fasta_nuc_for_aa_alignment.exists():
+                fasta_nuc_for_aa_alignment.unlink()
 
     return None
 
@@ -283,60 +292,60 @@ def parse_translate_align(
     nuc_reference_fp: Path, aa_reference_fp: Path, nuc_alignment_fp: Path
 ) -> Dict[str, AlignedRead]:
     """Parse nucleotides, translate and align amino acids the input files."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir_path = Path(temp_dir)
+        FASTQ_NUC_ALIGNMENT_FILE = temp_dir_path / "output_with_indels.fastq"
+        FASTA_NUC_INSERTIONS_FILE = temp_dir_path / "output_ins.fasta"
+        AA_ALIGNMENT_FILE = temp_dir_path / "diamond_blastx.sam"
 
-    # TODO: move to temp files, once all tests are built
-    FASTQ_NUC_ALIGNMENT_FILE = Path("output_with_indels.fastq")
-    FASTA_NUC_INSERTIONS_FILE = Path("output_ins.fasta")
-    AA_ALIGNMENT_FILE = Path("diamond_blastx.sam")
+        missing_files = [
+            str(f)
+            for f in [nuc_reference_fp, aa_reference_fp, nuc_alignment_fp]
+            if not f.exists()
+        ]
+        if missing_files:
+            raise FileNotFoundError(f"Missing input files: {', '.join(missing_files)}")
+        # sort and index the input BAM file
+        nuc_aligment_sorted_indexed_fp = Path("combined_sorted.bam")
+        convert.sort_and_index_bam(nuc_alignment_fp, nuc_aligment_sorted_indexed_fp)
 
-    missing_files = [
-        str(f)
-        for f in [nuc_reference_fp, aa_reference_fp, nuc_alignment_fp]
-        if not f.exists()
-    ]
-    if missing_files:
-        raise FileNotFoundError(f"Missing input files: {', '.join(missing_files)}")
-    # sort and index the input BAM file
-    nuc_aligment_sorted_indexed_fp = Path("combined_sorted.bam")
-    convert.sort_and_index_bam(nuc_alignment_fp, nuc_aligment_sorted_indexed_fp)
+        logging.info("Parsing Nucleotides: BAM FASTQ conversion (with INDELS)")
+        convert.bam_to_fastq_handle_indels(
+            bam_file=nuc_aligment_sorted_indexed_fp,
+            out_fastq_fp=FASTQ_NUC_ALIGNMENT_FILE,
+            out_insertions_fp=FASTA_NUC_INSERTIONS_FILE,
+        )
 
-    logging.info("Parsing Nucleotides: BAM FASTQ conversion (with INDELS)")
-    convert.bam_to_fastq_handle_indels(
-        bam_file=nuc_aligment_sorted_indexed_fp,
-        out_fastq_fp=FASTQ_NUC_ALIGNMENT_FILE,
-        out_insertions_fp=FASTA_NUC_INSERTIONS_FILE,
-    )
+        # Call translation and alignment to prepare the files for downstream processing.
+        nuc_to_aa_alignment(
+            in_nuc_alignment_fp=nuc_aligment_sorted_indexed_fp,
+            in_aa_reference_fp=aa_reference_fp,
+            out_aa_alignment_fp=AA_ALIGNMENT_FILE,
+        )
 
-    # Call translation and alignment to prepare the files for downstream processing.
-    nuc_to_aa_alignment(
-        in_nuc_alignment_fp=nuc_aligment_sorted_indexed_fp,
-        in_aa_reference_fp=aa_reference_fp,
-        out_aa_alignment_fp=AA_ALIGNMENT_FILE,
-    )
+        with open(nuc_reference_fp, "r") as f:
+            nuc_reference = f.read()
+        nuc_reference_length = len(nuc_reference)
+        logging.info(f"Loaded nucleotide reference with length {nuc_reference_length}")
 
-    with open(nuc_reference_fp, "r") as f:
-        nuc_reference = f.read()
-    nuc_reference_length = len(nuc_reference)
-    logging.info(f"Loaded nucleotide reference with length {nuc_reference_length}")
+        gene_set = convert.get_gene_set_from_ref(aa_reference_fp)
+        logging.info(f"Loaded gene reference with genes: {gene_set}")
 
-    gene_set = convert.get_gene_set_from_ref(aa_reference_fp)
-    logging.info(f"Loaded gene reference with genes: {gene_set}")
+        logging.info("Processing nucleotide alignments")
+        aligned_reads = read_in_AlignedReads_nuc_seq(
+            FASTQ_NUC_ALIGNMENT_FILE, nuc_reference_length, gene_set
+        )
 
-    logging.info("Processing nucleotide alignments")
-    aligned_reads = read_in_AlignedReads_nuc_seq(
-        FASTQ_NUC_ALIGNMENT_FILE, nuc_reference_length, gene_set
-    )
+        logging.info("Adding nucleotide insertions to reads")
+        aligned_reads = read_in_AlignedReads_nuc_ins(
+            aligned_reads, FASTA_NUC_INSERTIONS_FILE
+        )
 
-    logging.info("Adding nucleotide insertions to reads")
-    aligned_reads = read_in_AlignedReads_nuc_ins(
-        aligned_reads, FASTA_NUC_INSERTIONS_FILE
-    )
-
-    # Process AA alignment file and update corresponding reads
-    logging.info("Processing AA alignments")
-    aligned_reads = read_in_AlignedReads_aa_seq_and_ins(
-        aligned_reads, AA_ALIGNMENT_FILE, gene_set
-    )
+        # Process AA alignment file and update corresponding reads
+        logging.info("Processing AA alignments")
+        aligned_reads = read_in_AlignedReads_aa_seq_and_ins(
+            aligned_reads, AA_ALIGNMENT_FILE, gene_set
+        )
 
     return aligned_reads
 

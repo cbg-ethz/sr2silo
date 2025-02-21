@@ -42,6 +42,8 @@ def create_index(bam_file: Path):
     """
     Create an index for a BAM file using pysam.
 
+    Leaves a .bai file in the same directory as the input BAM file.
+
     Args:
         bam_file (str): Path to the input BAM file.
     """
