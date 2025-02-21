@@ -42,6 +42,8 @@ def create_index(bam_file: Path):
     """
     Create an index for a BAM file using pysam.
 
+    Leaves a .bai file in the same directory as the input BAM file.
+
     Args:
         bam_file (str): Path to the input BAM file.
     """
@@ -101,7 +103,10 @@ def bam_to_sam(bam_file: Path) -> str:
 
 
 def bam_to_fastq_handle_indels(
-    bam_file, fastq_file, insertions_file, deletion_char="-"
+    bam_file: Path,
+    out_fastq_fp: Path,
+    out_insertions_fp: Path,
+    deletion_char: str = "-",
 ):
     """
     Convert a BAM file to a FASTQ file, removing insertions and adding a
@@ -116,9 +121,9 @@ def bam_to_fastq_handle_indels(
     :param insertions_file: Path to the output file containing insertions
     :param deletion_char: Special character to use for deletions
     """
-    with pysam.AlignmentFile(bam_file, "rb") as bam, open(
-        fastq_file, "w"
-    ) as fastq, open(insertions_file, "w") as insertions:
+    with pysam.AlignmentFile(str(bam_file), "rb") as bam, open(
+        out_fastq_fp, "w"
+    ) as fastq, open(out_insertions_fp, "w") as insertions:
         for read in bam.fetch():
             if not read.is_unmapped:
                 query_sequence = read.query_sequence if read.query_sequence else ""
@@ -331,6 +336,7 @@ def pad_alignment(
     return padded_alignment
 
 
+# TODO: identify whether used for only AA or Nuc as well, adjust types // description
 def sam_to_seq_and_indels(
     seq: str, cigar: str
 ) -> Tuple[str, List[AAInsertion], List[Tuple[int, int]]]:
@@ -536,3 +542,56 @@ def is_bam_indexed(bam_file):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return None
+
+
+def split_bam(
+    input_bam: Path, out_dir: Path, chunk_size: int, prefix="split_"
+) -> List[Path]:
+    """
+    Split a BAM file into smaller BAM files, each containing up to chunk_size reads.
+
+    Parameters:
+        input_bam (str): Path to the input BAM file.
+        chunk_size (int): Number of reads per output BAM file.
+        prefix (str): Prefix for the output BAM files (default: "split_").
+
+    Returns:
+        list: List of paths to the output BAM files.
+    """
+    # Open the input BAM file for reading in binary mode
+    bamfile = pysam.AlignmentFile(str(input_bam), "rb")
+
+    chunk_num = 1  # Initialize chunk number
+    count = 0  # Initialize read counter
+    current_chunk_file = None  # Initialize current chunk file as None
+
+    # Iterate through each read in the input BAM file
+    for read in bamfile:
+        # If count is 0, start a new chunk file
+        if count == 0:
+            # Close the previous chunk file if it exists
+            if current_chunk_file is not None:
+                current_chunk_file.close()
+            # Open a new chunk file with the original header
+            current_chunk_file = pysam.AlignmentFile(
+                str(out_dir / f"{prefix}{chunk_num}.bam"), "wb", header=bamfile.header
+            )
+            chunk_num += 1  # Increment chunk number for the next file
+
+        # Write the current read to the chunk file
+        if current_chunk_file is not None:
+            current_chunk_file.write(read)
+            count += 1  # Increment read counter
+
+        # If the chunk size is reached, reset the counter
+        if count == chunk_size:
+            count = 0
+
+    # Close the last chunk file if it was opened
+    if current_chunk_file is not None:
+        current_chunk_file.close()
+
+    # Close the input BAM file
+    bamfile.close()
+
+    return list(out_dir.glob(f"{prefix}*.bam"))

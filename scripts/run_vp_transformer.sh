@@ -4,10 +4,10 @@
 SAMPLE_DIR="./tests/data/samples_large/A1_05_2024_10_08/20241024_2411515907/alignments"
 SAMPLE_ID="A1_05_2024_10_08"
 BATCH_ID="20241024_2411515907"
-RESULTS_DIR="./tests/data/samples_original/A1_05_2024_10_08/20241024_2411515907/timeline_A1_05_2024_10_08.tsv"
-TIMELINE_FILE="./tests/data/samples_original/A1_05_2024_10_08/20241024_2411515907/timeline_A1_05_2024_10_08.tsv"
+RESULTS_DIR="./results_neo"
+TIMELINE_FILE="./tests/data/samples/timeline_A1_05_2024_10_08.tsv"
 PRIMERS_FILE="./tests/data/samples_large/primers.yaml"
-NUC_REFERENCE="sars-cov2"
+NUC_REFERENCE="sars-cov-2"
 DATABASE_CONFIG="./scripts/database_config.yaml"
 
 # Run the Python script with the arguments
