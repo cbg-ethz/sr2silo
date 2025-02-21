@@ -173,6 +173,7 @@ def nuc_to_aa_alignment(
     return None
 
 
+# TODO: rename to enrich_read_with_nuc_seq
 def read_in_AlignedReads_nuc_seq(
     fastq_nuc_alignment_file: Path, nuc_reference_length: int, gene_set: GeneSet
 ) -> Dict[str, AlignedRead]:
@@ -230,6 +231,7 @@ def read_in_AlignedReads_nuc_seq(
     return aligned_reads
 
 
+# TODO: rename to enrich_read_with_nuc_ins
 def read_in_AlignedReads_nuc_ins(
     aligned_reads: dict[str, AlignedRead], fasta_nuc_insertions_file: Path
 ) -> Dict[str, AlignedRead]:
@@ -250,6 +252,7 @@ def read_in_AlignedReads_nuc_ins(
     return aligned_reads
 
 
+# TODO: rename to enrich_read_with_aa_seq
 def read_in_AlignedReads_aa_seq_and_ins(
     aligned_reads: Dict[str, AlignedRead],
     fasta_aa_alignment_file: Path,
@@ -349,6 +352,7 @@ def parse_translate_align(
     return aligned_reads
 
 
+# TODO: rename to enrich_read_with_metadata
 def enrich_AlignedReads_with_metadata(
     aligned_reads: Dict[str, AlignedRead],
     metadata_fp: Path,
