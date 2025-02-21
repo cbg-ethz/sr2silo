@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-from contextlib import contextmanager
 from pathlib import Path
 
 import click
@@ -20,17 +19,6 @@ from sr2silo.vpipe import Sample
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
-
-@contextmanager
-def suppress_info_and_below():
-    logger = logging.getLogger()
-    original_level = logger.getEffectiveLevel()  # Save current level
-    logger.setLevel(logging.WARNING)  # Suppress INFO and below
-    try:
-        yield
-    finally:
-        logger.setLevel(original_level)  # Restore original level
 
 
 def load_config(config_file: Path) -> dict:

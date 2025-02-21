@@ -8,6 +8,7 @@ import logging
 import os
 import subprocess
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List
 
@@ -22,6 +23,19 @@ from sr2silo.process.interface import (
     GeneSet,
     NucInsertion,
 )
+
+
+# TODO: consider moving to utils
+@contextmanager
+def suppress_info_and_below():
+    """Suppress INFO and below log messages."""
+    logger = logging.getLogger()
+    original_level = logger.getEffectiveLevel()  # Save current level
+    logger.setLevel(logging.WARNING)  # Suppress INFO and below
+    try:
+        yield
+    finally:
+        logger.setLevel(original_level)  # Restore original level
 
 
 # TODO: to use as orthogonal test against blastX
@@ -392,7 +406,7 @@ def parse_translate_align_in_batches(
     nuc_alignment_fp: Path,
     metadata_fp: Path,
     output_fp: Path,
-    chunk_size: int = 500000,
+    chunk_size: int = 200000,
     write_chunk_size: int = 10000,
 ) -> None:
     """Parse nucleotides, translate and align amino acids in batches.
@@ -409,34 +423,29 @@ def parse_translate_align_in_batches(
         A chunk_size of 100000 reads is a good starting point for most cases.
         This will take about 3.5 GB ram for Covid Genomes and 1-2 minutes to process.
 
+    Logs:
+        All logs of INFO and below are suppressed.
+
     """
 
-    # split the input file into batches
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_dir_path = Path(temp_dir)
+    with suppress_info_and_below():
+        # split the input file into batches
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_dir_path = Path(temp_dir)
 
-        bam_splits_fps = convert.split_bam(
-            input_bam=nuc_alignment_fp, out_dir=temp_dir_path, chunk_size=chunk_size
-        )
-        # check file size and number of splits print to log
-        logging.info(f"Number of splits: {len(bam_splits_fps)}")
-        logging.info(f"Size of each split: {chunk_size}")
-        # get file sizes
-        for fp in bam_splits_fps:
-            file_size_mb = os.path.getsize(fp) / (1024 * 1024)
-            logging.info(f"Size of {fp.name}: {file_size_mb:.2f} MB")
-
-        # process each batch and write to a ndjson file
-        for i, bam_split_fp in enumerate(bam_splits_fps):
-            logging.info(f"Processing batch {i+1}")
-            aligned_reads = parse_translate_align(
-                nuc_reference_fp=nuc_reference_fp,
-                aa_reference_fp=aa_reference_fp,
-                nuc_alignment_fp=bam_split_fp,
+            bam_splits_fps = convert.split_bam(
+                input_bam=nuc_alignment_fp, out_dir=temp_dir_path, chunk_size=chunk_size
             )
+            # check file size and number of splits print to log
+            logging.info(f"Number of splits: {len(bam_splits_fps)}")
+            logging.info(f"Size of each split: {chunk_size}")
+            # get file sizes
+            for fp in bam_splits_fps:
+                file_size_mb = os.path.getsize(fp) / (1024 * 1024)
+                logging.info(f"Size of {fp.name}: {file_size_mb:.2f} MB")
 
-            with gzip.open(output_fp, "wt") as f:
-                buffer = []
+            # process each batch and write to a ndjson file
+            with tqdm(total=len(bam_splits_fps), desc="Processing batches") as pbar:
                 for i, bam_split_fp in enumerate(bam_splits_fps):
                     logging.info(f"Processing batch {i+1}")
                     aligned_reads = parse_translate_align(
@@ -444,15 +453,26 @@ def parse_translate_align_in_batches(
                         aa_reference_fp=aa_reference_fp,
                         nuc_alignment_fp=bam_split_fp,
                     )
-                    aligned_reads = enrich_read_with_metadata(
-                        aligned_reads, metadata_fp
-                    )
 
-                    for read in aligned_reads.values():
-                        buffer.append(json.dumps(read.to_silo_json()))
-                        if len(buffer) >= write_chunk_size:
+                    with gzip.open(output_fp, "wt") as f:
+                        buffer = []
+                        for i, bam_split_fp in enumerate(bam_splits_fps):
+                            logging.info(f"Processing batch {i+1}")
+                            aligned_reads = parse_translate_align(
+                                nuc_reference_fp=nuc_reference_fp,
+                                aa_reference_fp=aa_reference_fp,
+                                nuc_alignment_fp=bam_split_fp,
+                            )
+                            aligned_reads = enrich_read_with_metadata(
+                                aligned_reads, metadata_fp
+                            )
+
+                            for read in aligned_reads.values():
+                                buffer.append(json.dumps(read.to_silo_json()))
+                                if len(buffer) >= write_chunk_size:
+                                    f.write("\n".join(buffer) + "\n")
+                                    buffer = []
+                        # Write any remaining lines
+                        if buffer:
                             f.write("\n".join(buffer) + "\n")
-                            buffer = []
-                # Write any remaining lines
-                if buffer:
-                    f.write("\n".join(buffer) + "\n")
+                    pbar.update(1)
