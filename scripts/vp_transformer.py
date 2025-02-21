@@ -100,7 +100,6 @@ def process_directory(
 
     # TODO: absolb all these intermediary files into a temporary directory
 
-    ## print PWD
     logging.info(f"Current working directory: {os.getcwd()}")
 
     # check that one was given a directory and not a file and it exists

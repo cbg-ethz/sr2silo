@@ -193,7 +193,9 @@ def enrich_read_with_nuc_seq(
     with open(fastq_nuc_alignment_file, "r") as f:
         total_lines = sum(1 for _ in f) // 5  # Each entry consists of 5 lines
         f.seek(0)  # Reset file pointer to the beginning
-        with tqdm(total=total_lines, desc="Processing nucleotide alignments"):
+        with tqdm(
+            total=total_lines, desc="Processing nucleotide alignments", miniters=1
+        ) as pbar:
             while True:
                 lines = [f.readline().strip() for _ in range(5)]
                 if not lines[0]:
@@ -228,6 +230,7 @@ def enrich_read_with_nuc_seq(
                     ),
                 )
                 aligned_reads.update({read_id: read})
+                pbar.update(1)
     return aligned_reads
 
 
@@ -260,7 +263,9 @@ def enrich_read_with_aa_seq(
     with open(fasta_aa_alignment_file, "r") as f:
         total_lines = sum(1 for _ in f)
         f.seek(0)  # Reset file pointer to the beginning
-        with tqdm(total=total_lines, desc="Processing AA alignments") as pbar:
+        with tqdm(
+            total=total_lines, desc="Processing AA alignments", miniters=1
+        ) as pbar:
             for line in f:
                 if line.startswith("@"):  # skip header of .sam file
                     pbar.update(1)
@@ -286,6 +291,7 @@ def enrich_read_with_aa_seq(
                 aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(
                     gene_name, padded_aa_alignment
                 )
+                pbar.update(1)
     return aligned_reads
 
 
@@ -386,7 +392,7 @@ def parse_translate_align_in_batches(
     nuc_alignment_fp: Path,
     metadata_fp: Path,
     output_fp: Path,
-    chunk_size: int = 100000,
+    chunk_size: int = 500000,
     write_chunk_size: int = 10000,
 ) -> None:
     """Parse nucleotides, translate and align amino acids in batches.
