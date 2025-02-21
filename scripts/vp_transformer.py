@@ -11,12 +11,8 @@ from pathlib import Path
 import click
 
 from sr2silo.config import is_ci_environment
-from sr2silo.process import (
-    enrich_AlignedReads_with_metadata,
-    parse_translate_align,
-    parse_translate_align_in_batches,
-)
-from sr2silo.s3 import compress_bz2, upload_file_to_s3
+from sr2silo.process import parse_translate_align_in_batches
+from sr2silo.s3 import upload_file_to_s3
 from sr2silo.silo import LapisClient, Submission
 from sr2silo.vpipe import Sample
 

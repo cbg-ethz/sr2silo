@@ -353,8 +353,7 @@ def parse_translate_align(
     return aligned_reads
 
 
-# TODO: rename to enrich_read_with_metadata
-def enrich_AlignedReads_with_metadata(
+def enrich_read_with_metadata(
     aligned_reads: Dict[str, AlignedRead],
     metadata_fp: Path,
 ) -> Dict[str, AlignedRead]:
@@ -436,7 +435,7 @@ def parse_translate_align_in_batches(
                         aa_reference_fp=aa_reference_fp,
                         nuc_alignment_fp=bam_split_fp,
                     )
-                    aligned_reads = enrich_AlignedReads_with_metadata(
+                    aligned_reads = enrich_read_with_metadata(
                         aligned_reads, metadata_fp
                     )
 
