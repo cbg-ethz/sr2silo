@@ -24,8 +24,7 @@ def test_valid_database_config_file():
     assert metadata_schema is not None, "Missing metadata section in database config"
 
     # get the first field of each item as the names of the fields
-    # get the second field of each item as the trype of the fields
-
+    # get the second field of each item as the type of the fields
     field_names = [field.get("name") for field in metadata_schema]
 
     pydantic_schema = ReadMetadata.model_json_schema()
