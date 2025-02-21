@@ -294,6 +294,7 @@ def parse_translate_align(
     """Parse nucleotides, translate and align amino acids the input files."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir_path = Path(temp_dir)
+        BAM_NUC_ALIGNMENT_FILE = temp_dir_path / "combined_sorted.bam"
         FASTQ_NUC_ALIGNMENT_FILE = temp_dir_path / "output_with_indels.fastq"
         FASTA_NUC_INSERTIONS_FILE = temp_dir_path / "output_ins.fasta"
         AA_ALIGNMENT_FILE = temp_dir_path / "diamond_blastx.sam"
@@ -305,20 +306,18 @@ def parse_translate_align(
         ]
         if missing_files:
             raise FileNotFoundError(f"Missing input files: {', '.join(missing_files)}")
-        # sort and index the input BAM file
-        nuc_aligment_sorted_indexed_fp = Path("combined_sorted.bam")
-        convert.sort_and_index_bam(nuc_alignment_fp, nuc_aligment_sorted_indexed_fp)
+
+        convert.sort_and_index_bam(nuc_alignment_fp, BAM_NUC_ALIGNMENT_FILE)
 
         logging.info("Parsing Nucleotides: BAM FASTQ conversion (with INDELS)")
         convert.bam_to_fastq_handle_indels(
-            bam_file=nuc_aligment_sorted_indexed_fp,
+            bam_file=BAM_NUC_ALIGNMENT_FILE,
             out_fastq_fp=FASTQ_NUC_ALIGNMENT_FILE,
             out_insertions_fp=FASTA_NUC_INSERTIONS_FILE,
         )
 
-        # Call translation and alignment to prepare the files for downstream processing.
         nuc_to_aa_alignment(
-            in_nuc_alignment_fp=nuc_aligment_sorted_indexed_fp,
+            in_nuc_alignment_fp=BAM_NUC_ALIGNMENT_FILE,
             in_aa_reference_fp=aa_reference_fp,
             out_aa_alignment_fp=AA_ALIGNMENT_FILE,
         )

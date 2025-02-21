@@ -9,7 +9,6 @@ import os
 from pathlib import Path
 
 import click
-import yaml
 
 from sr2silo.config import is_ci_environment
 from sr2silo.process import enrich_AlignedReads_with_metadata, parse_translate_align
