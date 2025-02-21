@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -28,11 +29,15 @@ logging.basicConfig(
 def test_translate():
     """Test the translation function."""
 
-    translate_align.translate_nextclade(
-        [Path("tests/data/merged_expected.fasta")],
-        Path("output/"),
-        "nextstrain/sars-cov-2/XBB",
-    )
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        output_dir = Path(tmpdirname) / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        translate_align.translate_nextclade(
+            [Path("tests/data/merged_expected.fasta")],
+            output_dir,
+            "nextstrain/sars-cov-2/XBB",
+        )
     assert True
 
 
