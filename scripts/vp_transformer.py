@@ -127,7 +127,7 @@ def process_directory(
     ## TODO: to implement from smallgenomeutils
 
     ##### Translate / Align / Normalize to JSON #####
-    logging.info("Translating, aligning and normalizing reads to JSON")
+    logging.info("Start translating, aligning and normalizing reads to JSON")
     aligned_reads_fp = result_dir / "silo_input.ndjson.gz"
     parse_translate_align_in_batches(
         nuc_reference_fp=nuc_reference_fp,

@@ -245,7 +245,10 @@ def enrich_read_with_nuc_seq(
         total_lines = sum(1 for _ in f) // 5  # Each entry consists of 5 lines
         f.seek(0)  # Reset file pointer to the beginning
         with tqdm(
-            total=total_lines, desc="Processing nucleotide alignments", miniters=1
+            total=total_lines,
+            desc="Processing nucleotide alignments",
+            miniters=1,
+            leave=False,
         ) as pbar:
             while True:
                 lines = [f.readline().strip() for _ in range(5)]
@@ -315,7 +318,7 @@ def enrich_read_with_aa_seq(
         total_lines = sum(1 for _ in f)
         f.seek(0)  # Reset file pointer to the beginning
         with tqdm(
-            total=total_lines, desc="Processing AA alignments", miniters=1
+            total=total_lines, desc="Processing AA alignments", miniters=1, leave=False
         ) as pbar:
             for line in f:
                 if line.startswith("@"):  # skip header of .sam file
@@ -483,33 +486,25 @@ def parse_translate_align_in_batches(
 
             # process each batch and write to a ndjson file
             with tqdm(total=len(bam_splits_fps), desc="Processing batches") as pbar:
-                for i, bam_split_fp in enumerate(bam_splits_fps):
-                    logging.info(f"Processing batch {i+1}")
-                    aligned_reads = parse_translate_align(
-                        nuc_reference_fp=nuc_reference_fp,
-                        aa_reference_fp=aa_reference_fp,
-                        nuc_alignment_fp=bam_split_fp,
-                    )
+                with gzip.open(output_fp, "wt") as f:
+                    buffer = []
+                    for i, bam_split_fp in enumerate(bam_splits_fps):
+                        logging.info(f"Processing batch {i+1}")
+                        aligned_reads = parse_translate_align(
+                            nuc_reference_fp=nuc_reference_fp,
+                            aa_reference_fp=aa_reference_fp,
+                            nuc_alignment_fp=bam_split_fp,
+                        )
+                        aligned_reads = enrich_read_with_metadata(
+                            aligned_reads, metadata_fp
+                        )
 
-                    with gzip.open(output_fp, "wt") as f:
-                        buffer = []
-                        for i, bam_split_fp in enumerate(bam_splits_fps):
-                            logging.info(f"Processing batch {i+1}")
-                            aligned_reads = parse_translate_align(
-                                nuc_reference_fp=nuc_reference_fp,
-                                aa_reference_fp=aa_reference_fp,
-                                nuc_alignment_fp=bam_split_fp,
-                            )
-                            aligned_reads = enrich_read_with_metadata(
-                                aligned_reads, metadata_fp
-                            )
-
-                            for read in aligned_reads.values():
-                                buffer.append(json.dumps(read.to_silo_json()))
-                                if len(buffer) >= write_chunk_size:
-                                    f.write("\n".join(buffer) + "\n")
-                                    buffer = []
-                        # Write any remaining lines
-                        if buffer:
-                            f.write("\n".join(buffer) + "\n")
-                    pbar.update(1)
+                        for read in aligned_reads.values():
+                            buffer.append(json.dumps(read.to_silo_json()))
+                            if len(buffer) >= write_chunk_size:
+                                f.write("\n".join(buffer) + "\n")
+                                buffer = []
+                        pbar.update(1)
+                    # Write any remaining lines
+                    if buffer:
+                        f.write("\n".join(buffer) + "\n")
