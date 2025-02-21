@@ -382,10 +382,10 @@ def enrich_AlignedReads_with_metadata(
 
 
 def parse_translate_align_in_batches(
-    fastq_nuc_alignment_file: Path,
-    nuc_reference_length: int,
-    gene_set: GeneSet,
-    batch_size: int = 10000,
+    nuc_reference_fp: Path,
+    aa_reference_fp: Path,
+    nuc_alignment_fp: Path,
+    chunk_size: int = 100,
 ) -> Dict[str, AlignedRead]:
     """Parse nucleotides, translate and align amino acids in batches.
 
@@ -398,6 +398,36 @@ def parse_translate_align_in_batches(
         batch_size (int): Number of reads to process in each batch.
     """
 
+    out_dir = Path("output")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     # split the input file into batches
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir_path = Path(temp_dir)
+
+        bam_splits_fps = convert.split_bam(
+            input_bam=nuc_alignment_fp, out_dir=temp_dir_path, chunk_size=chunk_size
+        )
+        # check file size and number of splits print to log
+        logging.info(f"Number of splits: {len(bam_splits_fps)}")
+        logging.info(f"Size of each split: {chunk_size}")
+        # get file sizes
+        for fp in bam_splits_fps:
+            file_size_mb = os.path.getsize(fp) / (1024 * 1024)
+            logging.info(f"Size of {fp.name}: {file_size_mb:.2f} MB")
+
+        # process each batch and write to a ndjson file
+        for i, bam_split_fp in enumerate(bam_splits_fps):
+            logging.info(f"Processing batch {i+1}")
+            aligned_reads = parse_translate_align(
+                nuc_reference_fp=nuc_reference_fp,
+                aa_reference_fp=aa_reference_fp,
+                nuc_alignment_fp=bam_split_fp,
+            )
+            # write to a ndjson file
+            ndjson_fp = out_dir / f"aligned_reads_batch_{i+1}.ndjson"
+            with open(ndjson_fp, "w") as f:
+                for read in aligned_reads.values():
+                    f.write(read.to_silo_json() + "\n")
 
     raise NotImplementedError("This function is not yet implemented")

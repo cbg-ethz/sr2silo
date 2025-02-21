@@ -542,3 +542,56 @@ def is_bam_indexed(bam_file):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return None
+
+
+def split_bam(
+    input_bam: Path, out_dir: Path, chunk_size: int, prefix="split_"
+) -> List[Path]:
+    """
+    Split a BAM file into smaller BAM files, each containing up to chunk_size reads.
+
+    Parameters:
+        input_bam (str): Path to the input BAM file.
+        chunk_size (int): Number of reads per output BAM file.
+        prefix (str): Prefix for the output BAM files (default: "split_").
+
+    Returns:
+        list: List of paths to the output BAM files.
+    """
+    # Open the input BAM file for reading in binary mode
+    bamfile = pysam.AlignmentFile(str(input_bam), "rb")
+
+    chunk_num = 1  # Initialize chunk number
+    count = 0  # Initialize read counter
+    current_chunk_file = None  # Initialize current chunk file as None
+
+    # Iterate through each read in the input BAM file
+    for read in bamfile:
+        # If count is 0, start a new chunk file
+        if count == 0:
+            # Close the previous chunk file if it exists
+            if current_chunk_file is not None:
+                current_chunk_file.close()
+            # Open a new chunk file with the original header
+            current_chunk_file = pysam.AlignmentFile(
+                str(out_dir / f"{prefix}{chunk_num}.bam"), "wb", header=bamfile.header
+            )
+            chunk_num += 1  # Increment chunk number for the next file
+
+        # Write the current read to the chunk file
+        if current_chunk_file is not None:
+            current_chunk_file.write(read)
+            count += 1  # Increment read counter
+
+        # If the chunk size is reached, reset the counter
+        if count == chunk_size:
+            count = 0
+
+    # Close the last chunk file if it was opened
+    if current_chunk_file is not None:
+        current_chunk_file.close()
+
+    # Close the input BAM file
+    bamfile.close()
+
+    return list(out_dir.glob(f"{prefix}*.bam"))
