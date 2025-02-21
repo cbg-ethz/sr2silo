@@ -101,7 +101,10 @@ def bam_to_sam(bam_file: Path) -> str:
 
 
 def bam_to_fastq_handle_indels(
-    bam_file, fastq_file, insertions_file, deletion_char="-"
+    bam_file: Path,
+    out_fastq_fp: Path,
+    out_insertions_fp: Path,
+    deletion_char: str = "-",
 ):
     """
     Convert a BAM file to a FASTQ file, removing insertions and adding a
@@ -116,9 +119,9 @@ def bam_to_fastq_handle_indels(
     :param insertions_file: Path to the output file containing insertions
     :param deletion_char: Special character to use for deletions
     """
-    with pysam.AlignmentFile(bam_file, "rb") as bam, open(
-        fastq_file, "w"
-    ) as fastq, open(insertions_file, "w") as insertions:
+    with pysam.AlignmentFile(str(bam_file), "rb") as bam, open(
+        out_fastq_fp, "w"
+    ) as fastq, open(out_insertions_fp, "w") as insertions:
         for read in bam.fetch():
             if not read.is_unmapped:
                 query_sequence = read.query_sequence if read.query_sequence else ""

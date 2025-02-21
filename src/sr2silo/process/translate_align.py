@@ -302,9 +302,9 @@ def parse_translate_align(
 
     logging.info("Parsing Nucleotides: BAM FASTQ conversion (with INDELS)")
     convert.bam_to_fastq_handle_indels(
-        nuc_aligment_sorted_indexed_fp,
-        FASTQ_NUC_ALIGNMENT_FILE,
-        FASTA_NUC_INSERTIONS_FILE,
+        bam_file=nuc_aligment_sorted_indexed_fp,
+        out_fastq_fp=FASTQ_NUC_ALIGNMENT_FILE,
+        out_insertions_fp=FASTA_NUC_INSERTIONS_FILE,
     )
 
     # Call translation and alignment to prepare the files for downstream processing.
@@ -367,3 +367,25 @@ def enrich_AlignedReads_with_metadata(
         logging.error("No metadata found in the file")
         raise ValueError("No metadata found in the file")
     return aligned_reads
+
+
+def parse_translate_align_in_batches(
+    fastq_nuc_alignment_file: Path,
+    nuc_reference_length: int,
+    gene_set: GeneSet,
+    batch_size: int = 10000,
+) -> Dict[str, AlignedRead]:
+    """Parse nucleotides, translate and align amino acids in batches.
+
+    Args:
+        fastq_nuc_alignment_file (Path): Path to the FASTQ file with alignment
+                                        positions, produced by
+                                        `bam_to_fastq_handle_indels`.
+        nuc_reference_length (int): Length of the nucleotide reference genome.
+        gene_set (GeneSet): Set of genes for amino acid sequence alignment.
+        batch_size (int): Number of reads to process in each batch.
+    """
+
+    # split the input file into batches
+
+    raise NotImplementedError("This function is not yet implemented")
