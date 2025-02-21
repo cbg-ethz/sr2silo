@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 import logging
 import os
@@ -385,21 +386,25 @@ def parse_translate_align_in_batches(
     nuc_reference_fp: Path,
     aa_reference_fp: Path,
     nuc_alignment_fp: Path,
-    chunk_size: int = 100,
-) -> Dict[str, AlignedRead]:
+    output_fp: Path,
+    chunk_size: int = 10000,
+    write_chunk_size: int = 50,
+) -> None:
     """Parse nucleotides, translate and align amino acids in batches.
 
     Args:
-        fastq_nuc_alignment_file (Path): Path to the FASTQ file with alignment
-                                        positions, produced by
-                                        `bam_to_fastq_handle_indels`.
-        nuc_reference_length (int): Length of the nucleotide reference genome.
-        gene_set (GeneSet): Set of genes for amino acid sequence alignment.
-        batch_size (int): Number of reads to process in each batch.
+        nuc_reference_fp (Path): Path to the nucleotide reference genome - .fasta
+        aa_reference_fp (Path): Path to the amino acid reference genome - .fasta
+        nuc_alignment_fp (Path): Path to the nucleotide alignment file - .bam
+        output_fp (Path): Path to the output file - .ndjson.gz
+        chunk_size (int): Size of each batch, in number of reads.
+        write_chunk_size (int): Size of each write batch.
+
     """
 
     out_dir = Path("output")
     out_dir.mkdir(parents=True, exist_ok=True)
+    output_fp = out_dir / "output.ndjson.gz"
 
     # split the input file into batches
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -424,10 +429,21 @@ def parse_translate_align_in_batches(
                 aa_reference_fp=aa_reference_fp,
                 nuc_alignment_fp=bam_split_fp,
             )
-            # write to a ndjson file
-            ndjson_fp = out_dir / f"aligned_reads_batch_{i+1}.ndjson"
-            with open(ndjson_fp, "w") as f:
-                for read in aligned_reads.values():
-                    f.write(read.to_silo_json() + "\n")
 
-    raise NotImplementedError("This function is not yet implemented")
+            with gzip.open(output_fp, "wt") as f:
+                buffer = []
+                for i, bam_split_fp in enumerate(bam_splits_fps):
+                    logging.info(f"Processing batch {i+1}")
+                    aligned_reads = parse_translate_align(
+                        nuc_reference_fp=nuc_reference_fp,
+                        aa_reference_fp=aa_reference_fp,
+                        nuc_alignment_fp=bam_split_fp,
+                    )
+                    for read in aligned_reads.values():
+                        buffer.append(json.dumps(read.to_silo_json()))
+                        if len(buffer) >= write_chunk_size:
+                            f.write("\n".join(buffer) + "\n")
+                            buffer = []
+                # Write any remaining lines
+                if buffer:
+                    f.write("\n".join(buffer) + "\n")
