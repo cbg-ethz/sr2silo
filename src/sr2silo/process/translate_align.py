@@ -174,8 +174,7 @@ def nuc_to_aa_alignment(
     return None
 
 
-# TODO: rename to enrich_read_with_nuc_seq
-def read_in_AlignedReads_nuc_seq(
+def enrich_read_with_nuc_seq(
     fastq_nuc_alignment_file: Path, nuc_reference_length: int, gene_set: GeneSet
 ) -> Dict[str, AlignedRead]:
     """Read aligned reads from a FASTQ file with indels.
@@ -232,8 +231,7 @@ def read_in_AlignedReads_nuc_seq(
     return aligned_reads
 
 
-# TODO: rename to enrich_read_with_nuc_ins
-def read_in_AlignedReads_nuc_ins(
+def enrich_read_with_nuc_ins(
     aligned_reads: dict[str, AlignedRead], fasta_nuc_insertions_file: Path
 ) -> Dict[str, AlignedRead]:
     """Read in nucleotide insertions from a FASTA file and update the reads."""
@@ -253,8 +251,7 @@ def read_in_AlignedReads_nuc_ins(
     return aligned_reads
 
 
-# TODO: rename to enrich_read_with_aa_seq
-def read_in_AlignedReads_aa_seq_and_ins(
+def enrich_read_with_aa_seq(
     aligned_reads: Dict[str, AlignedRead],
     fasta_aa_alignment_file: Path,
     gene_set: GeneSet,
@@ -335,18 +332,18 @@ def parse_translate_align(
         logging.info(f"Loaded gene reference with genes: {gene_set}")
 
         logging.info("Processing nucleotide alignments")
-        aligned_reads = read_in_AlignedReads_nuc_seq(
+        aligned_reads = enrich_read_with_nuc_seq(
             FASTQ_NUC_ALIGNMENT_FILE, nuc_reference_length, gene_set
         )
 
         logging.info("Adding nucleotide insertions to reads")
-        aligned_reads = read_in_AlignedReads_nuc_ins(
+        aligned_reads = enrich_read_with_nuc_ins(
             aligned_reads, FASTA_NUC_INSERTIONS_FILE
         )
 
         # Process AA alignment file and update corresponding reads
         logging.info("Processing AA alignments")
-        aligned_reads = read_in_AlignedReads_aa_seq_and_ins(
+        aligned_reads = enrich_read_with_aa_seq(
             aligned_reads, AA_ALIGNMENT_FILE, gene_set
         )
 
