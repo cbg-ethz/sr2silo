@@ -32,7 +32,7 @@ def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
 
         # Using pysam.sort command to sort the BAM file and write to disk incrementally.
         pysam.sort("-o", output_bam_str, input_bam_str)
-        print(f"BAM file has been sorted and saved to {output_bam_str}")
+        logging.info(f"BAM file has been sorted and saved to {output_bam_str}")
     except Exception as e:
         print(f"An error occurred: {e}")
         raise Exception(f"An error occurred: {e}")
