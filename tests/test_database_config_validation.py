@@ -14,9 +14,9 @@ DATABASE_CONFIG = Path("resources/silo/database_config.yaml")
 
 
 def test_valid_database_config_file():
-    """Validateds that the schema of the database
+    """Validates that the schema of the database
     config file matches the ReadMetadata model
-    at least in the nameing of the fields
+    at least in the naming of the fields
     """
     with open(DATABASE_CONFIG, "r") as f:
         config = yaml.safe_load(f)
