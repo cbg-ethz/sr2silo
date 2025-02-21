@@ -105,6 +105,8 @@ def translate_nextclade(
             command = ["mv", f"{temp_dir}/results", str(result_path)]
 
 
+# TODO: consider passing the db if already present to this function,
+# to avoid recomputation, just extract this function from here
 def nuc_to_aa_alignment(
     in_nuc_alignment_fp: Path,
     in_aa_reference_fp: Path,
@@ -150,10 +152,20 @@ def nuc_to_aa_alignment(
             # ==== Make Sequence DB ====
             logging.info("Diamond makedb")
             logging.info("== Making Sequence DB ==")
-            result = os.system(
-                f"diamond makedb --in {in_aa_reference_fp} -d {db_ref_fp}"
+            result = subprocess.run(
+                [
+                    "diamond",
+                    "makedb",
+                    "--in",
+                    str(in_aa_reference_fp),
+                    "-d",
+                    str(db_ref_fp),
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
             )
-            if result != 0:
+            if result.returncode != 0:
                 raise RuntimeError(
                     f"Error occurred while making sequence DB with diamond makedb "
                     f"- Error Code: {result}"
@@ -167,13 +179,38 @@ def nuc_to_aa_alignment(
         try:
             # ==== Alignment ====
             logging.info("Diamond blastx alignment")
-            result = os.system(
-                f"diamond blastx -d {db_ref_fp} -q {fasta_nuc_for_aa_alignment} "
-                f"-o {out_aa_alignment_fp} "
-                f"--evalue 1 --gapopen 6 --gapextend 2 --outfmt 101 --matrix BLOSUM62 "
-                f"--unal 0 --max-hsps 1 --block-size 0.5"
+            result = subprocess.run(
+                [
+                    "diamond",
+                    "blastx",
+                    "-d",
+                    str(db_ref_fp),
+                    "-q",
+                    str(fasta_nuc_for_aa_alignment),
+                    "-o",
+                    str(out_aa_alignment_fp),
+                    "--evalue",
+                    "1",
+                    "--gapopen",
+                    "6",
+                    "--gapextend",
+                    "2",
+                    "--outfmt",
+                    "101",
+                    "--matrix",
+                    "BLOSUM62",
+                    "--unal",
+                    "0",
+                    "--max-hsps",
+                    "1",
+                    "--block-size",
+                    "0.5",
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=True,
             )
-            if result != 0:
+            if result.returncode != 0:
                 raise RuntimeError(
                     "Error occurred while aligning to AA with diamond blastx"
                 )
