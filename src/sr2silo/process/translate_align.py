@@ -386,9 +386,10 @@ def parse_translate_align_in_batches(
     nuc_reference_fp: Path,
     aa_reference_fp: Path,
     nuc_alignment_fp: Path,
+    metadata_fp: Path,
     output_fp: Path,
     chunk_size: int = 10000,
-    write_chunk_size: int = 50,
+    write_chunk_size: int = 1000,
 ) -> None:
     """Parse nucleotides, translate and align amino acids in batches.
 
@@ -439,6 +440,10 @@ def parse_translate_align_in_batches(
                         aa_reference_fp=aa_reference_fp,
                         nuc_alignment_fp=bam_split_fp,
                     )
+                    aligned_reads = enrich_AlignedReads_with_metadata(
+                        aligned_reads, metadata_fp
+                    )
+
                     for read in aligned_reads.values():
                         buffer.append(json.dumps(read.to_silo_json()))
                         if len(buffer) >= write_chunk_size:
