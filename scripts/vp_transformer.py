@@ -142,18 +142,12 @@ def process_directory(
         output_fp=aligned_reads_fp,
     )
 
-    #####   Compress & Upload to S3  #####
-    file_to_upload = aligned_reads_fp
-    compressed_file = result_dir / "silo_input.ndjson.bz2"
-    logging.info(f"Compressing file: {file_to_upload}")
-    compress_bz2(file_to_upload, compressed_file)
-
     #  Upload as generate a file name for the submission file, i.e. use the SAMPLE_ID
-    logging.info(f"Uploading to S3: {compressed_file}")
-    s3_file_name = f"{sample_id}.ndjson.bz2"
+    logging.info(f"Uploading to S3: {aligned_reads_fp}")
+    s3_file_name = f"{sample_id}.ndjson.gz"
     s3_bucket = "sr2silo01"
     s3_link = f"s3://{s3_bucket}/{s3_file_name}"
-    upload_file_to_s3(compressed_file, s3_bucket, s3_file_name)
+    upload_file_to_s3(aligned_reads_fp, s3_bucket, s3_file_name)
 
     ##### Submit S3 reference to SILO #####
     logging.info(f"Submitting to Loculus")

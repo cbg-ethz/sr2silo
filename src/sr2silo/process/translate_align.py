@@ -403,10 +403,6 @@ def parse_translate_align_in_batches(
 
     """
 
-    out_dir = Path("output")
-    out_dir.mkdir(parents=True, exist_ok=True)
-    output_fp = out_dir / "output.ndjson.gz"
-
     # split the input file into batches
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir_path = Path(temp_dir)
