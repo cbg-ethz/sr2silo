@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import subprocess
@@ -13,7 +14,6 @@ from tqdm import tqdm
 
 import sr2silo.process.convert as convert
 from sr2silo.process.interface import (
-    AAInsertion,
     AAInsertionSet,
     AASequenceSet,
     AlignedRead,
@@ -133,10 +133,11 @@ def nuc_to_aa_alignment(
         result = os.system(f"diamond makedb --in {in_aa_reference_fp} -d {db_ref_fp}")
         if result != 0:
             raise RuntimeError(
-                "Error occurred while making sequence DB with diamond makedb"
+                f"Error occurred while making sequence DB with diamond makedb "
+                f"- Error Code: {result}"
             )
     except Exception as e:
-        logging.error(f"An error occurred while making sequence DB: {e}")
+        logging.error(f"An error occurred while making sequence DB - Error Code: {e}")
         raise
 
     try:
@@ -269,12 +270,8 @@ def read_in_AlignedReads_aa_seq_and_ins(
                     aa_aligned, pos, gene_set.get_gene_length(gene_name)
                 )
 
-                aa_ins = [
-                    AAInsertion(position=ins_pos, sequence=ins_seq)
-                    for ins_pos, ins_seq in aa_insertions  # pyright: ignore
-                ]
                 aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(
-                    gene_name, aa_ins
+                    gene_name, aa_insertions
                 )
                 aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(
                     gene_name, padded_aa_alignment
@@ -341,4 +338,32 @@ def parse_translate_align(
         aligned_reads, AA_ALIGNMENT_FILE, gene_set
     )
 
+    return aligned_reads
+
+
+def enrich_AlignedReads_with_metadata(
+    aligned_reads: Dict[str, AlignedRead],
+    metadata_fp: Path,
+) -> Dict[str, AlignedRead]:
+    """Enrich the AlignedReads with metadata from a TSV file."""
+
+    try:
+        with open(metadata_fp, "r") as file:
+            metadata = json.load(file)
+    except FileNotFoundError:
+        logging.error("Error: File not found")
+        raise FileNotFoundError
+    except json.JSONDecodeError as e:
+        logging.error("Error: Invalid JSON format")
+        raise json.JSONDecodeError(e.msg, e.doc, e.pos)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {e}")
+        raise e
+
+    if metadata:
+        for read_id, read in aligned_reads.items():
+            read.metadata = metadata
+    else:
+        logging.error("No metadata found in the file")
+        raise ValueError("No metadata found in the file")
     return aligned_reads

@@ -117,8 +117,15 @@ def test_read_in_AligendReads_aa_ins():
 @pytest.mark.parametrize(
     "read_id, gene_name_str, pos, cigar, expected_seq, expected_insertions",
     [
-        ("read1", "GeneX", 10, "5M1I5M1D3M2I2M", "CLEARINS", [(15, "INS"), (18, "IN")]),
-        ("read2", "GeneY", 5, "3M2I4M", "SEQ", [(7, "IN")]),
+        (
+            "read1",
+            "GeneX",
+            10,
+            "5M1I5M1D3M2I2M",
+            "CLEARINS",
+            [AAInsertion(15, "INS"), AAInsertion(18, "IN")],
+        ),
+        ("read2", "GeneY", 5, "3M2I4M", "SEQ", [AAInsertion(7, "IN")]),
     ],
 )
 def test_read_in_AlignedReads_aa_seq_and_ins_multiple(
@@ -171,9 +178,7 @@ def test_read_in_AlignedReads_aa_seq_and_ins_multiple(
     expected_padded = convert.pad_alignment(expected_seq, pos, 50)
     # Expected AA insertions
     expected_ins_set = AAInsertionSet([gene_name])
-    expected_ins_set.set_insertions_for_gene(
-        gene_name_str, [AAInsertion(pos, ins) for pos, ins in expected_insertions]
-    )
+    expected_ins_set.set_insertions_for_gene(gene_name_str, expected_insertions)
 
     # Retrieve the AA insertions for gene from updated_reads
     read = updated_reads.get(read_id)
