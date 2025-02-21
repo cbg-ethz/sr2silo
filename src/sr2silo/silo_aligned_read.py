@@ -27,8 +27,7 @@ class ReadMetadata(BaseModel):
     flow_cell_serial_number: str
     sequencing_well_position: str
     primer_protocol_name: str
-    nuc_reference: str
-    aa_reference: str
+    nextclade_reference: str
 
 
 class AlignedNucleotideSequences(BaseModel):

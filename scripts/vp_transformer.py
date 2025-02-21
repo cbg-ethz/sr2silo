@@ -114,8 +114,10 @@ def process_directory(
     nuc_reference_fp = resource_fp / "nuc_reference_genomes.fasta"
     aa_reference_fp = resource_fp / "aa_reference_genomes.fasta"
 
-    metadata["nuc_reference"] = nuc_reference
-    metadata["aa_reference"] = aa_reference
+    # TODO: get reference from nextclade or loculus
+    metadata["nextclade_reference"] = nuc_reference
+    # metadata["nuc_reference"] = nuc_reference
+    # metadata["aa_reference"] = aa_reference
     metadata_file = result_dir / "metadata.json"
     result_dir.mkdir(parents=True, exist_ok=True)
     with metadata_file.open("w") as f:

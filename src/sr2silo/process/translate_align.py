@@ -133,10 +133,11 @@ def nuc_to_aa_alignment(
         result = os.system(f"diamond makedb --in {in_aa_reference_fp} -d {db_ref_fp}")
         if result != 0:
             raise RuntimeError(
-                "Error occurred while making sequence DB with diamond makedb"
+                f"Error occurred while making sequence DB with diamond makedb "
+                f"- Error Code: {result}"
             )
     except Exception as e:
-        logging.error(f"An error occurred while making sequence DB: {e}")
+        logging.error(f"An error occurred while making sequence DB - Error Code: {e}")
         raise
 
     try:
