@@ -332,11 +332,13 @@ def parse_translate_align(
         logging.info(f"Loaded gene reference with genes: {gene_set}")
 
         logging.info("Processing nucleotide alignments")
+        # TODO: speed up - check progress bar does not update
         aligned_reads = enrich_read_with_nuc_seq(
             FASTQ_NUC_ALIGNMENT_FILE, nuc_reference_length, gene_set
         )
 
         logging.info("Adding nucleotide insertions to reads")
+        # TODO: speed up - check progress bar does not update
         aligned_reads = enrich_read_with_nuc_ins(
             aligned_reads, FASTA_NUC_INSERTIONS_FILE
         )
@@ -384,8 +386,8 @@ def parse_translate_align_in_batches(
     nuc_alignment_fp: Path,
     metadata_fp: Path,
     output_fp: Path,
-    chunk_size: int = 10000,
-    write_chunk_size: int = 1000,
+    chunk_size: int = 100000,
+    write_chunk_size: int = 10000,
 ) -> None:
     """Parse nucleotides, translate and align amino acids in batches.
 
@@ -396,6 +398,10 @@ def parse_translate_align_in_batches(
         output_fp (Path): Path to the output file - .ndjson.gz
         chunk_size (int): Size of each batch, in number of reads.
         write_chunk_size (int): Size of each write batch.
+
+    Resources:
+        A chunk_size of 100000 reads is a good starting point for most cases.
+        This will take about 3.5 GB ram for Covid Genomes and 1-2 minutes to process.
 
     """
 

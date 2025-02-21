@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from contextlib import contextmanager
 from pathlib import Path
 
 import click
@@ -19,6 +20,17 @@ from sr2silo.vpipe import Sample
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
+
+@contextmanager
+def suppress_info_and_below():
+    logger = logging.getLogger()
+    original_level = logger.getEffectiveLevel()  # Save current level
+    logger.setLevel(logging.WARNING)  # Suppress INFO and below
+    try:
+        yield
+    finally:
+        logger.setLevel(original_level)  # Restore original level
 
 
 def load_config(config_file: Path) -> dict:
@@ -128,8 +140,8 @@ def process_directory(
     ## TODO: to implement from smallgenomeutils
 
     ##### Translate / Align / Normalize to JSON #####
+    logging.info("Translating, aligning and normalizing reads to JSON")
     aligned_reads_fp = result_dir / "silo_input.ndjson.gz"
-
     parse_translate_align_in_batches(
         nuc_reference_fp=nuc_reference_fp,
         aa_reference_fp=aa_reference_fp,
