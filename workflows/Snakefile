@@ -3,14 +3,14 @@
 """
 
 # Data to Process
-BASE_SAMPLE_DIR = ""
+BASE_SAMPLE_DIR = "/Users/koehng/Workspace/data/sr2silo/demo_real"
 SAMPLE_BATCH_IDS = [(),()] # List of tuples of sample_id and batch_id
 # Metadata / Reference
-TIMELINE_FILE = ""
-PRIMERS_FILE = ""
-NUC_REFERENCE = ""
+TIMELINE_FILE = "/Users/koehng/Workspace/data/sr2silo/demo_real/timeline.tsv"
+PRIMERS_FILE = "./tests/data/samples_large/primers.yaml"
+NUC_REFERENCE = "sars-cov-2"
 # Output
-RESULTS_DIR = [""]
+RESULTS_DIR = "/Users/koehng/Workspace/data/sr2silo/demo_real/results"
 
 rule all:
     input:
