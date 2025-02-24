@@ -92,12 +92,13 @@ class AlignedRead:
                 f"aligned_amino_acid_sequences must be a dict, got "
                 f"{type(self.aligned_amino_acid_sequences).__name__}"
             )
+        # TODO: rework what metadata is allowed to be
         if self.metadata is not None and not isinstance(
             self.metadata, (dict, ReadMetadata)
         ):
             raise TypeError(
                 "metadata must be a dict or ReadMetadata, "
-                "got {type(self.metadata).__name__}"
+                f"got {type(self.metadata).__name__}"
             )
 
     def set_nuc_insertion(self, nuc_insertion: NucInsertion):
@@ -139,17 +140,21 @@ class AlignedRead:
             "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.to_dict(),
         }
         if self.metadata:
+            if isinstance(self.metadata, dict):
+                self.metadata["read_id"] = self.read_id
             json_representation["metadata"] = self.metadata
         return json_representation
 
-    def to_silo_json(self) -> None:
+    def to_silo_json(self, indent: bool = True) -> str:
         """
         Validate the aligned read dict using a pydantic schema and print a
         nicely formatted JSON string conforming to the DB requirements.
         """
         try:
             schema = AlignedReadSchema(**self.to_dict())
-            print(schema.model_dump_json(indent=2, exclude_none=True))
+            return schema.model_dump_json(
+                indent=2 if indent else None, exclude_none=True
+            )
         except ValidationError as e:
             raise e
 
@@ -288,7 +293,6 @@ class AAInsertionSet:
         return {
             str(gene): [f"{ins.position} : {ins.sequence}" for ins in ins_per_gene]
             for gene, ins_per_gene in self.aa_insertions.items()
-            if isinstance(ins_per_gene, list)
         }
 
     def __str__(self) -> str:
