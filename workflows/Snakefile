@@ -2,13 +2,9 @@
     SILO ready ndjson.zst files.
 """
 
-
-
-
 # Data to Process
 BASE_SAMPLE_DIR = ""
-SAMPLE_IDS = [""]
-BATCH_IDS = [""]
+SAMPLE_BATCH_IDS = [(),()] # List of tuples of sample_id and batch_id
 # Metadata / Reference
 TIMELINE_FILE = ""
 PRIMERS_FILE = ""
@@ -16,15 +12,41 @@ NUC_REFERENCE = ""
 # Output
 RESULTS_DIR = [""]
 
+rule all:
+    input:
+        expand("{results_dir}/{sample_id}_{batch_id}/silo_input.ndjson", results_dir=RESULTS_DIR, sample_id=[s[0] for s in SAMPLE_BATCH_IDS], batch_id=[s[1] for s in SAMPLE_BATCH_IDS])
 
 rule construct_sample_fp:
     """Construct the input sample directory based on the sample_id and batch_id """
-    input:
-        sample_id = "{sample_id}",
-        batch_id = "{batch_id}"
     output:
-        sample_fp = "{sample_fp}"
-
+        sample_fp=lambda wildcards: f"{BASE_SAMPLE_DIR}/{wildcards.sample_id}/{wildcards.batch_id}/alignments"
+    shell:
+        "echo {output.sample_fp}"
 
 rule process_sample:
     """Processes the sample to ndjson, skip upload to loculus."""
+    input:
+        sample_fp=rules.construct_sample_fp.output.sample_fp
+    output:
+        result_fp=lambda wildcards: f"{RESULTS_DIR}/{wildcards.sample_id}_{wildcards.batch_id}/silo_input.ndjson"
+    params:
+        sample_id=lambda wildcards: wildcards.sample_id,
+        batch_id=lambda wildcards: wildcards.batch_id,
+        result_dir=lambda wildcards: f"{RESULTS_DIR}/{wildcards.sample_id}_{wildcards.batch_id}",
+        timeline_file=TIMELINE_FILE,
+        primers_file=PRIMERS_FILE,
+        nuc_reference=NUC_REFERENCE,
+        aa_reference=NUC_REFERENCE,  # Adding the nuc ref, here for placeholder same as nuc_reference
+        database_config="scripts/database_config.yaml"
+    shell:
+        """
+        python scripts/vp_transformer.py \
+            --sample_dir {input.sample_fp} \
+            --sample_id {params.sample_id} \
+            --batch_id {params.batch_id} \
+            --result_dir {params.result_dir} \
+            --timeline_file {params.timeline_file} \
+            --primer_file {params.primers_file} \
+            --reference {params.nuc_reference} \
+            --database_config {params.database_config}
+        """

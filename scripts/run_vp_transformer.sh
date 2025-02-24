@@ -18,4 +18,4 @@ python scripts/vp_transformer.py \
     --result_dir "$RESULTS_DIR" \
     --timeline_file "$TIMELINE_FILE" \
     --primer_file "$PRIMERS_FILE" \
-    --nuc_reference "$NUC_REFERENCE" \
+    --reference "$NUC_REFERENCE" \
