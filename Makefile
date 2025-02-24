@@ -17,9 +17,18 @@ install-poetry:
 	@conda run -n sr2silo pip install poetry
 	@conda run -n sr2silo poetry install
 
+.PHONY: install-snakemake
+install-snakemake:
+	@echo "Installing Snakemake in the sr2silo environment..."
+	@conda run -n sr2silo pip install snakemake
+
 .PHONY: setup
 setup: create-env activate-env install-poetry install-diamond
 	@echo "Environment setup complete."
+
+.PHONY: setup-with-snakemake
+setup-with-snakemake: create-env activate-env install-poetry install-diamond install-snakemake
+	@echo "Environment setup with Snakemake complete."
 
 .PHONY: install-diamond
 install-diamond:
