@@ -448,6 +448,7 @@ def parse_translate_align_in_batches(
     output_fp: Path,
     chunk_size: int = 500000,
     write_chunk_size: int = 100000,
+    compression: str = "zst",
 ) -> None:
     """Parse nucleotides, translate and align amino acids in batches.
 
@@ -455,9 +456,11 @@ def parse_translate_align_in_batches(
         nuc_reference_fp (Path): Path to the nucleotide reference genome - .fasta
         aa_reference_fp (Path): Path to the amino acid reference genome - .fasta
         nuc_alignment_fp (Path): Path to the nucleotide alignment file - .bam
-        output_fp (Path): Path to the output file - .ndjson.zst
+        metadata_fp (Path): Path to the metadata file - .json
+        output_fp (Path): Path to the output file - .ndjson
         chunk_size (int): Size of each batch, in number of reads.
         write_chunk_size (int): Size of each write batch.
+        compression (str): Compression method to use, default is "zst".
 
     Resources:
         A chunk_size of 100000 reads is a good starting point for most cases.
@@ -467,6 +470,12 @@ def parse_translate_align_in_batches(
         All logs of INFO and below are suppressed.
 
     """
+    if compression == "zst":
+        output_fp = output_fp.with_suffix(".ndjson.zst")
+    elif compression == "gz":
+        output_fp = output_fp.with_suffix(".ndjson.gz")
+    else:
+        raise ValueError(f"Unsupported compression method: {compression}")
 
     with suppress_info_and_below():
         # split the input file into batches
@@ -486,7 +495,7 @@ def parse_translate_align_in_batches(
 
             # process each batch and write to a ndjson file
             with tqdm(total=len(bam_splits_fps), desc="Processing batches") as pbar:
-                cctx = zstd.ZstdCompressor()
+                cctx = zstd.ZstdCompressor() if compression == "zst" else None
                 with open(output_fp, "wb") as f:
                     buffer = []
                     for i, bam_split_fp in enumerate(bam_splits_fps):
@@ -503,15 +512,13 @@ def parse_translate_align_in_batches(
                         for read in aligned_reads.values():
                             buffer.append(json.dumps(read.to_silo_json()))
                             if len(buffer) >= write_chunk_size:
-                                compressed_data = cctx.compress(
-                                    ("\n".join(buffer) + "\n").encode("utf-8")
-                                )
+                                data = ("\n".join(buffer) + "\n").encode("utf-8")
+                                compressed_data = cctx.compress(data) if cctx else data
                                 f.write(compressed_data)
                                 buffer = []
                         pbar.update(1)
                     # Write any remaining lines
                     if buffer:
-                        compressed_data = cctx.compress(
-                            ("\n".join(buffer) + "\n").encode("utf-8")
-                        )
+                        data = ("\n".join(buffer) + "\n").encode("utf-8")
+                        compressed_data = cctx.compress(data) if cctx else data
                         f.write(compressed_data)

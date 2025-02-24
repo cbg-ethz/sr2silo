@@ -67,6 +67,7 @@ def process_directory(
     primers_file: Path,
     file_name: str = "REF_aln_trim.bam",
     database_config: Path = Path("scripts/database_config.yaml"),
+    compression: str = "zst",
 ) -> None:
     """Process all files in a given directory.
 
@@ -81,6 +82,7 @@ def process_directory(
         timeline_file (Path): The timeline file to cross-reference the metadata.
         primers_file (Path): The primers file to cross-reference the metadata.
         file_name (str): The name of the file to process
+        compression (str): Compression method to use, default is "zst"
 
     Returns:
         None (writes results to the result_dir)
@@ -128,18 +130,20 @@ def process_directory(
 
     ##### Translate / Align / Normalize to JSON #####
     logging.info("Start translating, aligning and normalizing reads to JSON")
-    aligned_reads_fp = result_dir / "silo_input.ndjson.gz"
+    aligned_reads_fp = result_dir / "silo_input.ndjson"
     parse_translate_align_in_batches(
         nuc_reference_fp=nuc_reference_fp,
         aa_reference_fp=aa_reference_fp,
         nuc_alignment_fp=sample_fp,
         metadata_fp=metadata_file,
         output_fp=aligned_reads_fp,
+        compression=compression,
     )
 
     #  Upload as generate a file name for the submission file, i.e. use the SAMPLE_ID
+    aligned_reads_fp = aligned_reads_fp.with_suffix(f".ndjson.{compression}")
     logging.info(f"Uploading to S3: {aligned_reads_fp}")
-    s3_file_name = f"{sample_id}.ndjson.gz"
+    s3_file_name = f"{sample_id}.ndjson.{compression}"
     s3_bucket = "sr2silo01"
     s3_link = f"s3://{s3_bucket}/{s3_file_name}"
     upload_file_to_s3(aligned_reads_fp, s3_bucket, s3_file_name)
