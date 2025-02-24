@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import gzip
 import json
 import logging
 import os
@@ -12,6 +11,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List
 
+import zstandard as zstd
 from tqdm import tqdm
 
 import sr2silo.process.convert as convert
@@ -455,7 +455,7 @@ def parse_translate_align_in_batches(
         nuc_reference_fp (Path): Path to the nucleotide reference genome - .fasta
         aa_reference_fp (Path): Path to the amino acid reference genome - .fasta
         nuc_alignment_fp (Path): Path to the nucleotide alignment file - .bam
-        output_fp (Path): Path to the output file - .ndjson.gz
+        output_fp (Path): Path to the output file - .ndjson.zst
         chunk_size (int): Size of each batch, in number of reads.
         write_chunk_size (int): Size of each write batch.
 
@@ -486,7 +486,8 @@ def parse_translate_align_in_batches(
 
             # process each batch and write to a ndjson file
             with tqdm(total=len(bam_splits_fps), desc="Processing batches") as pbar:
-                with gzip.open(output_fp, "wt") as f:
+                cctx = zstd.ZstdCompressor()
+                with open(output_fp, "wb") as f:
                     buffer = []
                     for i, bam_split_fp in enumerate(bam_splits_fps):
                         logging.info(f"Processing batch {i+1}")
@@ -502,9 +503,15 @@ def parse_translate_align_in_batches(
                         for read in aligned_reads.values():
                             buffer.append(json.dumps(read.to_silo_json()))
                             if len(buffer) >= write_chunk_size:
-                                f.write("\n".join(buffer) + "\n")
+                                compressed_data = cctx.compress(
+                                    ("\n".join(buffer) + "\n").encode("utf-8")
+                                )
+                                f.write(compressed_data)
                                 buffer = []
                         pbar.update(1)
                     # Write any remaining lines
                     if buffer:
-                        f.write("\n".join(buffer) + "\n")
+                        compressed_data = cctx.compress(
+                            ("\n".join(buffer) + "\n").encode("utf-8")
+                        )
+                        f.write(compressed_data)
