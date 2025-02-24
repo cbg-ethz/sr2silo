@@ -446,8 +446,8 @@ def parse_translate_align_in_batches(
     nuc_alignment_fp: Path,
     metadata_fp: Path,
     output_fp: Path,
-    chunk_size: int = 200000,
-    write_chunk_size: int = 10000,
+    chunk_size: int = 500000,
+    write_chunk_size: int = 100000,
 ) -> None:
     """Parse nucleotides, translate and align amino acids in batches.
 
