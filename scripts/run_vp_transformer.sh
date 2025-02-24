@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the arguments
-SAMPLE_DIR="./tests/data/samples_large/A1_05_2024_10_08/20241024_2411515907/alignments"
+SAMPLE_DIR="./tests/data/samples/A1_05_2024_10_08/20241024_2411515907/alignments"
 SAMPLE_ID="A1_05_2024_10_08"
 BATCH_ID="20241024_2411515907"
 RESULTS_DIR="./results_neo"

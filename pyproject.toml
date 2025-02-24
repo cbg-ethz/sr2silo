@@ -16,6 +16,7 @@ psutil = "^6.1.1"
 tqdm = "^4.67.1"
 click = "^8.1.8"
 pydantic = "^2.10.6"
+zstandard = "^0.23.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.1"

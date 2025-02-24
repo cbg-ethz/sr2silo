@@ -9,11 +9,10 @@ import os
 from pathlib import Path
 
 import click
-import yaml
 
 from sr2silo.config import is_ci_environment
-from sr2silo.process import enrich_AlignedReads_with_metadata, parse_translate_align
-from sr2silo.s3 import compress_bz2, upload_file_to_s3
+from sr2silo.process import parse_translate_align_in_batches
+from sr2silo.s3 import upload_file_to_s3
 from sr2silo.silo import LapisClient, Submission
 from sr2silo.vpipe import Sample
 
@@ -68,6 +67,7 @@ def process_directory(
     primers_file: Path,
     file_name: str = "REF_aln_trim.bam",
     database_config: Path = Path("scripts/database_config.yaml"),
+    compression: str = "zst",
 ) -> None:
     """Process all files in a given directory.
 
@@ -82,6 +82,7 @@ def process_directory(
         timeline_file (Path): The timeline file to cross-reference the metadata.
         primers_file (Path): The primers file to cross-reference the metadata.
         file_name (str): The name of the file to process
+        compression (str): Compression method to use, default is "zst"
 
     Returns:
         None (writes results to the result_dir)
@@ -89,7 +90,6 @@ def process_directory(
 
     # TODO: absolb all these intermediary files into a temporary directory
 
-    ## print PWD
     logging.info(f"Current working directory: {os.getcwd()}")
 
     # check that one was given a directory and not a file and it exists
@@ -129,36 +129,24 @@ def process_directory(
     ## TODO: to implement from smallgenomeutils
 
     ##### Translate / Align / Normalize to JSON #####
-
-    aligned_reads = parse_translate_align(nuc_reference_fp, aa_reference_fp, sample_fp)
-    aligned_reads = enrich_AlignedReads_with_metadata(aligned_reads, metadata_file)
-
-    # TODO wrangle the aligned reads to aligned_reads_with_metadata and write to a file
-
-    # write the aligned reads to a file
+    logging.info("Start translating, aligning and normalizing reads to JSON")
     aligned_reads_fp = result_dir / "silo_input.ndjson"
-
-    with aligned_reads_fp.open("w") as f:
-        for read in aligned_reads.values():
-            try:
-                f.write(read.to_silo_json(indent=False) + "\n")
-            except Exception as e:
-                logging.error(f"Error writing read to file SILO JSON {e}")
-                logging.error(f"Read ID: {read.read_id}")
-                logging.error(f"Read: {read}")
-
-    #####   Compress & Upload to S3  #####
-    file_to_upload = aligned_reads_fp
-    compressed_file = result_dir / "silo_input.ndjson.bz2"
-    logging.info(f"Compressing file: {file_to_upload}")
-    compress_bz2(file_to_upload, compressed_file)
+    aligned_reads_fp = parse_translate_align_in_batches(
+        nuc_reference_fp=nuc_reference_fp,
+        aa_reference_fp=aa_reference_fp,
+        nuc_alignment_fp=sample_fp,
+        metadata_fp=metadata_file,
+        output_fp=aligned_reads_fp,
+    )
 
     #  Upload as generate a file name for the submission file, i.e. use the SAMPLE_ID
-    logging.info(f"Uploading to S3: {compressed_file}")
-    s3_file_name = f"{sample_id}.ndjson.bz2"
+    logging.info(f"Uploading to S3: {aligned_reads_fp}")
+    # get the file ending i.e. ndjson.zst
+    suffix = aligned_reads_fp.suffix
+    s3_file_name = f"{sample_id}.{suffix}"
     s3_bucket = "sr2silo01"
     s3_link = f"s3://{s3_bucket}/{s3_file_name}"
-    upload_file_to_s3(compressed_file, s3_bucket, s3_file_name)
+    upload_file_to_s3(aligned_reads_fp, s3_bucket, s3_file_name)
 
     ##### Submit S3 reference to SILO #####
     logging.info(f"Submitting to Loculus")
