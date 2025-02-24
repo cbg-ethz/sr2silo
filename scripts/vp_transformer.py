@@ -131,7 +131,7 @@ def process_directory(
     ##### Translate / Align / Normalize to JSON #####
     logging.info("Start translating, aligning and normalizing reads to JSON")
     aligned_reads_fp = result_dir / "silo_input.ndjson"
-    parse_translate_align_in_batches(
+    aligned_reads_fp = parse_translate_align_in_batches(
         nuc_reference_fp=nuc_reference_fp,
         aa_reference_fp=aa_reference_fp,
         nuc_alignment_fp=sample_fp,
@@ -141,7 +141,6 @@ def process_directory(
     )
 
     #  Upload as generate a file name for the submission file, i.e. use the SAMPLE_ID
-    aligned_reads_fp = aligned_reads_fp.with_suffix(f".ndjson.{compression}")
     logging.info(f"Uploading to S3: {aligned_reads_fp}")
     s3_file_name = f"{sample_id}.ndjson.{compression}"
     s3_bucket = "sr2silo01"

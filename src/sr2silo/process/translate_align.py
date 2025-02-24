@@ -449,7 +449,7 @@ def parse_translate_align_in_batches(
     chunk_size: int = 500000,
     write_chunk_size: int = 100000,
     compression: str = "zst",
-) -> None:
+) -> Path:
     """Parse nucleotides, translate and align amino acids in batches.
 
     Args:
@@ -461,6 +461,9 @@ def parse_translate_align_in_batches(
         chunk_size (int): Size of each batch, in number of reads.
         write_chunk_size (int): Size of each write batch.
         compression (str): Compression method to use, default is "zst".
+
+    Returns:
+        Path: The path to the output file with the correct suffix.
 
     Resources:
         A chunk_size of 100000 reads is a good starting point for most cases.
@@ -522,3 +525,5 @@ def parse_translate_align_in_batches(
                         data = ("\n".join(buffer) + "\n").encode("utf-8")
                         compressed_data = cctx.compress(data) if cctx else data
                         f.write(compressed_data)
+
+    return output_fp
