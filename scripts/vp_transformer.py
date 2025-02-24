@@ -67,7 +67,6 @@ def process_directory(
     primers_file: Path,
     file_name: str = "REF_aln_trim.bam",
     database_config: Path = Path("scripts/database_config.yaml"),
-    compression: str = "zst",
 ) -> None:
     """Process all files in a given directory.
 
