@@ -12,13 +12,13 @@ import click
 import yaml
 
 from sr2silo.config import is_ci_environment
-from sr2silo.process import parse_translate_align
+from sr2silo.process import enrich_AlignedReads_with_metadata, parse_translate_align
 from sr2silo.s3 import compress_bz2, upload_file_to_s3
 from sr2silo.silo import LapisClient, Submission
 from sr2silo.vpipe import Sample
 
 logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 
@@ -89,6 +89,9 @@ def process_directory(
 
     # TODO: absolb all these intermediary files into a temporary directory
 
+    ## print PWD
+    logging.info(f"Current working directory: {os.getcwd()}")
+
     # check that one was given a directory and not a file and it exists
     if not input_dir.is_dir():
         logging.error(f"Input directory not found, is it a directory?: {input_dir}")
@@ -107,12 +110,14 @@ def process_directory(
     sample_to_process.enrich_metadata(timeline_file, primers_file)
     metadata = sample_to_process.get_metadata()
     # add nextclade reference to metadata
-    resource_fp = Path("resources") / nuc_reference
+    resource_fp = Path("./resources") / nuc_reference
     nuc_reference_fp = resource_fp / "nuc_reference_genomes.fasta"
     aa_reference_fp = resource_fp / "aa_reference_genomes.fasta"
 
-    metadata["nuc_reference"] = nuc_reference
-    metadata["aa_reference"] = aa_reference
+    # TODO: get reference from nextclade or loculus
+    metadata["nextclade_reference"] = nuc_reference
+    # metadata["nuc_reference"] = nuc_reference
+    # metadata["aa_reference"] = aa_reference
     metadata_file = result_dir / "metadata.json"
     result_dir.mkdir(parents=True, exist_ok=True)
     with metadata_file.open("w") as f:
@@ -126,18 +131,25 @@ def process_directory(
     ##### Translate / Align / Normalize to JSON #####
 
     aligned_reads = parse_translate_align(nuc_reference_fp, aa_reference_fp, sample_fp)
+    aligned_reads = enrich_AlignedReads_with_metadata(aligned_reads, metadata_file)
 
     # TODO wrangle the aligned reads to aligned_reads_with_metadata and write to a file
 
     # write the aligned reads to a file
     aligned_reads_fp = result_dir / "silo_input.ndjson"
+
     with aligned_reads_fp.open("w") as f:
-        for read in aligned_reads:
-            f.write(read.to_str() + "\n")
+        for read in aligned_reads.values():
+            try:
+                f.write(read.to_silo_json(indent=False) + "\n")
+            except Exception as e:
+                logging.error(f"Error writing read to file SILO JSON {e}")
+                logging.error(f"Read ID: {read.read_id}")
+                logging.error(f"Read: {read}")
 
     #####   Compress & Upload to S3  #####
     file_to_upload = aligned_reads_fp
-    compressed_file = result_dir_transformed / "silo_input.ndjson.bz2"
+    compressed_file = result_dir / "silo_input.ndjson.bz2"
     logging.info(f"Compressing file: {file_to_upload}")
     compress_bz2(file_to_upload, compressed_file)
 
@@ -160,9 +172,14 @@ def process_directory(
         KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
         SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
     else:
-        # get the real environment variables
-        KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
-        SUBMISSION_URL = os.getenv("SUBMISSION_URL")
+        if os.getenv("KEYCLOAK_TOKEN_URL") or os.getenv("SUBMISSION_URL"):
+            KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
+            SUBMISSION_URL = os.getenv("SUBMISSION_URL")
+        else:
+            logging.warning("KEYCLOAK_TOKEN_URL and SUBMISSION_URL not set.")
+            logging.warning("Using default values.")
+            KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
+            SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
 
     client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL)  # type: ignore
     client.authenticate(username="testuser", password="testuser")
@@ -170,7 +187,15 @@ def process_directory(
     fasta_str = Submission.generate_placeholder_fasta(submission_ids)
     submission = Submission(fasta_str, input_fp)
     response = client.submit(group_id=1, data=submission)
-    logging.info(f"Submission response: {response}")
+    if response.status_code == 200:
+        logging.info("Submission successful.")
+        logging.info(
+            "You can approve the upload for release at:\n\n"
+            "https://wise-seqs.loculus.org/salmonella/submission/1/review"
+        )
+    else:
+        logging.error(f"Error submitting data to Lapis: {response}")
+        logging.error(f"Response: {response.text}")
 
 
 @click.command()
@@ -222,15 +247,15 @@ def main(
     logging.info(f"Running in CI environment: {ci_env}")
 
     process_directory(
-        input_dir=Path("sample"),
+        input_dir=Path(sample_dir),
         sample_id=sample_id,
         batch_id=batch_id,
-        result_dir=Path("results"),
-        timeline_file=Path("timeline.tsv"),
-        primers_file=Path("primers.yaml"),
+        result_dir=Path(result_dir),
+        timeline_file=Path(timeline_file),
+        primers_file=Path(primer_file),
         nuc_reference=nuc_reference,
         aa_reference=aa_reference,
-        database_config=Path("scripts/database_config.yaml"),
+        database_config=Path(database_config),
     )
 
 
