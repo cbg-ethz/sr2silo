@@ -137,12 +137,13 @@ def process_directory(
         nuc_alignment_fp=sample_fp,
         metadata_fp=metadata_file,
         output_fp=aligned_reads_fp,
-        compression=compression,
     )
 
     #  Upload as generate a file name for the submission file, i.e. use the SAMPLE_ID
     logging.info(f"Uploading to S3: {aligned_reads_fp}")
-    s3_file_name = f"{sample_id}.ndjson.{compression}"
+    # get the file ending i.e. ndjson.zst
+    suffix = aligned_reads_fp.suffix
+    s3_file_name = f"{sample_id}.{suffix}"
     s3_bucket = "sr2silo01"
     s3_link = f"s3://{s3_bucket}/{s3_file_name}"
     upload_file_to_s3(aligned_reads_fp, s3_bucket, s3_file_name)
