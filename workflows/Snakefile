@@ -1,0 +1,30 @@
+"""Workflow to process historical samples of V-Pipe nuclitide alignment to
+    SILO ready ndjson.zst files.
+"""
+
+
+
+
+# Data to Process
+BASE_SAMPLE_DIR = ""
+SAMPLE_IDS = [""]
+BATCH_IDS = [""]
+# Metadata / Reference
+TIMELINE_FILE = ""
+PRIMERS_FILE = ""
+NUC_REFERENCE = ""
+# Output
+RESULTS_DIR = [""]
+
+
+rule construct_sample_fp:
+    """Construct the input sample directory based on the sample_id and batch_id """
+    input:
+        sample_id = "{sample_id}",
+        batch_id = "{batch_id}"
+    output:
+        sample_fp = "{sample_fp}"
+
+
+rule process_sample:
+    """Processes the sample to ndjson, skip upload to loculus."""
