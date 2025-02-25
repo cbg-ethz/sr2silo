@@ -5,7 +5,7 @@
 import yaml
 
 # Load configuration
-with open("config.yaml", "r") as file:
+with open("workflow/config.yaml", "r") as file:
     config = yaml.safe_load(file)
 
 BASE_SAMPLE_DIR = config["BASE_SAMPLE_DIR"]
@@ -15,33 +15,26 @@ PRIMERS_FILE = config["PRIMERS_FILE"]
 NUC_REFERENCE = config["NUC_REFERENCE"]
 RESULTS_DIR = config["RESULTS_DIR"]
 
-
-rule all:
-    input:
-        expand(
-            "{results_dir}/{sample_id}.ndjson",
-            results_dir=RESULTS_DIR,
-            sample_id=config["SAMPLE_BATCH_IDS"].keys(),
-        ),
-
-
 def get_batch_id(sample_id):
     """Get the batch ids from the sample batch ids."""
     return SAMPLE_BATCH_IDS[sample_id]
 
-
-def get_sample_fps(sample_id):
-    """Construct the input sample directory based on the sample_id and batch_id."""
-    batch_id = get_batch_id(sample_id)
-    return f"{BASE_SAMPLE_DIR}/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam"
+rule all:
+    input:
+        expand(
+            "{results_dir}/sampleId-{sample_id}_batchId-{batch_id}.ndjson",
+            results_dir=RESULTS_DIR,
+            sample_id=SAMPLE_BATCH_IDS.keys(),
+            batch_id=[get_batch_id(sample_id) for sample_id in SAMPLE_BATCH_IDS.keys()],
+        ),
 
 
 rule process_sample:
     """Processes the sample to ndjson, skip upload to loculus."""
     input:
-        sample_fp=lambda wildcards: get_sample_fps(wildcards.sample_id),
+        sample_fp=f"{BASE_SAMPLE_DIR}" + "/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam",
     output:
-        result_fp="{RESULTS_DIR}/{sample_id}.ndjson",
+        result_fp=f"{RESULTS_DIR}" + "/sampleId-{sample_id}_batchId-{batch_id}.ndjson",
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
         batch_id=lambda wildcards: get_batch_id(wildcards.sample_id),
@@ -51,10 +44,13 @@ rule process_sample:
         nuc_reference=NUC_REFERENCE,
         aa_reference=NUC_REFERENCE,  # Adding the nuc ref, here for placeholder same as nuc_reference
         database_config="scripts/database_config.yaml",
+    log:
+        "logs/sr2silo/process_sample/{sample_id}_{batch_id}.log",
     shell:
         """
+        echo "Processing sample {params.sample_id} started" >> {log}
         python scripts/vp_transformer.py \
-            --input_file {input.sample_fp}/REF_aln_trim.bam \
+            --input_file {input.sample_fp} \
             --sample_id {params.sample_id} \
             --batch_id {params.batch_id} \
             --result_dir {params.result_dir} \
@@ -62,4 +58,5 @@ rule process_sample:
             --primer_file {params.primers_file} \
             --reference {params.nuc_reference} \
             --database_config {params.database_config}
+        echo "Processing sample {params.sample_id} completed" >> {log}
         """
