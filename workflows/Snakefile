@@ -4,13 +4,15 @@
 
 # Data to Process
 BASE_SAMPLE_DIR = "/Users/koehng/Workspace/data/sr2silo/demo_real"
-SAMPLE_BATCH_IDS = [(A1_10_2024_09_30, 20241018_AAG55WNM5),
-                    (B1_10_2024_10_05, 20241018_AAG55WNM5),
-                    (B1_10_2024_10_05, 20241018_AAG55WNM5),
-                    (C1_10_2024_10_06, 20241018_AAG55WNM5),
-                    (D1_10_2024_10_08, 20241024_2411515907),
-                    (E1_10_2024_10_11, 20241024_2411515907),
-                    (F1_10_2024_10_13, 20241024_2411515907)] # List of tuples of sample_id and batch_id
+SAMPLE_BATCH_IDS = [
+    ("A1_10_2024_09_30", "20241018_AAG55WNM5"),
+    ("B1_10_2024_10_05", "20241018_AAG55WNM5"),
+    ("B1_10_2024_10_05", "20241018_AAG55WNM5"),
+    ("C1_10_2024_10_06", "20241018_AAG55WNM5"),
+    ("D1_10_2024_10_08", "20241024_2411515907"),
+    ("E1_10_2024_10_11", "20241024_2411515907"),
+    ("F1_10_2024_10_13", "20241024_2411515907"),
+]  # List of tuples of sample_id and batch_id
 
 # Metadata / Reference
 TIMELINE_FILE = "/Users/koehng/Workspace/data/sr2silo/demo_real/timeline.tsv"
@@ -19,23 +21,31 @@ NUC_REFERENCE = "sars-cov-2"
 # Output
 RESULTS_DIR = "/Users/koehng/Workspace/data/sr2silo/demo_real/results"
 
+
 rule all:
     input:
-        expand("{results_dir}/{sample_id}_{batch_id}/silo_input.ndjson", results_dir=RESULTS_DIR, sample_id=[s[0] for s in SAMPLE_BATCH_IDS], batch_id=[s[1] for s in SAMPLE_BATCH_IDS])
+        expand(
+            "{results_dir}/{sample_id}_{batch_id}/silo_input.ndjson",
+            results_dir=RESULTS_DIR,
+            sample_id=[s[0] for s in SAMPLE_BATCH_IDS],
+            batch_id=[s[1] for s in SAMPLE_BATCH_IDS],
+        ),
+
 
 rule construct_sample_fp:
     """Construct the input sample directory based on the sample_id and batch_id """
     output:
-        sample_fp=lambda wildcards: f"{BASE_SAMPLE_DIR}/{wildcards.sample_id}/{wildcards.batch_id}/alignments"
+        sample_fp="{BASE_SAMPLE_DIR}/{sample_id}/{batch_id}/alignments",
     shell:
         "echo {output.sample_fp}"
+
 
 rule process_sample:
     """Processes the sample to ndjson, skip upload to loculus."""
     input:
-        sample_fp=rules.construct_sample_fp.output.sample_fp
+        sample_fp=rules.construct_sample_fp.output.sample_fp,
     output:
-        result_fp=lambda wildcards: f"{RESULTS_DIR}/{wildcards.sample_id}_{wildcards.batch_id}/silo_input.ndjson"
+        result_fp="{RESULTS_DIR}/{wildcards.sample_id}_{wildcards.batch_id}/silo_input.ndjson",
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
         batch_id=lambda wildcards: wildcards.batch_id,
@@ -44,7 +54,7 @@ rule process_sample:
         primers_file=PRIMERS_FILE,
         nuc_reference=NUC_REFERENCE,
         aa_reference=NUC_REFERENCE,  # Adding the nuc ref, here for placeholder same as nuc_reference
-        database_config="scripts/database_config.yaml"
+        database_config="scripts/database_config.yaml",
     shell:
         """
         python scripts/vp_transformer.py \
