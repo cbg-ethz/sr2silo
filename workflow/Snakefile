@@ -53,9 +53,9 @@ rule process_sample:
             --input_file {input.sample_fp} \
             --sample_id {params.sample_id} \
             --batch_id {params.batch_id} \
-            --result_dir {params.result_dir} \
             --timeline_file {params.timeline_file} \
             --primer_file {params.primers_file} \
+            --output_fp {output.result_fp} \
             --reference {params.nuc_reference} \
             --database_config {params.database_config}
         echo "Processing sample {params.sample_id} completed" >> {log}

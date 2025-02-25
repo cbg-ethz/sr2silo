@@ -60,10 +60,10 @@ def process_file(
     input_file: Path,
     sample_id: str,
     batch_id: str,
-    result_dir: Path,
     reference: str,
     timeline_file: Path,
     primers_file: Path,
+    output_fp: Path,
     database_config: Path = Path("scripts/database_config.yaml"),
     skip_upload: bool = False,
 ) -> None:
@@ -71,7 +71,6 @@ def process_file(
 
     Args:
         input_file (Path): The file to process.
-        result_dir (Path): The directory to save the results.
         reference (str): The nucleotide / amino acid reference from the resources folder.
         timeline_file (Path): The timeline file to cross-reference the metadata.
         primers_file (Path): The primers file to cross-reference the metadata.
@@ -87,6 +86,15 @@ def process_file(
     if not input_file.exists():
         logging.error(f"Input file not found: {input_file}")
         raise FileNotFoundError(f"Input file not found: {input_file}")
+
+     # get the result directory
+    result_dir = input_file.parent / "results"
+    result_dir.mkdir(parents=True, exist_ok=True)
+
+    # check that output_fp ends with ndjson
+    if not output_fp.suffix == ".ndjson":
+        logging.error(f"Output file must end with .ndjson: {output_fp}")
+        raise ValueError(f"Output file must end with .ndjson: {output_fp}")
 
     logging.info(f"Processing file: {input_file}")
 
@@ -115,7 +123,7 @@ def process_file(
 
     ##### Translate / Align / Normalize to JSON #####
     logging.info("Start translating, aligning and normalizing reads to JSON")
-    aligned_reads_fp = result_dir / "silo_input.ndjson"
+    aligned_reads_fp = output_fp
     aligned_reads_fp = parse_translate_align_in_batches(
         nuc_reference_fp=nuc_reference_fp,
         aa_reference_fp=aa_reference_fp,
@@ -177,12 +185,14 @@ def process_file(
 @click.option("--sample_id", envvar="SAMPLE_ID", help="sample_id to use for metadata.")
 @click.option("--batch_id", envvar="BATCH_ID", help="batch_id to use for metadata.")
 @click.option(
-    "--result_dir", envvar="RESULTS_DIR", help="Path to the results directory."
-)
-@click.option(
     "--timeline_file", envvar="TIMELINE_FILE", help="Path to the timeline file."
 )
 @click.option("--primer_file", envvar="PRIMER_FILE", help="Path to the primers file.")
+@click.option(
+    "--output_fp",
+    envvar="OUTPUT_FP",
+    help="Path to the output file. Must end with .ndjson.",
+)
 @click.option(
     "--reference",
     envvar="REFERENCE",
@@ -200,18 +210,18 @@ def main(
     input_file,
     sample_id,
     batch_id,
-    result_dir,
     timeline_file,
     primer_file,
+    output_fp,
     reference,
     skip_upload,
     database_config: Path = Path("scripts/database_config.yaml"),
 ):
     """Process a sample file."""
     logging.info(f"Processing input file: {input_file}")
-    logging.info(f"Saving results to: {result_dir}")
     logging.info(f"Using timeline file: {timeline_file}")
     logging.info(f"Using primers file: {primer_file}")
+    logging.info(f"Using output_name: {output_fp}")
     logging.info(f"Using genome reference: {reference}")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
@@ -224,9 +234,9 @@ def main(
         input_file=Path(input_file),
         sample_id=sample_id,
         batch_id=batch_id,
-        result_dir=Path(result_dir),
         timeline_file=Path(timeline_file),
         primers_file=Path(primer_file),
+        output_fp=Path(output_fp),
         reference=reference,
         skip_upload=skip_upload,
         database_config=Path(database_config),
