@@ -91,8 +91,9 @@ def process_file(
     result_dir = input_file.parent / "results"
     result_dir.mkdir(parents=True, exist_ok=True)
     # check that output_fp ends with .ndjson.zst
-    if not output_fp.suffix == ".ndjson.zst":
-        logging.error(f"Output file must end with .ndjson.zst: {output_fp}")
+    if output_fp.suffixes != ['.ndjson', '.zst']:
+        logging.warning(f"Output file extension changed from {output_fp.suffix} to .ndjson.zst")
+        output_fp = output_fp.with_suffix(".ndjson.zst")
         raise ValueError(f"Output file must end with .ndjson.zst: {output_fp}")
 
     logging.info(f"Processing file: {input_file}")
