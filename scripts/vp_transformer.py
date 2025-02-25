@@ -90,11 +90,10 @@ def process_file(
      # get the result directory
     result_dir = input_file.parent / "results"
     result_dir.mkdir(parents=True, exist_ok=True)
-
-    # check that output_fp ends with ndjson
-    if not output_fp.suffix == ".ndjson":
-        logging.error(f"Output file must end with .ndjson: {output_fp}")
-        raise ValueError(f"Output file must end with .ndjson: {output_fp}")
+    # check that output_fp ends with .ndjson.zst
+    if not output_fp.suffix == ".ndjson.zst":
+        logging.error(f"Output file must end with .ndjson.zst: {output_fp}")
+        raise ValueError(f"Output file must end with .ndjson.zst: {output_fp}")
 
     logging.info(f"Processing file: {input_file}")
 
