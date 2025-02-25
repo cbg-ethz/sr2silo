@@ -4,7 +4,14 @@
 
 # Data to Process
 BASE_SAMPLE_DIR = "/Users/koehng/Workspace/data/sr2silo/demo_real"
-SAMPLE_BATCH_IDS = [(),()] # List of tuples of sample_id and batch_id
+SAMPLE_BATCH_IDS = [(A1_10_2024_09_30, 20241018_AAG55WNM5),
+                    (B1_10_2024_10_05, 20241018_AAG55WNM5),
+                    (B1_10_2024_10_05, 20241018_AAG55WNM5),
+                    (C1_10_2024_10_06, 20241018_AAG55WNM5),
+                    (D1_10_2024_10_08, 20241024_2411515907),
+                    (E1_10_2024_10_11, 20241024_2411515907),
+                    (F1_10_2024_10_13, 20241024_2411515907)] # List of tuples of sample_id and batch_id
+
 # Metadata / Reference
 TIMELINE_FILE = "/Users/koehng/Workspace/data/sr2silo/demo_real/timeline.tsv"
 PRIMERS_FILE = "./tests/data/samples_large/primers.yaml"
@@ -41,7 +48,7 @@ rule process_sample:
     shell:
         """
         python scripts/vp_transformer.py \
-            --sample_dir {input.sample_fp} \
+            --input_file {input.sample_fp}/REF_aln_trim.bam \
             --sample_id {params.sample_id} \
             --batch_id {params.batch_id} \
             --result_dir {params.result_dir} \

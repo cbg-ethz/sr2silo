@@ -56,51 +56,39 @@ def make_submission_file(result_dir: Path, srLink: str) -> Path:
     return submission_metadata_fp
 
 
-def process_directory(
-    input_dir: Path,
+def process_file(
+    input_file: Path,
     sample_id: str,
     batch_id: str,
     result_dir: Path,
     reference: str,
     timeline_file: Path,
     primers_file: Path,
-    file_name: str = "REF_aln_trim.bam",
     database_config: Path = Path("scripts/database_config.yaml"),
     skip_upload: bool = False,
 ) -> None:
-    """Process all files in a given directory.
+    """Process a given input file.
 
     Args:
-        input_dir (Path): The directory to process. i.e. the directory containing the BAM file.
-                          to reach samples/A1_05_2024_10_08/20241024_2411515907/alignments/
+        input_file (Path): The file to process.
         result_dir (Path): The directory to save the results.
-        reference (str): The nucliotide / amino acid reference from the resources folder.
-                          see resources/ e.g. "sars-cov-2"
+        reference (str): The nucleotide / amino acid reference from the resources folder.
         timeline_file (Path): The timeline file to cross-reference the metadata.
         primers_file (Path): The primers file to cross-reference the metadata.
-        file_name (str): The name of the file to process
-        compression (str): Compression method to use, default is "zst"
+        database_config (Path): Path to the database configuration file.
+        skip_upload (bool): Whether to skip the upload step.
 
     Returns:
         None (writes results to the result_dir)
     """
-
-    # TODO: absolb all these intermediary files into a temporary directory
-
     logging.info(f"Current working directory: {os.getcwd()}")
 
-    # check that one was given a directory and not a file and it exists
-    if not input_dir.is_dir():
-        logging.error(f"Input directory not found, is it a directory?: {input_dir}")
-        raise FileNotFoundError(f"Directory not found: {input_dir}")
+    # check that the file exists
+    if not input_file.exists():
+        logging.error(f"Input file not found: {input_file}")
+        raise FileNotFoundError(f"Input file not found: {input_file}")
 
-    logging.info(f"Processing directory: {input_dir}")
-    logging.info(f"Assuming the input file is: {file_name}")
-    # check that the file exists and also it's .bai file
-    sample_fp = input_dir / file_name
-    if not sample_fp.exists():
-        logging.error(f"Input file not found: {sample_fp}")
-        raise FileNotFoundError(f"Input file not found: {sample_fp}")
+    logging.info(f"Processing file: {input_file}")
 
     ##### Get Sample and Batch metadata and write to a file #####
     sample_to_process = Sample(sample_id, batch_id)
@@ -131,7 +119,7 @@ def process_directory(
     aligned_reads_fp = parse_translate_align_in_batches(
         nuc_reference_fp=nuc_reference_fp,
         aa_reference_fp=aa_reference_fp,
-        nuc_alignment_fp=sample_fp,
+        nuc_alignment_fp=input_file,
         metadata_fp=metadata_file,
         output_fp=aligned_reads_fp,
     )
@@ -185,7 +173,7 @@ def process_directory(
 
 
 @click.command()
-@click.option("--sample_dir", envvar="SAMPLE_DIR", help="Path to the sample directory.")
+@click.option("--input_file", envvar="INPUT_FILE", help="Path to the input file.")
 @click.option("--sample_id", envvar="SAMPLE_ID", help="sample_id to use for metadata.")
 @click.option("--batch_id", envvar="BATCH_ID", help="batch_id to use for metadata.")
 @click.option(
@@ -202,8 +190,14 @@ def process_directory(
     help="see folder names in resources/",
 )
 @click.option("--skip_upload", is_flag=True, help="Skip the upload step.")
+@click.option(
+    "--database_config",
+    envvar="DATABASE_CONFIG",
+    default="scripts/database_config.yaml",
+    help="Path to the database configuration file.",
+)
 def main(
-    sample_dir,
+    input_file,
     sample_id,
     batch_id,
     result_dir,
@@ -213,8 +207,8 @@ def main(
     skip_upload,
     database_config: Path = Path("scripts/database_config.yaml"),
 ):
-    """Process a sample directory."""
-    logging.info(f"Processing sample directory: {sample_dir}")
+    """Process a sample file."""
+    logging.info(f"Processing input file: {input_file}")
     logging.info(f"Saving results to: {result_dir}")
     logging.info(f"Using timeline file: {timeline_file}")
     logging.info(f"Using primers file: {primer_file}")
@@ -226,8 +220,8 @@ def main(
     ci_env = is_ci_environment()
     logging.info(f"Running in CI environment: {ci_env}")
 
-    process_directory(
-        input_dir=Path(sample_dir),
+    process_file(
+        input_file=Path(input_file),
         sample_id=sample_id,
         batch_id=batch_id,
         result_dir=Path(result_dir),

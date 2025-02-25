@@ -21,6 +21,7 @@ services:
       - KEYCLOAK_TOKEN_URL=${KEYCLOAK_TOKEN_URL}
       - SUBMISSION_URL=${SUBMISSION_URL}
       - CI=${CI}
+      - INPUT_FILE=${INPUT_FILE}
     secrets:
       - aws_access_key_id
       - aws_secret_access_key
