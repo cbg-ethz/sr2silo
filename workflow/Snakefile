@@ -57,6 +57,7 @@ rule process_sample:
             --primer_file {params.primers_file} \
             --output_fp {output.result_fp} \
             --reference {params.nuc_reference} \
-            --database_config {params.database_config}
+            --database_config {params.database_config} \
+            --skip_upload \
         echo "Processing sample {params.sample_id} completed" >> {log}
         """
