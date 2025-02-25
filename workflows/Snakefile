@@ -19,30 +19,33 @@ RESULTS_DIR = config["RESULTS_DIR"]
 rule all:
     input:
         expand(
-            "{results_dir}/{sample_id}_{batch_id}.ndjson",
+            "{results_dir}/{sample_id}.ndjson",
             results_dir=RESULTS_DIR,
-            sample_id=[s[0] for s in SAMPLE_BATCH_IDS],
-            batch_id=[s[1] for s in SAMPLE_BATCH_IDS],
+            sample_id=config["SAMPLE_BATCH_IDS"].keys(),
         ),
 
 
-def get_sample_fps(sample_id, batch_id):
+def get_batch_id(sample_id):
+    """Get the batch ids from the sample batch ids."""
+    return SAMPLE_BATCH_IDS[sample_id]
+
+
+def get_sample_fps(sample_id):
     """Construct the input sample directory based on the sample_id and batch_id."""
-    return f"{BASE_SAMPLE_DIR}/{sample_id}_{batch_id}/alignments/REF_aln_trim.bam"
+    batch_id = get_batch_id(sample_id)
+    return f"{BASE_SAMPLE_DIR}/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam"
 
 
 rule process_sample:
     """Processes the sample to ndjson, skip upload to loculus."""
     input:
-        sample_fp=lambda wildcards: get_sample_fps(
-            wildcards.sample_id, wildcards.batch_id
-        ),
+        sample_fp=lambda wildcards: get_sample_fps(wildcards.sample_id),
     output:
-        result_fp="{RESULTS_DIR}/{sample_id}_{batch_id}.ndjson",
+        result_fp="{RESULTS_DIR}/{sample_id}.ndjson",
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
-        batch_id=lambda wildcards: wildcards.batch_id,
-        result_dir=lambda wildcards: f"{RESULTS_DIR}/{wildcards.sample_id}_{wildcards.batch_id}",
+        batch_id=lambda wildcards: get_batch_id(wildcards.sample_id),
+        result_dir=lambda wildcards: f"{RESULTS_DIR}/{wildcards.sample_id}_{get_batch_id(wildcards.sample_id)}",
         timeline_file=TIMELINE_FILE,
         primers_file=PRIMERS_FILE,
         nuc_reference=NUC_REFERENCE,
