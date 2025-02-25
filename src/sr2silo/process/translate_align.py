@@ -506,7 +506,7 @@ def parse_translate_align_in_batches(
                         )
 
                         for read in aligned_reads.values():
-                            buffer.append(json.dumps(read.to_silo_json()))
+                            buffer.append(read.to_silo_json())
                             if len(buffer) >= write_chunk_size:
                                 data = ("\n".join(buffer) + "\n").encode("utf-8")
                                 compressed_data = cctx.compress(data)
