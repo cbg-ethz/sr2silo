@@ -44,13 +44,13 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo SAMPLE_DIR=${{ secrets.SAMPLE_DIR }} >> .env
           echo SAMPLE_ID=${{ secrets.SAMPLE_ID }} >> .env
           echo BATCH_ID=${{ secrets.BATCH_ID }} >> .env
           echo TIMELINE_FILE=${{ secrets.TIMELINE_FILE }} >> .env
           echo PRIMER_FILE=${{ secrets.PRIMER_FILE }} >> .env
-          echo NEXTCLADE_REFERENCE=${{ secrets.NEXTCLADE_REFERENCE }} >> .env
-          echo RESULTS_DIR=${{ secrets.RESULTS_DIR }} >> .env
+          echo INPUT_FILE=${{ secrets.INPUT_FILE }} >> .env
+          echo OUTPUT_FP=${{ secrets.OUTPUT_FP }} >> .env
+          echo DATABASE_CONFIG=${{ secrets.DATABASE_CONFIG }} >> .env
           echo AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} >> .env
           echo AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} >> .env
           echo AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }} >> .env
@@ -79,15 +79,13 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo SAMPLE_DIR=${{ secrets.SAMPLE_DIR }} >> .env
           echo SAMPLE_ID=${{ secrets.SAMPLE_ID }} >> .env
           echo BATCH_ID=${{ secrets.BATCH_ID }} >> .env
           echo TIMELINE_FILE=${{ secrets.TIMELINE_FILE }} >> .env
           echo PRIMER_FILE=${{ secrets.PRIMER_FILE }} >> .env
-          echo NEXTCLADE_REFERENCE=${{ secrets.NEXTCLADE_REFERENCE }} >> .env
-          echo RESULTS_DIR=${{ secrets.RESULTS_DIR }} >> .env
-
-
+          echo INPUT_FILE=${{ secrets.INPUT_FILE }} >> .env
+          echo OUTPUT_FP=${{ secrets.OUTPUT_FP }} >> .env
+          echo DATABASE_CONFIG=${{ secrets.DATABASE_CONFIG }} >> .env
 
       - name: Create Docker secrets files
         run: |

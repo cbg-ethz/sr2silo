@@ -4,20 +4,19 @@ services:
   sr2silo:
     build: .
     volumes:
-      - ${SAMPLE_DIR}:/app/sample
       - ${TIMELINE_FILE}:/app/timeline.tsv
       - ${PRIMER_FILE}:/app/primers.yaml
-      - ${RESULTS_DIR}:/app/results
+      - ${OUTPUT_FP}:/app/output.ndjson.zst
       - ./scripts/database_config.yaml:/app/scripts/database_config.yaml
       - ./scripts/reference_genomes.json:/app/scripts/reference_genomes.json
     environment:
       - PYTHONUNBUFFERED=1
-      - SAMPLE_DIR=${SAMPLE_DIR}
       - SAMPLE_ID=${SAMPLE_ID}
       - BATCH_ID=${BATCH_ID}
       - TIMELINE_FILE=${TIMELINE_FILE}
       - PRIMER_FILE=${PRIMER_FILE}
-      - RESULTS_DIR=${RESULTS_DIR}
+      - OUTPUT_FP=${OUTPUT_FP}
+      - DATABASE_CONFIG=${DATABASE_CONFIG}
       - KEYCLOAK_TOKEN_URL=${KEYCLOAK_TOKEN_URL}
       - SUBMISSION_URL=${SUBMISSION_URL}
       - CI=${CI}

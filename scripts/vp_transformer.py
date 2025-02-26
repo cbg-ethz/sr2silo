@@ -222,7 +222,7 @@ def main(
     logging.info(f"Processing input file: {input_file}")
     logging.info(f"Using timeline file: {timeline_file}")
     logging.info(f"Using primers file: {primer_file}")
-    logging.info(f"Using output_name: {output_fp}")
+    logging.info(f"Using output file: {output_fp}")
     logging.info(f"Using genome reference: {reference}")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
