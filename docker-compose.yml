@@ -3,6 +3,8 @@ version: '3.8'
 services:
   sr2silo:
     build: .
+    env_file:
+      - .github/docker-build-test.env
     volumes:
       - ${TIMELINE_FILE}:/app/timeline.tsv
       - ${PRIMER_FILE}:/app/primers.yaml
@@ -17,10 +19,14 @@ services:
       - PRIMER_FILE=${PRIMER_FILE}
       - OUTPUT_FP=${OUTPUT_FP}
       - DATABASE_CONFIG=${DATABASE_CONFIG}
+      - REFERENCE=${REFERENCE}
       - KEYCLOAK_TOKEN_URL=${KEYCLOAK_TOKEN_URL}
       - SUBMISSION_URL=${SUBMISSION_URL}
       - CI=${CI}
       - INPUT_FILE=${INPUT_FILE}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
     secrets:
       - aws_access_key_id
       - aws_secret_access_key
