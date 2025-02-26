@@ -471,8 +471,10 @@ def parse_translate_align_in_batches(
         All logs of INFO and below are suppressed.
 
     """
-    if output_fp.suffixes != ['.ndjson', '.zst']:
-        logging.warning(f"Output file extension changed from {output_fp.suffix} to .ndjson.zst")
+    if output_fp.suffixes != [".ndjson", ".zst"]:
+        logging.warning(
+            f"Output file extension changed from {output_fp.suffix} to .ndjson.zst"
+        )
         output_fp = output_fp.with_suffix(".ndjson.zst")
 
     with suppress_info_and_below():
