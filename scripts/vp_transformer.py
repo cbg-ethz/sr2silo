@@ -87,14 +87,15 @@ def process_file(
         logging.error(f"Input file not found: {input_file}")
         raise FileNotFoundError(f"Input file not found: {input_file}")
 
-     # get the result directory
+    # get the result directory
     result_dir = input_file.parent / "results"
     result_dir.mkdir(parents=True, exist_ok=True)
     # check that output_fp ends with .ndjson.zst
-    if output_fp.suffixes != ['.ndjson', '.zst']:
-        logging.warning(f"Output file extension changed from {output_fp.suffix} to .ndjson.zst")
+    if output_fp.suffixes != [".ndjson", ".zst"]:
+        logging.warning(
+            f"Output file extension changed from {output_fp.suffix} to .ndjson.zst"
+        )
         output_fp = output_fp.with_suffix(".ndjson.zst")
-        raise ValueError(f"Output file must end with .ndjson.zst: {output_fp}")
 
     logging.info(f"Processing file: {input_file}")
 
