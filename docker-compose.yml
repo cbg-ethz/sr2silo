@@ -24,9 +24,6 @@ services:
       - SUBMISSION_URL=${SUBMISSION_URL}
       - CI=${CI}
       - INPUT_FILE=${INPUT_FILE}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
     secrets:
       - aws_access_key_id
       - aws_secret_access_key
@@ -42,3 +39,4 @@ secrets:
 
 volumes:
   results:
+  timeline_file:
