@@ -26,7 +26,18 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-app = typer.Typer()
+# Create the main app
+app = typer.Typer(
+    help="sr2silo - Convert V-PIPE's outputs to SILO database format and optionally upload."
+)
+
+# Create the run command group
+run_app = typer.Typer(
+    name="run",
+    help="Process V-PIPE output files and convert to SILO format.",
+)
+
+app.add_typer(run_app, name="run")
 
 
 def load_config(config_file: Path) -> dict:
@@ -214,8 +225,14 @@ def process_file(
         logging.info("Skipping upload and submission to S3 and SILO.")
 
 
-@app.command("run")
-def run_command(
+@run_app.callback()
+def run_callback():
+    """Process and convert V-PIPE output files."""
+    pass
+
+
+@run_app.command(name="")
+def run(
     input_file: Annotated[
         Path,
         typer.Option(
