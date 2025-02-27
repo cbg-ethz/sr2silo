@@ -12,8 +12,8 @@ import click
 
 from sr2silo.config import is_ci_environment
 from sr2silo.process import parse_translate_align_in_batches
-from sr2silo.s3 import upload_file_to_s3
 from sr2silo.silo import LapisClient, Submission
+from sr2silo.storage import upload_file_to_s3
 from sr2silo.vpipe import Sample
 
 logging.basicConfig(
