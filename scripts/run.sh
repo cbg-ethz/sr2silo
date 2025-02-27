@@ -10,11 +10,13 @@ PRIMERS_FILE="./tests/data/samples_large/primers.yaml"
 NUC_REFERENCE="sars-cov-2"
 
 # Run the Python script with the arguments
-python scripts/vp_transformer.py \
+# Add --upload flag if you want to upload and submit to SILO
+python -m sr2silo.run \
     --input_file "$INPUT_FILE" \
     --sample_id "$SAMPLE_ID" \
     --batch_id "$BATCH_ID" \
     --timeline_file "$TIMELINE_FILE" \
     --primer_file "$PRIMERS_FILE" \
     --output_fp "$OUTPUT_FILE" \
-    --reference "$NUC_REFERENCE"
+    --reference "$NUC_REFERENCE" \
+    # --upload # Uncomment the next line to enable upload to S3 and submission to SILO

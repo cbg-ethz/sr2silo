@@ -56,6 +56,74 @@ def make_submission_file(result_dir: Path, srLink: str) -> Path:
     return submission_metadata_fp
 
 
+def upload_to_s3(aligned_reads_fp: Path, sample_id: str) -> str:
+    """Upload a file to S3 bucket.
+
+    Args:
+        aligned_reads_fp (Path): The file to upload.
+        sample_id (str): Sample ID used in the S3 filename.
+
+    Returns:
+        str: The S3 link to the uploaded file.
+    """
+    logging.info(f"Uploading to S3: {aligned_reads_fp}")
+    suffix = aligned_reads_fp.suffix
+    s3_file_name = f"{sample_id}.{suffix}"
+    s3_bucket = "sr2silo01"
+    s3_link = f"s3://{s3_bucket}/{s3_file_name}"
+    upload_file_to_s3(aligned_reads_fp, s3_bucket, s3_file_name)
+    return s3_link
+
+
+def submit_to_silo(result_dir: Path, s3_link: str) -> bool:
+    """Submit S3 reference to SILO.
+
+    Args:
+        result_dir (Path): Directory where to save submission files.
+        s3_link (str): The S3 link to submit.
+
+    Returns:
+        bool: True if submission was successful, False otherwise.
+    """
+    logging.info("Submitting to Loculus")
+    input_fp = make_submission_file(result_dir, s3_link)
+
+    if is_ci_environment():
+        logging.info(
+            "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
+        )
+        # set some mock environment variables for Keycloak and submission URLs
+        KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
+        SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
+    else:
+        if os.getenv("KEYCLOAK_TOKEN_URL") or os.getenv("SUBMISSION_URL"):
+            KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
+            SUBMISSION_URL = os.getenv("SUBMISSION_URL")
+        else:
+            logging.warning("KEYCLOAK_TOKEN_URL and SUBMISSION_URL not set.")
+            logging.warning("Using default values.")
+            KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
+            SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
+
+    client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL)  # type: ignore
+    client.authenticate(username="testuser", password="testuser")
+    submission_ids = Submission.get_submission_ids_from_tsv(input_fp)
+    fasta_str = Submission.generate_placeholder_fasta(submission_ids)
+    submission = Submission(fasta_str, input_fp)
+    response = client.submit(group_id=1, data=submission)
+    if response.status_code == 200:
+        logging.info("Submission successful.")
+        logging.info(
+            "You can approve the upload for release at:\n\n"
+            "https://wise-seqs.loculus.org/salmonella/submission/1/review"
+        )
+        return True
+    else:
+        logging.error(f"Error submitting data to Lapis: {response}")
+        logging.error(f"Response: {response.text}")
+        return False
+
+
 def process_file(
     input_file: Path,
     sample_id: str,
@@ -64,16 +132,19 @@ def process_file(
     timeline_file: Path,
     primers_file: Path,
     output_fp: Path,
-    skip_upload: bool = False,
+    upload: bool = False,
 ) -> None:
     """Process a given input file.
 
     Args:
         input_file (Path): The file to process.
+        sample_id (str): Sample ID to use for metadata.
+        batch_id (str): Batch ID to use for metadata.
         reference (str): The nucleotide / amino acid reference from the resources folder.
         timeline_file (Path): The timeline file to cross-reference the metadata.
         primers_file (Path): The primers file to cross-reference the metadata.
-        skip_upload (bool): Whether to skip the upload step.
+        output_fp (Path): Path to the output file.
+        upload (bool): Whether to upload and submit to SILO. Default is False.
 
     Returns:
         None (writes results to the result_dir)
@@ -131,50 +202,9 @@ def process_file(
         output_fp=aligned_reads_fp,
     )
 
-    if not skip_upload:
-        logging.info(f"Uploading to S3: {aligned_reads_fp}")
-        suffix = aligned_reads_fp.suffix
-        s3_file_name = f"{sample_id}.{suffix}"
-        s3_bucket = "sr2silo01"
-        s3_link = f"s3://{s3_bucket}/{s3_file_name}"
-        upload_file_to_s3(aligned_reads_fp, s3_bucket, s3_file_name)
-
-        ##### Submit S3 reference to SILO #####
-        logging.info(f"Submitting to Loculus")
-        input_fp = make_submission_file(result_dir, s3_link)
-
-        if is_ci_environment():
-            logging.info(
-                "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
-            )
-            # set some mock environment variables for Keycloak and submission URLs
-            KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
-            SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
-        else:
-            if os.getenv("KEYCLOAK_TOKEN_URL") or os.getenv("SUBMISSION_URL"):
-                KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
-                SUBMISSION_URL = os.getenv("SUBMISSION_URL")
-            else:
-                logging.warning("KEYCLOAK_TOKEN_URL and SUBMISSION_URL not set.")
-                logging.warning("Using default values.")
-                KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
-                SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
-
-        client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL)  # type: ignore
-        client.authenticate(username="testuser", password="testuser")
-        submission_ids = Submission.get_submission_ids_from_tsv(input_fp)
-        fasta_str = Submission.generate_placeholder_fasta(submission_ids)
-        submission = Submission(fasta_str, input_fp)
-        response = client.submit(group_id=1, data=submission)
-        if response.status_code == 200:
-            logging.info("Submission successful.")
-            logging.info(
-                "You can approve the upload for release at:\n\n"
-                "https://wise-seqs.loculus.org/salmonella/submission/1/review"
-            )
-        else:
-            logging.error(f"Error submitting data to Lapis: {response}")
-            logging.error(f"Response: {response.text}")
+    if upload:
+        s3_link = upload_to_s3(aligned_reads_fp, sample_id)
+        submit_to_silo(result_dir, s3_link)
     else:
         logging.info("Skipping upload and submission to S3 and SILO.")
 
@@ -198,7 +228,9 @@ def process_file(
     default="sars-cov-2",
     help="see folder names in resources/",
 )
-@click.option("--skip_upload", is_flag=True, help="Skip the upload step.")
+@click.option(
+    "--upload", is_flag=True, default=False, help="Upload and submit to SILO."
+)
 def main(
     input_file,
     sample_id,
@@ -207,7 +239,7 @@ def main(
     primer_file,
     output_fp,
     reference,
-    skip_upload,
+    upload,
 ):
     """Process a sample file."""
     logging.info(f"Processing input file: {input_file}")
@@ -217,6 +249,7 @@ def main(
     logging.info(f"Using genome reference: {reference}")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
+    logging.info(f"Upload to S3 and submit to SILO: {upload}")
 
     ci_env = is_ci_environment()
     logging.info(f"Running in CI environment: {ci_env}")
@@ -229,7 +262,7 @@ def main(
         primers_file=Path(primer_file),
         output_fp=Path(output_fp),
         reference=reference,
-        skip_upload=skip_upload,
+        upload=upload,
     )
 
 
