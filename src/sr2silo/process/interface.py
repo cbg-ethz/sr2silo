@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, ValidationError
 
-from sr2silo.silo_aligned_read import AlignedReadSchema, ReadMetadata
+from sr2silo.silo_read_schema import AlignedReadSchema, ReadMetadata
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"

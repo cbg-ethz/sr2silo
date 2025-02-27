@@ -1,11 +1,11 @@
-"""Tests for the ReadMetadata schema."""
+"""Tests for metadata schema validation."""
 
 from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
 
-from sr2silo.silo_aligned_read import ReadMetadata
+from sr2silo.silo_read_schema import ReadMetadata
 
 # Sample valid metadata dictionary simulating a database record
 VALID_METADATA = {

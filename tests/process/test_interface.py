@@ -15,7 +15,7 @@ from sr2silo.process.interface import (
     GeneSet,
     NucInsertion,
 )
-from sr2silo.silo_aligned_read import ReadMetadata
+from sr2silo.silo_read_schema import ReadMetadata
 
 
 def test_nuc_insertion():
