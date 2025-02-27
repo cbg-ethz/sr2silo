@@ -64,7 +64,6 @@ def process_file(
     timeline_file: Path,
     primers_file: Path,
     output_fp: Path,
-    database_config: Path = Path("scripts/database_config.yaml"),
     skip_upload: bool = False,
 ) -> None:
     """Process a given input file.
@@ -74,7 +73,6 @@ def process_file(
         reference (str): The nucleotide / amino acid reference from the resources folder.
         timeline_file (Path): The timeline file to cross-reference the metadata.
         primers_file (Path): The primers file to cross-reference the metadata.
-        database_config (Path): Path to the database configuration file.
         skip_upload (bool): Whether to skip the upload step.
 
     Returns:
@@ -201,12 +199,6 @@ def process_file(
     help="see folder names in resources/",
 )
 @click.option("--skip_upload", is_flag=True, help="Skip the upload step.")
-@click.option(
-    "--database_config",
-    envvar="DATABASE_CONFIG",
-    default="scripts/database_config.yaml",
-    help="Path to the database configuration file.",
-)
 def main(
     input_file,
     sample_id,
@@ -216,7 +208,6 @@ def main(
     output_fp,
     reference,
     skip_upload,
-    database_config: Path = Path("scripts/database_config.yaml"),
 ):
     """Process a sample file."""
     logging.info(f"Processing input file: {input_file}")
@@ -226,7 +217,6 @@ def main(
     logging.info(f"Using genome reference: {reference}")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
-    logging.info(f"Using database_config: {database_config}")
 
     ci_env = is_ci_environment()
     logging.info(f"Running in CI environment: {ci_env}")
@@ -240,7 +230,6 @@ def main(
         output_fp=Path(output_fp),
         reference=reference,
         skip_upload=skip_upload,
-        database_config=Path(database_config),
     )
 
 
