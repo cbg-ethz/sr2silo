@@ -8,7 +8,6 @@ OUTPUT_FILE="./results_neo/silo_input.ndjson"
 TIMELINE_FILE="./tests/data/samples/timeline_A1_05_2024_10_08.tsv"
 PRIMERS_FILE="./tests/data/samples_large/primers.yaml"
 NUC_REFERENCE="sars-cov-2"
-DATABASE_CONFIG="./scripts/database_config.yaml"
 
 # Run the Python script with the arguments
 python scripts/vp_transformer.py \
@@ -18,5 +17,4 @@ python scripts/vp_transformer.py \
     --timeline_file "$TIMELINE_FILE" \
     --primer_file "$PRIMERS_FILE" \
     --output_fp "$OUTPUT_FILE" \
-    --reference "$NUC_REFERENCE" \
-    --database_config "$DATABASE_CONFIG"
+    --reference "$NUC_REFERENCE"
