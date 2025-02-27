@@ -145,10 +145,13 @@ class AlignedRead:
             json_representation["metadata"] = self.metadata
         return json_representation
 
-    def to_silo_json(self, indent: bool = True) -> str:
+    def to_silo_json(self, indent: bool = False) -> str:
         """
         Validate the aligned read dict using a pydantic schema and print a
         nicely formatted JSON string conforming to the DB requirements.
+
+        Args:
+            indent: Whether to indent the JSON string, True for pretty print.
         """
         try:
             schema = AlignedReadSchema(**self.to_dict())

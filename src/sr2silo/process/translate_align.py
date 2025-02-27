@@ -471,7 +471,11 @@ def parse_translate_align_in_batches(
         All logs of INFO and below are suppressed.
 
     """
-    output_fp = output_fp.with_suffix(".ndjson.zst")
+    if output_fp.suffixes != [".ndjson", ".zst"]:
+        logging.warning(
+            f"Output file extension changed from {output_fp.suffix} to .ndjson.zst"
+        )
+        output_fp = output_fp.with_suffix(".ndjson.zst")
 
     with suppress_info_and_below():
         # split the input file into batches
@@ -506,7 +510,7 @@ def parse_translate_align_in_batches(
                         )
 
                         for read in aligned_reads.values():
-                            buffer.append(json.dumps(read.to_silo_json()))
+                            buffer.append(read.to_silo_json())
                             if len(buffer) >= write_chunk_size:
                                 data = ("\n".join(buffer) + "\n").encode("utf-8")
                                 compressed_data = cctx.compress(data)

@@ -44,24 +44,22 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo SAMPLE_DIR=${{ secrets.SAMPLE_DIR }} >> .env
-          echo SAMPLE_ID=${{ secrets.SAMPLE_ID }} >> .env
-          echo BATCH_ID=${{ secrets.BATCH_ID }} >> .env
-          echo TIMELINE_FILE=${{ secrets.TIMELINE_FILE }} >> .env
-          echo PRIMER_FILE=${{ secrets.PRIMER_FILE }} >> .env
-          echo NEXTCLADE_REFERENCE=${{ secrets.NEXTCLADE_REFERENCE }} >> .env
-          echo RESULTS_DIR=${{ secrets.RESULTS_DIR }} >> .env
-          echo AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} >> .env
-          echo AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} >> .env
-          echo AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }} >> .env
+          echo SAMPLE_ID=sample_id >> .github/docker-build-test.env
+          echo BATCH_ID=batch_id >> .github/docker-build-test.env
+          echo TIMELINE_FILE=timeline_file >> .github/docker-build-test.env
+          echo PRIMER_FILE=primer_file >> .github/docker-build-test.env
+          echo INPUT_FILE=input_file >> .github/docker-build-test.env
+          echo OUTPUT_FP=output_fp >> .github/docker-build-test.env
+          echo DATABASE_CONFIG=database_config >> .github/docker-build-test.env
+          echo REFERENCE=reference >> .github/docker-build-test.env
 
       - name: Build Docker image
-        run: docker-compose --env-file .env build
+        run: docker-compose --env-file .github/docker-build-test.env build
 
       - name: Push to DockerHub
         if: github.ref == 'refs/heads/main'
         run: |
-          docker-compose push
+          docker-compose --env-file .github/docker-build-test.env push
 
   test:
     needs: build
@@ -79,15 +77,14 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo SAMPLE_DIR=${{ secrets.SAMPLE_DIR }} >> .env
-          echo SAMPLE_ID=${{ secrets.SAMPLE_ID }} >> .env
-          echo BATCH_ID=${{ secrets.BATCH_ID }} >> .env
-          echo TIMELINE_FILE=${{ secrets.TIMELINE_FILE }} >> .env
-          echo PRIMER_FILE=${{ secrets.PRIMER_FILE }} >> .env
-          echo NEXTCLADE_REFERENCE=${{ secrets.NEXTCLADE_REFERENCE }} >> .env
-          echo RESULTS_DIR=${{ secrets.RESULTS_DIR }} >> .env
-
-
+          echo SAMPLE_ID=sample_id >> .github/docker-build-test.env
+          echo BATCH_ID=batch_id >> .github/docker-build-test.env
+          echo TIMELINE_FILE=timeline_file >> .github/docker-build-test.env
+          echo PRIMER_FILE=primer_file >> .github/docker-build-test.env
+          echo INPUT_FILE=input_file >> .github/docker-build-test.env
+          echo OUTPUT_FP=output_fp >> .github/docker-build-test.env
+          echo DATABASE_CONFIG=database_config >> .github/docker-build-test.env
+          echo REFERENCE=reference >> .github/docker-build-test.env
 
       - name: Create Docker secrets files
         run: |
@@ -100,9 +97,8 @@ jobs:
         env:
           CI: true
         run: |
-          docker-compose --env-file .env up --build --abort-on-container-exit|| exit_code=$?
+          docker-compose --env-file .github/docker-build-test.env up --build --abort-on-container-exit|| exit_code=$?
 
           if [ "$exit_code" -ne 0 ]; then
             echo "Docker Compose exited with code $exit_code"
             exit $exit_code
-          fi

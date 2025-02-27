@@ -3,24 +3,27 @@ version: '3.8'
 services:
   sr2silo:
     build: .
+    env_file:
+      - .github/docker-build-test.env
     volumes:
-      - ${SAMPLE_DIR}:/app/sample
       - ${TIMELINE_FILE}:/app/timeline.tsv
       - ${PRIMER_FILE}:/app/primers.yaml
-      - ${RESULTS_DIR}:/app/results
-      - ./scripts/database_config.yaml:/app/scripts/database_config.yaml
-      - ./scripts/reference_genomes.json:/app/scripts/reference_genomes.json
+      - ${OUTPUT_FP}:/app/output.ndjson.zst
+      - ./tests/data/:/app/tests/data/
+      - ./resources/:/app/resources/
     environment:
       - PYTHONUNBUFFERED=1
-      - SAMPLE_DIR=${SAMPLE_DIR}
       - SAMPLE_ID=${SAMPLE_ID}
       - BATCH_ID=${BATCH_ID}
       - TIMELINE_FILE=${TIMELINE_FILE}
       - PRIMER_FILE=${PRIMER_FILE}
-      - RESULTS_DIR=${RESULTS_DIR}
+      - OUTPUT_FP=${OUTPUT_FP}
+      - DATABASE_CONFIG=${DATABASE_CONFIG}
+      - REFERENCE=${REFERENCE}
       - KEYCLOAK_TOKEN_URL=${KEYCLOAK_TOKEN_URL}
       - SUBMISSION_URL=${SUBMISSION_URL}
       - CI=${CI}
+      - INPUT_FILE=${INPUT_FILE}
     secrets:
       - aws_access_key_id
       - aws_secret_access_key
