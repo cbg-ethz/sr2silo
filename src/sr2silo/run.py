@@ -10,7 +10,12 @@ from pathlib import Path
 
 import click
 
-from sr2silo.config import is_ci_environment
+from sr2silo.config import (
+    get_keycloak_token_url,
+    get_mock_urls,
+    get_submission_url,
+    is_ci_environment,
+)
 from sr2silo.process import parse_translate_align_in_batches
 from sr2silo.silo import LapisClient, Submission
 from sr2silo.storage import upload_file_to_s3
@@ -92,18 +97,14 @@ def submit_to_silo(result_dir: Path, s3_link: str) -> bool:
         logging.info(
             "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
         )
-        # set some mock environment variables for Keycloak and submission URLs
-        KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
-        SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
+        # Get mock URLs for CI environment
+        KEYCLOAK_TOKEN_URL, SUBMISSION_URL = get_mock_urls()
     else:
-        if os.getenv("KEYCLOAK_TOKEN_URL") or os.getenv("SUBMISSION_URL"):
-            KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
-            SUBMISSION_URL = os.getenv("SUBMISSION_URL")
-        else:
-            logging.warning("KEYCLOAK_TOKEN_URL and SUBMISSION_URL not set.")
-            logging.warning("Using default values.")
-            KEYCLOAK_TOKEN_URL = "https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token"
-            SUBMISSION_URL = "https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN"
+        # Get URLs from environment or use defaults
+        KEYCLOAK_TOKEN_URL = get_keycloak_token_url()
+        SUBMISSION_URL = get_submission_url()
+        logging.info(f"Using Keycloak URL: {KEYCLOAK_TOKEN_URL}")
+        logging.info(f"Using submission URL: {SUBMISSION_URL}")
 
     client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL)  # type: ignore
     client.authenticate(username="testuser", password="testuser")
@@ -140,7 +141,8 @@ def process_file(
         input_file (Path): The file to process.
         sample_id (str): Sample ID to use for metadata.
         batch_id (str): Batch ID to use for metadata.
-        reference (str): The nucleotide / amino acid reference from the resources folder.
+        reference (str): The nucleotide / amino acid reference from
+                         the resources folder.
         timeline_file (Path): The timeline file to cross-reference the metadata.
         primers_file (Path): The primers file to cross-reference the metadata.
         output_fp (Path): Path to the output file.
