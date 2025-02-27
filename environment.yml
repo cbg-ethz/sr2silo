@@ -1,10 +1,12 @@
 name: sr2silo
 channels:
-  - defaults
   - conda-forge
   - bioconda
+  - defaults
 dependencies:
-  - python=3.10
-  - nextclade
-  - poetry
-  - snakemake
+  - python=3.11
+  - snakemake>=8.20.0
+  - nextclade>=3.5.0
+  - pip
+  - pip:
+    - poetry>=1.8.3

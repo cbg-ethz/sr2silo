@@ -1,6 +1,4 @@
-"""Tests the database config file to ensure that the schema
-is consistent with the ReadMetadata model.
-"""
+"""Tests for database configuration validation."""
 
 from __future__ import annotations
 
@@ -8,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from sr2silo.silo_aligned_read import ReadMetadata
+from sr2silo.silo_read_schema import ReadMetadata
 
 DATABASE_CONFIG = Path("resources/silo/database_config.yaml")
 

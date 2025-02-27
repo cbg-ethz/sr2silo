@@ -1,4 +1,9 @@
-"""SILO-specific pydantic schemas for AlignedRead JSON format."""
+"""SILO-specific pydantic schemas that define the expected format for reads in
+    the SILO database.
+
+This module contains the schema definitions used to validate read data before submission
+to the SILO database, ensuring all records conform to the expected format.
+"""
 
 from __future__ import annotations
 
