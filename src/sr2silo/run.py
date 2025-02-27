@@ -8,7 +8,8 @@ import logging
 import os
 from pathlib import Path
 
-import click
+import typer
+from typing_extensions import Annotated
 
 from sr2silo.config import (
     get_keycloak_token_url,
@@ -24,6 +25,8 @@ from sr2silo.vpipe import Sample
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
+app = typer.Typer()
 
 
 def load_config(config_file: Path) -> dict:
@@ -129,10 +132,10 @@ def process_file(
     input_file: Path,
     sample_id: str,
     batch_id: str,
-    reference: str,
     timeline_file: Path,
     primers_file: Path,
     output_fp: Path,
+    reference: str = "sars-cov-2",
     upload: bool = False,
 ) -> None:
     """Process a given input file.
@@ -141,11 +144,11 @@ def process_file(
         input_file (Path): The file to process.
         sample_id (str): Sample ID to use for metadata.
         batch_id (str): Batch ID to use for metadata.
-        reference (str): The nucleotide / amino acid reference from
-                         the resources folder.
         timeline_file (Path): The timeline file to cross-reference the metadata.
         primers_file (Path): The primers file to cross-reference the metadata.
         output_fp (Path): Path to the output file.
+        reference (str): The nucleotide / amino acid reference from
+                    the resources folder.
         upload (bool): Whether to upload and submit to SILO. Default is False.
 
     Returns:
@@ -211,39 +214,73 @@ def process_file(
         logging.info("Skipping upload and submission to S3 and SILO.")
 
 
-@click.command()
-@click.option("--input_file", envvar="INPUT_FILE", help="Path to the input file.")
-@click.option("--sample_id", envvar="SAMPLE_ID", help="sample_id to use for metadata.")
-@click.option("--batch_id", envvar="BATCH_ID", help="batch_id to use for metadata.")
-@click.option(
-    "--timeline_file", envvar="TIMELINE_FILE", help="Path to the timeline file."
-)
-@click.option("--primer_file", envvar="PRIMER_FILE", help="Path to the primers file.")
-@click.option(
-    "--output_fp",
-    envvar="OUTPUT_FP",
-    help="Path to the output file. Must end with .ndjson.",
-)
-@click.option(
-    "--reference",
-    envvar="REFERENCE",
-    default="sars-cov-2",
-    help="see folder names in resources/",
-)
-@click.option(
-    "--upload", is_flag=True, default=False, help="Upload and submit to SILO."
-)
-def main(
-    input_file,
-    sample_id,
-    batch_id,
-    timeline_file,
-    primer_file,
-    output_fp,
-    reference,
-    upload,
-):
-    """Process a sample file."""
+@app.command("run")
+def run_command(
+    input_file: Annotated[
+        Path,
+        typer.Option(
+            "--input-file",
+            "-i",
+            help="Path to the input file.",
+        ),
+    ],
+    sample_id: Annotated[
+        str,
+        typer.Option(
+            "--sample-id",
+            "-s",
+            help="Sample ID to use for metadata.",
+        ),
+    ],
+    batch_id: Annotated[
+        str,
+        typer.Option(
+            "--batch-id",
+            "-b",
+            help="Batch ID to use for metadata.",
+        ),
+    ],
+    timeline_file: Annotated[
+        Path,
+        typer.Option(
+            "--timeline-file",
+            "-t",
+            help="Path to the timeline file.",
+        ),
+    ],
+    primer_file: Annotated[
+        Path,
+        typer.Option(
+            "--primer-file",
+            "-p",
+            help="Path to the primers file.",
+        ),
+    ],
+    output_fp: Annotated[
+        Path,
+        typer.Option(
+            "--output-fp",
+            "-o",
+            help="Path to the output file. Must end with .ndjson.",
+        ),
+    ],
+    reference: Annotated[
+        str,
+        typer.Option(
+            "--reference",
+            "-r",
+            help="See folder names in resources/",
+        ),
+    ] = "sars-cov-2",
+    upload: Annotated[
+        bool,
+        typer.Option(
+            "--upload/--no-upload",
+            help="Upload and submit to SILO.",
+        ),
+    ] = False,
+) -> None:
+    """Process a sample file, converting V-PIPE output to SILO format."""
     logging.info(f"Processing input file: {input_file}")
     logging.info(f"Using timeline file: {timeline_file}")
     logging.info(f"Using primers file: {primer_file}")
@@ -257,15 +294,20 @@ def main(
     logging.info(f"Running in CI environment: {ci_env}")
 
     process_file(
-        input_file=Path(input_file),
+        input_file=input_file,
         sample_id=sample_id,
         batch_id=batch_id,
-        timeline_file=Path(timeline_file),
-        primers_file=Path(primer_file),
-        output_fp=Path(output_fp),
+        timeline_file=timeline_file,
+        primers_file=primer_file,
+        output_fp=output_fp,
         reference=reference,
         upload=upload,
     )
+
+
+def main():
+    """Entry point for the CLI."""
+    app()
 
 
 if __name__ == "__main__":
