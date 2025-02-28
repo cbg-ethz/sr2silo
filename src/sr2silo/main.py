@@ -14,7 +14,7 @@ from sr2silo.import_to_loculus import nuc_align_to_silo_njson
 app = typer.Typer(
     name="sr2silo",
     help=(
-        "Convert Short-Read nulclitide .bam alignments to cleartext alignments, "
+        "Convert Short-Read nucleotide .bam alignments to cleartext alignments, "
         "with amino acids and insertions, in JSON format."
     ),
     no_args_is_help=False,  # Changed to False so our callback handles no args
