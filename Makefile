@@ -30,5 +30,5 @@ install-diamond:
 .PHONY: clean
 clean:
 	@echo "Removing Conda environment..."
-	conda env remove -n sr2silo
+	@conda env remove -n sr2silo
 	@echo "Environment removed."
