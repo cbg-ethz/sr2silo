@@ -1,4 +1,5 @@
 # sr2silo
+## Wrangele BAM nucleotide alignments to cleartext alignments
 <picture>
   <source
     media="(prefers-color-scheme: light)"
@@ -9,19 +10,99 @@
   <img alt="Logo" src="resources/logo.svg" width="15%" />
 </picture>
 
-[![Project Status: WIP – This project is currently under active development.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![Project Status: POC – This project is currently under active development.](https://www.repostatus.org/badges/latest/concept.svg)](https://www.repostatus.org/#concept)
 [![CI/CD](https://github.com/gordonkoehn/UsefulGnom/actions/workflows/test.yml/badge.svg)](https://github.com/gordonkoehn/UsefulGnom/actions/workflows/test.yml)
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Pytest](https://img.shields.io/badge/tested%20with-pytest-0A9EDC.svg)](https://docs.pytest.org/en/stable/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/charliermarsh/ruff)
 [![Pyright](https://img.shields.io/badge/type%20checked-pyright-blue.svg)](https://github.com/microsoft/pyright)
 
+### General Use: Convert Nuclitide Aligmend Reads - CIGAR in .Bam -> Cleartext JSON
+sr2silo can convert millions of Short-Read nucleotide read in the form of a .bam CIGAR
+alignments to cleartext alignments. Further, it will gracefully extract insertions
+and deletions. Optionally, sr2silo can translate and align each reach using (diamond / blastX)[https://github.com/bbuchfink/diamond].
+And again handle insertions and deletions.
+
+Your input `.bam/.sam`:
+````
+294	163	NC_045512.2	79	60	31S220M	=	197	400	CTCTTGTAGAT	FGGGHHHHLMM	...
+087	99	NC_045512.2	79	60	22S220M	=	195	389	ATCTGTTCTCT	NNNNHNNNNNM	...
+
+````
+
+sr2silo outputs per read a JSON (mock output):
+
+```
+{
+  "metadata":{
+    "read_id":"AV233803:AV044:2411515907:1:10805:5199:3294",
+      ...
+    },
+    "nucleotideInsertions":{
+                            "main":[10 : ACTG]
+                            },
+    "aminoAcidInsertions":{
+                            "E":[],
+                            "M":[],
+                            "N":[],
+                            "ORF1a":[2323 : TG, 2389 : CA],
+                            "ORF1b":[],
+                            "ORF3a":[],
+                            "ORF6":[],
+                            "ORF7a":[],
+                            "ORF7b":[],
+                            "ORF8":[],
+                            "ORF9b":[],
+                            "S":[23 : A]
+                            },
+    "alignedNucleotideSequences":
+                                {
+                                  "main":"NNNNNNNNNNNNNNNNNNCGGTTTCGTCCGTGTTGCAGCCG...GTGTCAACATCTTAAAGATGGCACTTGTGNNNNNNNNNNNNNNNNNNNNNNNN"
+                                  },
+    "unalignedNucleotideSequences":{
+                                  "main":"CGGTTTCGTCCGTGTTGCAGCCGATCATCAGCACATCTAGGTTTTGTCCGGGTGTGA...TACAGGTTCGCGACGTGCTCGTGTGAAAGATGGCACTTGTG"
+                                  },
+    "alignedAminoAcidSequences":{
+                "E":"",
+                "M":"",
+                "N":"",
+                "ORF1a":"...NMESLVPGFNEKTHVQLSLPVLQVRVRGFGDSVEEVLSEARQHLKDGTCGLVEVEKGVNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN...",
+                "ORF1b":"",
+                "ORF3a":"",
+                "ORF6":"",
+                "ORF7a":"",
+                "ORF7b":"",
+                "ORF8":"",
+                "ORF9b":"",
+                "S":""}
+      }
+```
+
+The total output is handled in an `.ndjson.zst`.
 
 ### Wrangling Short-Read Genomic Alignments for SILO Database
 
-This project will wrangle short-read genomic alignments, for example from wastewater-sampling, into a format for easy import into [Loculus](https://github.com/loculus-project/loculus) and its sequence database SILO.
+Originally this was started for wargeling short-read genomic alignments for from wastewater-sampling, into a format for easy import into [Loculus](https://github.com/loculus-project/loculus) and its sequence database SILO.
 
 sr2silo is designed to process a nucliotide alignments from `.bam` files with metadata, translate and align reads in amino acids, gracefully handling all insertions and deletions and upload the results to the backend [LAPIS-SILO](https://github.com/GenSpectrum/LAPIS-SILO).
+
+For the V-Pipe to Silo implementation we carry through the following metadata:
+```
+  "metadata":{
+    "read_id":"AV233803:AV044:2411515907:1:10805:5199:3294",
+    "sample_id":"A1_05_2024_10_08",
+    "batch_id":"20241024_2411515907",
+    "sampling_date":"2024-10-08",
+    "sequencing_date":"2024-10-24",
+    "location_name":"Lugano (TI)",
+    "read_length":"250","primer_protocol":"v532",
+    "location_code":"05",
+    "flow_cell_serial_number":"2411515907"
+    "sequencing_well_position":"A1",
+    "primer_protocol_name":"SARS-CoV-2 ARTIC V5.3.2",
+    "nextclade_reference":"sars-cov-2"
+    }
+```
 
 ### Setting up the repository
 
