@@ -382,7 +382,6 @@ def parse_translate_align(
             out_aa_alignment_fp=AA_ALIGNMENT_FILE,
         )
 
-        # Get nucleotide reference sequence, properly handling FASTA format
         nuc_reference = convert.get_sequence_from_fasta(nuc_reference_fp)
         nuc_reference_length = len(nuc_reference)
         logging.info(f"Loaded nucleotide reference with length {nuc_reference_length}")
