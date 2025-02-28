@@ -369,7 +369,6 @@ def parse_translate_align(
             raise FileNotFoundError(f"Missing input files: {', '.join(missing_files)}")
 
         convert.sort_and_index_bam(nuc_alignment_fp, BAM_NUC_ALIGNMENT_FILE)
-
         logging.info("Parsing Nucleotides: BAM FASTQ conversion (with INDELS)")
         convert.bam_to_fastq_handle_indels(
             bam_file=BAM_NUC_ALIGNMENT_FILE,
@@ -383,8 +382,7 @@ def parse_translate_align(
             out_aa_alignment_fp=AA_ALIGNMENT_FILE,
         )
 
-        with open(nuc_reference_fp, "r") as f:
-            nuc_reference = f.read()
+        nuc_reference = convert.get_sequence_from_fasta(nuc_reference_fp)
         nuc_reference_length = len(nuc_reference)
         logging.info(f"Loaded nucleotide reference with length {nuc_reference_length}")
 
@@ -408,7 +406,6 @@ def parse_translate_align(
         aligned_reads = enrich_read_with_aa_seq(
             aligned_reads, AA_ALIGNMENT_FILE, gene_set
         )
-
     return aligned_reads
 
 
