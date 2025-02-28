@@ -145,3 +145,6 @@ loculus_submission
 notebooks
 out
 results
+
+# Snakemake
+.snakemake/

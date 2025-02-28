@@ -1,10 +1,11 @@
 .PHONY: create-env
 create-env:
 	@if conda info --envs | awk '{print $$1}' | grep -wq sr2silo; then \
-	    echo "Conda environment sr2silo already exists. Skipping creation."; \
+		echo "Conda environment sr2silo already exists. Updating environment..."; \
+		conda env update -f environment.yml --prune; \
 	else \
-	    echo "Creating Conda environment..."; \
-	    conda env create -f environment.yml; \
+		echo "Creating Conda environment..."; \
+		conda env create -f environment.yml; \
 	fi
 
 .PHONY: activate-env
@@ -29,5 +30,5 @@ install-diamond:
 .PHONY: clean
 clean:
 	@echo "Removing Conda environment..."
-	conda env remove -n sr2silo
+	@conda env remove -n sr2silo
 	@echo "Environment removed."

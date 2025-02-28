@@ -1,4 +1,5 @@
 # sr2silo
+## Wrangele BAM nucleotide alignments to cleartext alignments
 <picture>
   <source
     media="(prefers-color-scheme: light)"
@@ -9,29 +10,82 @@
   <img alt="Logo" src="resources/logo.svg" width="15%" />
 </picture>
 
-[![Project Status: WIP – This project is currently under active development.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![Project Status: POC – This project is currently under active development.](https://www.repostatus.org/badges/latest/concept.svg)](https://www.repostatus.org/#concept)
 [![CI/CD](https://github.com/gordonkoehn/UsefulGnom/actions/workflows/test.yml/badge.svg)](https://github.com/gordonkoehn/UsefulGnom/actions/workflows/test.yml)
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Pytest](https://img.shields.io/badge/tested%20with-pytest-0A9EDC.svg)](https://docs.pytest.org/en/stable/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/charliermarsh/ruff)
 [![Pyright](https://img.shields.io/badge/type%20checked-pyright-blue.svg)](https://github.com/microsoft/pyright)
 
+### General Use: Convert Nucleotide Alignment Reads - CIGAR in .BAM to Cleartext JSON
+sr2silo can convert millions of Short-Read nucleotide read in the form of a .bam CIGAR
+alignments to cleartext alignments. Further, it will gracefully extract insertions
+and deletions. Optionally, sr2silo can translate and align each read using [diamond / blastX](https://github.com/bbuchfink/diamond). And again handle insertions and deletions.
+
+Your input `.bam/.sam` with one line as:
+````
+294	163	NC_045512.2	79	60	31S220M	=	197	400	CTCTTGTAGAT	FGGGHHHHLMM	...
+````
+
+sr2silo outputs per read a JSON (mock output):
+
+```
+{
+  "metadata":{
+    "read_id":"AV233803:AV044:2411515907:1:10805:5199:3294",
+      ...
+    },
+    "nucleotideInsertions":{
+                            "main":[10 : ACTG]
+                            },
+    "aminoAcidInsertions":{
+                            "E":[],
+                            ...
+                            "ORF1a":[2323 : TG, 2389 : CA],
+                            ...
+                            "S":[23 : A]
+                            },
+    "alignedNucleotideSequences":
+                                {
+                                  "main":"NNNNNNNNNNNNNNNNNNCGGTTTCGTCCGTGTTGCAGCCG...GTGTCAACATCTTAAAGATGGCACTTGTGNNNNNNNNNNNNNNNNNNNNNNNN"
+                                  },
+    "unalignedNucleotideSequences":{
+                                  "main":"CGGTTTCGTCCGTGTTGCAGCCGATCATCAGCACATCTAGGTTTTGTCCGGGTGTGA...TACAGGTTCGCGACGTGCTCGTGTGAAAGATGGCACTTGTG"
+                                  },
+    "alignedAminoAcidSequences":{
+                "E":"",
+                ...
+                "ORF1a":"...NMESLVPGFNEKTHVQLSLPVLQVRVRGFGDSVEEVLSEARQHLKDGTCGLVEVEKGVNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN...",
+                ...
+                "S":""}
+      }
+```
+
+The total output is handled in an `.ndjson.zst`.
 
 ### Wrangling Short-Read Genomic Alignments for SILO Database
 
-This project will wrangle short-read genomic alignments, for example from wastewater-sampling, into a format for easy import into [Loculus](https://github.com/loculus-project/loculus) and its sequence database SILO.
+Originally this was started for wargeling short-read genomic alignments for from wastewater-sampling, into a format for easy import into [Loculus](https://github.com/loculus-project/loculus) and its sequence database SILO.
 
 sr2silo is designed to process a nucliotide alignments from `.bam` files with metadata, translate and align reads in amino acids, gracefully handling all insertions and deletions and upload the results to the backend [LAPIS-SILO](https://github.com/GenSpectrum/LAPIS-SILO).
 
-## Project Organization
-
-- `.github/workflows`: Contains GitHub Actions used for building, testing, and publishing.
-install, and whether or not to mount the project directory into the container.
-- `.vscode/settings.json`: Contains VSCode settings specific to the project, such as the Python interpreter to use and the maximum line length for auto-formatting.
-- `src`: Place new source code here.
-- `scripts`: Place new source code here, temporary and intermediate works.
-- `tests`: Contains Python-based test cases to validate source code.
-- `pyproject.toml`: Contains metadata about the project and configurations for additional tools used to format, lint, type-check, and analyze Python code.
+For the V-Pipe to Silo implementation we carry through the following metadata:
+```
+  "metadata":{
+    "read_id":"AV233803:AV044:2411515907:1:10805:5199:3294",
+    "sample_id":"A1_05_2024_10_08",
+    "batch_id":"20241024_2411515907",
+    "sampling_date":"2024-10-08",
+    "sequencing_date":"2024-10-24",
+    "location_name":"Lugano (TI)",
+    "read_length":"250","primer_protocol":"v532",
+    "location_code":"05",
+    "flow_cell_serial_number":"2411515907"
+    "sequencing_well_position":"A1",
+    "primer_protocol_name":"SARS-CoV-2 ARTIC V5.3.2",
+    "nextclade_reference":"sars-cov-2"
+    }
+```
 
 ### Setting up the repository
 
@@ -60,55 +114,64 @@ In particular, it's good to install it and become familiar with its basic functi
    poetry run pytest
    ```
 
-### [WIP]: Run the processing
+### Run CLI
 
-This is currently implemented as script and under heavy development.
-To run, we recommend a build as a docker compose as it relies on other RUST components.
+The sr2silo CLI has two main commands:
 
-#### Configuration
+1. `run` - Not yet implemented command for future functionality
+2. `import-to-loculus` - Convert BAM alignments to SILO format and optionally upload
 
-Edit the `docker-compose.env` file in the `docker-compose` directory with the following paths:
+#### Basic Usage
 
-```env
-SAMPLE_DIR=../../../data/sr2silo/daemon_test/samples/A1_05_2024_10_08/20241024_2411515907/alignments/
-SAMPLE_ID=A1_05_2024_10_08
-BATCH_ID=20241024_2411515907
-TIMELINE_FILE=../../../data/sr2silo/daemon_test/timeline.tsv
-NEXTCLADE_REFERENCE=sars-cov2
-RESULTS_DIR=./results
-KEYCLOAK_TOKEN_URL=https://authentication-wise-seqs.loculus.org/realms/loculus/protocol/openid-connect/token
-SUBMISSION_URL=https://backend-wise-seqs.loculus.org/test/submit?groupId={group_id}&dataUseTermsType=OPEN
-CI=false
-```
-KEYCLOAK_TOKEN_URL and SUBMISSION_URL are used for the submission to lapis.
+The main command you'll use is `import-to-loculus`:
 
-CI determines if `sr2silo` runs in a Continuous Integration pipeline and shall mock
-uploads and skip submissions.
-
-#### Docker Secrets
-To upload the processed outputs S3 storage is required.
-
-For sensitive information like AWS credentials, use Docker secrets. Create the following files in the secrets directory:
-
-- `secrets/aws_access_key_id.txt`:
-
-```YourAWSAccessKeyId```
-
-- `secrets/aws_secret_access_key.txt`:
-
-```YourAWSSecretAccessKey```
-
-- `secrets/aws_default_region.txt`:
-```YourAWSRegion```
-
-#### Run Transformation
-
-To process a single sample, run the following command:
-
-```sh
-docker-compose --env-file .env up --build
+```bash
+sr2silo import-to-loculus \
+    --input-file INPUT.bam \
+    --sample-id SAMPLE_ID \
+    --batch-id BATCH_ID \
+    --timeline-file TIMELINE.tsv \
+    --primer-file PRIMERS.yaml \
+    --output-fp OUTPUT.ndjson \
+    --reference sars-cov-2
 ```
 
+#### Required Arguments
+
+- `--input-file, -i`: Path to the input BAM alignment file
+- `--sample-id, -s`: Sample ID to use for metadata
+- `--batch-id, -b`: Batch ID to use for metadata
+- `--timeline-file, -t`: Path to the timeline metadata file
+- `--primer-file, -p`: Path to the primers configuration file
+- `--output-fp, -o`: Path for the output file (will be auto-suffixed with .ndjson.zst)
+
+#### Optional Arguments
+
+- `--reference, -r`: Reference genome to use (default: "sars-cov-2")
+- `--upload/--no-upload`: Whether to upload results to S3 and submit to SILO (default: no-upload)
+
+#### Example Usage
+
+Here's a complete example with sample data:
+
+```bash
+sr2silo import-to-loculus \
+    --input-file ./data/sample/alignments/REF_aln_trim.bam \
+    --sample-id "A1_05_2024_10_08" \
+    --batch-id "20241024_2411515907" \
+    --timeline-file ./data/timeline.tsv \
+    --primer-file ./data/primers.yaml \
+    --output-fp ./results/output.ndjson \
+    --reference sars-cov-2
+```
+
+To also upload the results to SILO, add the `--upload` flag:
+
+```bash
+sr2silo import-to-loculus \
+    # ...same arguments as above... \
+    --upload
+```
 
 ### Tool Sections
 The code quality checks run on GitHub can be seen in

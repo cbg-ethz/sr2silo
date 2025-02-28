@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import bz2
 import logging
 import os
-import shutil
 from pathlib import Path
 
 import boto3
@@ -22,18 +20,6 @@ logging.basicConfig(
 logging.getLogger("boto3").setLevel(logging.WARNING)
 logging.getLogger("botocore").setLevel(logging.WARNING)
 logging.getLogger("s3transfer").setLevel(logging.WARNING)
-
-
-def compress_bz2(input_fp: Path, output_fp: Path) -> None:
-    """Compress a file using BZ2 compression.
-
-    Args:
-        input_fp (Path): Path to the input file.
-        output_fp (Path): Path to the output compressed file.
-    """
-    with open(input_fp, "rb") as f_in:
-        with bz2.BZ2File(output_fp, "wb") as f_out:
-            shutil.copyfileobj(f_in, f_out)
 
 
 def _get_aws_credentials(secrets_dir: Path) -> tuple[str, str, str]:

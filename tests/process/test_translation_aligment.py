@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -28,11 +29,15 @@ logging.basicConfig(
 def test_translate():
     """Test the translation function."""
 
-    translate_align.translate_nextclade(
-        [Path("tests/data/merged_expected.fasta")],
-        Path("output/"),
-        "nextstrain/sars-cov-2/XBB",
-    )
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        output_dir = Path(tmpdirname) / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        translate_align.translate_nextclade(
+            [Path("tests/data/merged_expected.fasta")],
+            output_dir,
+            "nextstrain/sars-cov-2/XBB",
+        )
     assert True
 
 
@@ -69,16 +74,16 @@ def test_parse_translate_align(aligned_reads):
 
 @pytest.mark.skip(reason="Not implemented")
 def test_read_in_AligendReads_nuc_seq():
-    """Test the read_in_AlignedReads_nuc_seq function."""
+    """Test the enrich_read_with_nuc_seq function."""
     raise NotImplementedError
 
 
 def test_read_in_AligendReads_nuc_ins(aligned_reads):
-    """Test the read_in_AlignedReads_nuc_ins function."""
+    """Test the enrich_read_with_nuc_ins function."""
 
     fasta_nuc_insertions_file = Path("tests/data/process/nuc_insertions.fasta")
 
-    expected_aligned_reads = translate_align.read_in_AlignedReads_nuc_ins(
+    expected_aligned_reads = translate_align.enrich_read_with_nuc_ins(
         aligned_reads, fasta_nuc_insertions_file
     )
 
@@ -128,7 +133,7 @@ def test_read_in_AligendReads_aa_ins():
         ("read2", "GeneY", 5, "3M2I4M", "SEQ", [AAInsertion(7, "IN")]),
     ],
 )
-def test_read_in_AlignedReads_aa_seq_and_ins_multiple(
+def test_enrich_read_with_aa_seq_multiple(
     tmp_path,
     monkeypatch,
     read_id,
@@ -138,7 +143,7 @@ def test_read_in_AlignedReads_aa_seq_and_ins_multiple(
     expected_seq,
     expected_insertions,
 ):
-    """Test read_in_AlignedReads_aa_seq_and_ins with multiple insertions."""
+    """Test enrich_read_with_aa_seq with multiple insertions."""
     # Create a dummy GeneSet with one gene of variable length.
     gene_name = GeneName(gene_name_str)
     dummy_gene = Gene(gene_name, 50)
@@ -170,7 +175,7 @@ def test_read_in_AlignedReads_aa_seq_and_ins_multiple(
     )
 
     # Call the function under test.
-    updated_reads = translate_align.read_in_AlignedReads_aa_seq_and_ins(
+    updated_reads = translate_align.enrich_read_with_aa_seq(
         aligned_reads, dummy_file, dummy_gene_set
     )
 
