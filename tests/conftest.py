@@ -145,3 +145,22 @@ def dummy_alignment(monkeypatch):
     """Fixture to replace pysam.AlignmentFile with a dummy class."""
     monkeypatch.setattr(pysam, "AlignmentFile", DummyAlignmentFile)
     return Path("dummy.bam")
+
+
+# TODO: centralize these filepaths to constants avice to avoid duplication
+@pytest.fixture
+def real_sample_files_import_to_loculus(tmp_path):
+    """Get real sample files from the test data directory for
+    `sr2silo import-to-loculus`."""
+    return {
+        "input_file": Path(
+            "./tests/data/samples/A1_05_2024_10_08/20241024_2411515907/"
+            "alignments/REF_aln_trim.bam"
+        ),
+        "timeline_file": Path("./tests/data/samples/timeline_A1_05_2024_10_08.tsv"),
+        "primer_file": Path("./tests/data/samples_large/primers.yaml"),
+        "output_file": tmp_path / "silo_input.ndjson.zst",
+        "sample_id": "A1_05_2024_10_08",
+        "batch_id": "20241024_2411515907",
+        "reference": "sars-cov-2",
+    }
