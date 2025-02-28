@@ -9,7 +9,7 @@ from typing import Annotated
 import typer
 
 from sr2silo.config import is_ci_environment
-from sr2silo.run import process_file
+from sr2silo.import_to_loculus import nuc_align_to_silo_njson
 
 app = typer.Typer(
     name="sr2silo",
@@ -17,7 +17,7 @@ app = typer.Typer(
         "Convert Short-Read nulclitide .bam alignments to cleartext alignments, "
         "with amino acids and insertions, in JSON format."
     ),
-    no_args_is_help=True,
+    no_args_is_help=False,  # Changed to False so our callback handles no args
 )
 
 
@@ -25,7 +25,7 @@ app = typer.Typer(
 def callback(ctx: typer.Context):
     """Callback function that runs when no subcommand is provided."""
     if ctx.invoked_subcommand is None:
-        main()
+        typer.echo("Well, you gotta decide what to do.. see --help for subcommands")
 
 
 @app.command()
@@ -121,7 +121,7 @@ def import_to_loculus(
     ci_env = is_ci_environment()
     logging.info(f"Running in CI environment: {ci_env}")
 
-    process_file(
+    nuc_align_to_silo_njson(
         input_file=input_file,
         sample_id=sample_id,
         batch_id=batch_id,
@@ -135,7 +135,7 @@ def import_to_loculus(
 
 def main():
     """Main entry point for the sr2silo CLI."""
-    print("Well, you gotta decide what to do.. see --help for subcommands")
+    typer.echo("Well, you gotta decide what to do.. see --help for subcommands")
 
 
 if __name__ == "__main__":
