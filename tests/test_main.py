@@ -15,8 +15,7 @@ def test_help():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
     assert "sr2silo" in result.stdout
-    assert "Convert Short-Read nulclitide .bam alignments" in result.stdout
-
+    assert "Convert Short-Read nucleotide .bam alignments" in result.stdout
 
 def test_no_args():
     """Test behavior when no arguments are provided."""

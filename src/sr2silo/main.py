@@ -104,7 +104,7 @@ def import_to_loculus(
     ] = False,
 ) -> None:
     """
-    V-PIPE to SILO conversion with amio acids, special metadata,
+    V-PIPE to SILO conversion with amino acids, special metadata,
     Upload to S3 and submission to Loculus.
     """
     typer.echo("Starting V-PIPE to SILO conversion.")
