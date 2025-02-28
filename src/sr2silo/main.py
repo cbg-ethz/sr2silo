@@ -17,7 +17,15 @@ app = typer.Typer(
         "Convert Short-Read nulclitide .bam alignments to cleartext alignments, "
         "with amino acids and insertions, in JSON format."
     ),
+    no_args_is_help=True,
 )
+
+
+@app.callback(invoke_without_command=True)
+def callback(ctx: typer.Context):
+    """Callback function that runs when no subcommand is provided."""
+    if ctx.invoked_subcommand is None:
+        main()
 
 
 @app.command()
@@ -123,3 +131,12 @@ def import_to_loculus(
         reference=reference,
         upload=upload,
     )
+
+
+def main():
+    """Main entry point for the sr2silo CLI."""
+    print("Well, you gotta decide what to do.. see --help for subcommands")
+
+
+if __name__ == "__main__":
+    main()
