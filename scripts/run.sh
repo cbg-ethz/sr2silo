@@ -11,7 +11,7 @@ NUC_REFERENCE="sars-cov-2"
 
 # Run using sr2silo CLI
 # Add --upload flag if you want to upload and submit to SILO
-sr2silo run \
+sr2silo import-to-loculus \
     --input-file "$INPUT_FILE" \
     --sample-id "$SAMPLE_ID" \
     --batch-id "$BATCH_ID" \
