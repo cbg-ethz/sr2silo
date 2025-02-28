@@ -201,7 +201,7 @@ def nuc_align_to_silo_njson(
         metadata_fp=metadata_file,
         output_fp=aligned_reads_fp,
     )
-
+    logging.info(f"Processed reads saved to: {aligned_reads_fp}")
     if upload:
         s3_link = upload_to_s3(aligned_reads_fp, sample_id)
         submit_to_silo(result_dir, s3_link)

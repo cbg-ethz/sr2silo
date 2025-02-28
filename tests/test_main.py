@@ -124,7 +124,7 @@ def test_import_to_loculus_with_upload_flag(sample_files):
 
 
 @pytest.fixture
-def real_sample_files():
+def real_sample_files(tmp_path):
     """Get real sample files from the test data directory."""
     return {
         "input_file": Path(
@@ -132,7 +132,7 @@ def real_sample_files():
         ),
         "timeline_file": Path("./tests/data/samples/timeline_A1_05_2024_10_08.tsv"),
         "primer_file": Path("./tests/data/samples_large/primers.yaml"),
-        "output_file": Path("./results_neo/silo_input.ndjson"),
+        "output_file": tmp_path / "silo_input.ndjson.zst",
         "sample_id": "A1_05_2024_10_08",
         "batch_id": "20241024_2411515907",
         "reference": "sars-cov-2",
@@ -141,6 +141,7 @@ def real_sample_files():
 
 def test_import_to_loculus_with_real_files(real_sample_files):
     """Test import-to-loculus with real sample files."""
+
     result = runner.invoke(
         app,
         [
@@ -163,6 +164,7 @@ def test_import_to_loculus_with_real_files(real_sample_files):
         ],
     )
 
+    print(result.stdout)
     assert result.exit_code == 0
     assert "Starting V-PIPE to SILO conversion" in result.stdout
 
