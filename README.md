@@ -17,17 +17,14 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/charliermarsh/ruff)
 [![Pyright](https://img.shields.io/badge/type%20checked-pyright-blue.svg)](https://github.com/microsoft/pyright)
 
-### General Use: Convert Nuclitide Aligmend Reads - CIGAR in .Bam -> Cleartext JSON
+### General Use: Convert Nucleotide Alignment Reads - CIGAR in .BAM to Cleartext JSON
 sr2silo can convert millions of Short-Read nucleotide read in the form of a .bam CIGAR
 alignments to cleartext alignments. Further, it will gracefully extract insertions
-and deletions. Optionally, sr2silo can translate and align each reach using (diamond / blastX)[https://github.com/bbuchfink/diamond].
-And again handle insertions and deletions.
+and deletions. Optionally, sr2silo can translate and align each read using [diamond / blastX](https://github.com/bbuchfink/diamond). And again handle insertions and deletions.
 
-Your input `.bam/.sam`:
+Your input `.bam/.sam` with one line as:
 ````
 294	163	NC_045512.2	79	60	31S220M	=	197	400	CTCTTGTAGAT	FGGGHHHHLMM	...
-087	99	NC_045512.2	79	60	22S220M	=	195	389	ATCTGTTCTCT	NNNNHNNNNNM	...
-
 ````
 
 sr2silo outputs per read a JSON (mock output):
@@ -43,16 +40,9 @@ sr2silo outputs per read a JSON (mock output):
                             },
     "aminoAcidInsertions":{
                             "E":[],
-                            "M":[],
-                            "N":[],
+                            ...
                             "ORF1a":[2323 : TG, 2389 : CA],
-                            "ORF1b":[],
-                            "ORF3a":[],
-                            "ORF6":[],
-                            "ORF7a":[],
-                            "ORF7b":[],
-                            "ORF8":[],
-                            "ORF9b":[],
+                            ...
                             "S":[23 : A]
                             },
     "alignedNucleotideSequences":
@@ -64,16 +54,9 @@ sr2silo outputs per read a JSON (mock output):
                                   },
     "alignedAminoAcidSequences":{
                 "E":"",
-                "M":"",
-                "N":"",
+                ...
                 "ORF1a":"...NMESLVPGFNEKTHVQLSLPVLQVRVRGFGDSVEEVLSEARQHLKDGTCGLVEVEKGVNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN...",
-                "ORF1b":"",
-                "ORF3a":"",
-                "ORF6":"",
-                "ORF7a":"",
-                "ORF7b":"",
-                "ORF8":"",
-                "ORF9b":"",
+                ...
                 "S":""}
       }
 ```
