@@ -66,8 +66,7 @@ def test_import_to_loculus_with_real_files(real_sample_files_import_to_loculus):
             "--no-upload",
         ],
     )
-
-    print(result.stdout)
+    # TODO: check for the correct output
     assert result.exit_code == 0
     assert "Starting V-PIPE to SILO conversion" in result.stdout
 
@@ -98,5 +97,6 @@ def test_import_to_loculus_with_real_files_and_upload(
         ],
     )
 
+    # TODO: check for the correct output
     assert result.exit_code == 0
     assert "Starting V-PIPE to SILO conversion" in result.stdout
