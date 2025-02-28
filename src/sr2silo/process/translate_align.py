@@ -477,6 +477,8 @@ def parse_translate_align_in_batches(
         )
         output_fp = output_fp.with_suffix(".ndjson.zst")
 
+    output_fp.parent.mkdir(parents=True, exist_ok=True)
+
     with suppress_info_and_below():
         # split the input file into batches
         with tempfile.TemporaryDirectory() as temp_dir:
