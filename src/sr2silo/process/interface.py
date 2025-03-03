@@ -63,6 +63,8 @@ class AlignedRead:
         self.aligned_amino_acid_sequences = aligned_amino_acid_sequences
         if metadata:
             self.set_metadata(metadata)
+        else:
+            self.metadata = None
         self._validate_types()
 
     def _validate_types(self):
@@ -238,12 +240,15 @@ class GeneName:
 
 
 class Gene:
+    """Class to represent a gene with a name and a length."""
+
     def __init__(self, gene_name: GeneName, gene_length: int):
         """Initialize with a gene name and a gene length."""
         self.name = gene_name
         self.gene_length = gene_length
 
     def to_dict(self) -> Dict[str, GeneName | int]:
+        """Return a dictionary with gene name and gene length."""
         return {
             "gene_name": self.name,
             "gene_length": self.gene_length,
