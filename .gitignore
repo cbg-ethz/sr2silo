@@ -148,3 +148,6 @@ results
 
 # Snakemake
 .snakemake/
+
+# Rust
+/target

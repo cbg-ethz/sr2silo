@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "add_offset",
+    "sort_by_offset"
+]
