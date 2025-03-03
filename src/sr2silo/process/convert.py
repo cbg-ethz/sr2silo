@@ -17,6 +17,30 @@ logging.basicConfig(
 )
 
 
+def get_sequence_from_fasta(fasta_fp: Path) -> str:
+    """
+    Extracts sequence from a FASTA file, ignoring headers.
+
+    Args:
+        fasta_fp (Path): Path to the FASTA file.
+
+    Returns:
+        str: The concatenated sequence without headers.
+
+    Notes:
+        If multiple sequences are in the file, they will be concatenated.
+    """
+    sequence = ""
+    with open(fasta_fp, "r") as f:
+        for line in f:
+            line = line.strip()
+            # Skip empty lines and header lines (starting with '>')
+            if not line or line.startswith(">"):
+                continue
+            sequence += line
+    return sequence
+
+
 def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
     """
     Sorts a BAM file using pysam.sort to avoid loading all alignments into memory.

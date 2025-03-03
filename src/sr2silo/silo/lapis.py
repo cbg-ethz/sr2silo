@@ -1,4 +1,4 @@
-""""Interactions with the Lapis API."""
+""" "Interactions with the Lapis API."""
 
 from __future__ import annotations
 
