@@ -1,5 +1,5 @@
 """Converts V-PIPE's outputs of nucleotide read sequencs output to
-   ready to import nuclotides and amino acid sequences to the SILO database."""
+ready to import nuclotides and amino acid sequences to the SILO database."""
 
 from __future__ import annotations
 

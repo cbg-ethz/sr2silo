@@ -1,7 +1,7 @@
 """Implements V-Pipe specific utilities.
 
-  i.e. extracting metadata from V-Pipe Filenaming Conventions.
-  """
+i.e. extracting metadata from V-Pipe Filenaming Conventions.
+"""
 
 from __future__ import annotations
 

@@ -1,7 +1,7 @@
 """Implements Processing.
 
-  translation of alignments, read pairing, and normalization, and conversions.
-  """
+translation of alignments, read pairing, and normalization, and conversions.
+"""
 
 from __future__ import annotations
 
