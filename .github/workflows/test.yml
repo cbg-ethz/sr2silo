@@ -57,3 +57,9 @@ jobs:
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate sr2silo
           poetry run pyright
+
+      - name: Run Snakemake lint
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate sr2silo
+          poetry run snakemake --lint text
