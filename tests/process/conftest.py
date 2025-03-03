@@ -28,4 +28,5 @@ def aligned_reads() -> Dict[str, AlignedRead]:
     aligned_reads = translate_align.parse_translate_align(
         nuc_ref_fp, aa_ref_fp, nuc_alignment_fp
     )
+
     return aligned_reads

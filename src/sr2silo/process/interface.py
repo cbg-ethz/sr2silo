@@ -172,7 +172,6 @@ class AlignedRead:
 
         # Parse the json data to a dict
         json_data = json.loads(data)
-        json_data = json.loads(json_data)
 
         read_id = json_data["readId"]
         unaligned_nucleotide_sequences = json_data["unalignedNucleotideSequences"][

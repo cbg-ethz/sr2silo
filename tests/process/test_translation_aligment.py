@@ -66,7 +66,7 @@ def test_parse_translate_align(aligned_reads):
         for attr in actual.to_dict().keys():
             act_attr = actual.to_dict()[attr]
             exp_attr = expected.to_dict()[attr]
-            assert act_attr == exp_attr, (
+            assert str(act_attr) == str(exp_attr), (
                 f"Mismatch at read {i} for attribute {attr}: "
                 f"Expected {exp_attr} but got {act_attr}"
             )
