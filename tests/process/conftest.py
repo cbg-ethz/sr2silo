@@ -4,6 +4,8 @@ Fixtures for the process module.
 
 from __future__ import annotations
 
+import json
+import tempfile
 from pathlib import Path
 from typing import Dict
 
@@ -28,4 +30,34 @@ def aligned_reads() -> Dict[str, AlignedRead]:
     aligned_reads = translate_align.parse_translate_align(
         nuc_ref_fp, aa_ref_fp, nuc_alignment_fp
     )
+
+    from sr2silo.process import enrich_read_with_metadata
+
+    # make mock metadata with all empty strings, but readId
+    # print emoptry ReadMetadata scehma to json
+    metadata = {
+        "read_id": "readId",
+        "sample_id": "",
+        "batch_id": "",
+        "sampling_date": "",
+        "sequencing_date": "",
+        "location_name": "",
+        "read_length": "",
+        "primer_protocol": "",
+        "location_code": "",
+        "flow_cell_serial_number": "",
+        "sequencing_well_position": "",
+        "primer_protocol_name": "",
+        "nextclade_reference": "",
+    }
+
+    metadata_fp = Path("tests/data/process/metadata.json")
+
+    # create a temp file
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
+        json.dump(metadata, f, indent=4)
+        metadata_fp = Path(f.name)
+
+    aligned_reads = enrich_read_with_metadata(aligned_reads, metadata_fp)
+
     return aligned_reads

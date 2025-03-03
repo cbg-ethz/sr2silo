@@ -225,10 +225,10 @@ def nuc_to_aa_alignment(
     return None
 
 
-def enrich_read_with_nuc_seq(
+def make_read_with_nuc_seq(
     fastq_nuc_alignment_file: Path, nuc_reference_length: int, gene_set: GeneSet
 ) -> Dict[str, AlignedRead]:
-    """Read aligned reads from a FASTQ file with indels.
+    """Makes aligned reads from a FASTQ file with indels.
 
     Args:
         fastq_nuc_alignment_file (Path): Path to the FASTQ file with alignment
@@ -369,7 +369,6 @@ def parse_translate_align(
             raise FileNotFoundError(f"Missing input files: {', '.join(missing_files)}")
 
         convert.sort_and_index_bam(nuc_alignment_fp, BAM_NUC_ALIGNMENT_FILE)
-
         logging.info("Parsing Nucleotides: BAM FASTQ conversion (with INDELS)")
         convert.bam_to_fastq_handle_indels(
             bam_file=BAM_NUC_ALIGNMENT_FILE,
@@ -383,8 +382,7 @@ def parse_translate_align(
             out_aa_alignment_fp=AA_ALIGNMENT_FILE,
         )
 
-        with open(nuc_reference_fp, "r") as f:
-            nuc_reference = f.read()
+        nuc_reference = convert.get_sequence_from_fasta(nuc_reference_fp)
         nuc_reference_length = len(nuc_reference)
         logging.info(f"Loaded nucleotide reference with length {nuc_reference_length}")
 
@@ -393,7 +391,7 @@ def parse_translate_align(
 
         logging.info("Processing nucleotide alignments")
         # TODO: speed up - check progress bar does not update
-        aligned_reads = enrich_read_with_nuc_seq(
+        aligned_reads = make_read_with_nuc_seq(
             FASTQ_NUC_ALIGNMENT_FILE, nuc_reference_length, gene_set
         )
 
@@ -408,7 +406,6 @@ def parse_translate_align(
         aligned_reads = enrich_read_with_aa_seq(
             aligned_reads, AA_ALIGNMENT_FILE, gene_set
         )
-
     return aligned_reads
 
 
