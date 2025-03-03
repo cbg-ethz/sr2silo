@@ -3,5 +3,6 @@ resolver = "2"
 
 members = [
     "add_offset",
-    "sort_by_offset"
+    "split_into_sorted_chunks",
+    "merge_sorted_chunks"
 ]
