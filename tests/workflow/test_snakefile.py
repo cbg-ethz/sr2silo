@@ -9,10 +9,9 @@ from tempfile import TemporaryDirectory
 from common import OutputChecker
 
 
-def test_get_coverage_for_batch():
+def test_process_sample():
     """
-    Test the get_coverage_for_batch rule.
-    using test data from sars-cov-2.
+    Test the process_sample rule.
 
     This version of the test automatically finds the necessary files.
     """
@@ -40,12 +39,6 @@ def test_get_coverage_for_batch():
         wrk_mock_data_path = Path(workdir, "data")
         shutil.copytree(mock_data_path, wrk_mock_data_path, dirs_exist_ok=True)
         shutil.copy(script_path, workdir / "scripts" / script_path.name)
-
-        # Print the contents of the workdir
-
-        # Print the contents of the current directory
-        print_directory_contents(workdir)
-        print_directory_contents(wrk_mock_data_path)
 
         # Run the test job
 

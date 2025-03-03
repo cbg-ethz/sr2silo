@@ -51,8 +51,3 @@ repos:
         language: node
         pass_filenames: true
         types: [python]
-      - id: snakemake-lint
-        name: snakemake-lint
-        entry: snakemake --lint text
-        language: system
-        files: Snakefile
