@@ -66,6 +66,8 @@ def test_parse_translate_align(aligned_reads):
         for attr in actual.to_dict().keys():
             act_attr = actual.to_dict()[attr]
             exp_attr = expected.to_dict()[attr]
+            print(f"act_attr: {act_attr}")
+            print(f"exp_attr: {exp_attr}")
             assert str(act_attr) == str(exp_attr), (
                 f"Mismatch at read {i} for attribute {attr}: "
                 f"Expected {exp_attr} but got {act_attr}"
@@ -74,7 +76,7 @@ def test_parse_translate_align(aligned_reads):
 
 @pytest.mark.skip(reason="Not implemented")
 def test_read_in_AligendReads_nuc_seq():
-    """Test the enrich_read_with_nuc_seq function."""
+    """Test the make_read_with_nuc_seq function."""
     raise NotImplementedError
 
 

@@ -61,7 +61,8 @@ class AlignedRead:
         self.nucleotide_insertions = nucleotide_insertions
         self.amino_acid_insertions = amino_acid_insertions
         self.aligned_amino_acid_sequences = aligned_amino_acid_sequences
-        self.metadata = metadata
+        if metadata:
+            self.set_metadata(metadata)
         self._validate_types()
 
     def _validate_types(self):
@@ -111,14 +112,19 @@ class AlignedRead:
 
     def set_metadata(self, metadata: Union[Dict[str, str], BaseModel]):
         """Set the metadata. If a BaseModel is provided, convert it to dict."""
-        if isinstance(metadata, BaseModel):
+        if isinstance(metadata, ReadMetadata):
             self.metadata = metadata.model_dump()
         else:
             self.metadata = metadata
 
-    def get_metadata(self) -> Optional[Union[Dict[str, str], BaseModel]]:
+    def get_metadata(self) -> Optional[Union[Dict[str, str], ReadMetadata]]:
         """Return the metadata."""
-        return self.metadata
+        if self.metadata:
+            if isinstance(self.metadata, dict):
+                return self.metadata
+            else:
+                return self.metadata.dict()
+        return None
 
     def to_dict(self) -> Dict[str, Any]:
         """Return a dictionary / json representation of the object."""
@@ -173,7 +179,10 @@ class AlignedRead:
         # Parse the json data to a dict
         json_data = json.loads(data)
 
-        read_id = json_data["readId"]
+        # Extract the data from the dict
+        read_id = json_data["metadata"]["read_id"]
+        metadata = ReadMetadata(**json_data["metadata"])
+
         unaligned_nucleotide_sequences = json_data["unalignedNucleotideSequences"][
             "main"
         ]
@@ -207,6 +216,7 @@ class AlignedRead:
                 nucleotide_insertions,
                 amino_acid_insertions,
                 aligned_amino_acid_sequences,
+                metadata=metadata,
             )
         except TypeError as e:
             logging.error(

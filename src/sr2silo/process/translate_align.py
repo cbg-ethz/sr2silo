@@ -225,10 +225,10 @@ def nuc_to_aa_alignment(
     return None
 
 
-def enrich_read_with_nuc_seq(
+def make_read_with_nuc_seq(
     fastq_nuc_alignment_file: Path, nuc_reference_length: int, gene_set: GeneSet
 ) -> Dict[str, AlignedRead]:
-    """Read aligned reads from a FASTQ file with indels.
+    """Makes aligned reads from a FASTQ file with indels.
 
     Args:
         fastq_nuc_alignment_file (Path): Path to the FASTQ file with alignment
@@ -391,7 +391,7 @@ def parse_translate_align(
 
         logging.info("Processing nucleotide alignments")
         # TODO: speed up - check progress bar does not update
-        aligned_reads = enrich_read_with_nuc_seq(
+        aligned_reads = make_read_with_nuc_seq(
             FASTQ_NUC_ALIGNMENT_FILE, nuc_reference_length, gene_set
         )
 

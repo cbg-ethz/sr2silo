@@ -40,8 +40,6 @@ def test_get_metadata():
         primers=Path("tests/data/samples/primers.yaml"),
     )
 
-    print(metadata)
-
     expected_metadata = {
         "sample_id": "A1_05_2024_10_08",
         "batch_id": "20241024_2411515907",
