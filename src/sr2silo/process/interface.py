@@ -254,6 +254,10 @@ class Gene:
             "gene_length": self.gene_length,
         }
 
+    def __str__(self) -> str:
+        gene_str = f"gene_name: {self.name.name}, gene_length: {self.gene_length}"
+        return "{" + gene_str + "}"
+
 
 class GeneSet:
     """Class to represent a set of genes for a pathogen"""
