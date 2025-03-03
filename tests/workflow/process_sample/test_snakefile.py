@@ -5,8 +5,12 @@ import shutil
 import subprocess as sp
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import sys
 
-from common import OutputChecker
+# Add the project root directory to the Python path
+sys.path.append(str(Path(__file__).resolve().parents[3]))
+
+from tests.workflow.common import OutputChecker
 
 
 def test_process_sample():
@@ -23,13 +27,11 @@ def test_process_sample():
         (workdir / "config").mkdir(exist_ok=True)
         (workdir / "data").mkdir(exist_ok=True)
         (workdir / "results").mkdir(exist_ok=True)
-        (workdir / "scripts").mkdir(exist_ok=True)  # for the script
 
         # Define paths
-        mock_data_path = Path("workflow/.tests/unit/amplicon_cov/data")
-        expected_path = Path("workflow/.tests/unit/amplicon_cov/expected")
-        config_path = Path("workflow/.tests/unit/amplicon_cov/amplicon_cov.yaml")
-        script_path = Path("scripts/amplicon_covs.py")
+        mock_data_path = Path("tests/data/samples_large/A1_05_2024_10_08/20241024_2411515907/alignments/REF_aln_trim.bam")
+        expected_path = Path("tests/workflow/process_sample/expected/results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst")
+        config_path = Path("tests/workflow/process_sample/config.yaml")
 
         # Copy config to the temporary workdir
         wrk_config_path = workdir / "config" / config_path.name
@@ -38,7 +40,6 @@ def test_process_sample():
         # Copy mock data to the temporary workdir
         wrk_mock_data_path = Path(workdir, "data")
         shutil.copytree(mock_data_path, wrk_mock_data_path, dirs_exist_ok=True)
-        shutil.copy(script_path, workdir / "scripts" / script_path.name)
 
         # Run the test job
 
@@ -54,7 +55,7 @@ def test_process_sample():
                 str(workdir),
                 "--cores",
                 "1",
-                "20200729/cov_heatmap.pdf",
+                "tests/workflow/process_sample/expected/results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst",
             ]
         )
 
