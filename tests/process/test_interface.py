@@ -138,3 +138,115 @@ def test_to_silo_json():
             read.to_silo_json()
         except ValidationError as e:
             pytest.fail(f"Validation error: {e}")
+
+
+def test_set_nuc_insertion():
+    """Test setting additional nucleotide insertion in AlignedRead."""
+    from sr2silo.process.interface import (
+        AAInsertionSet,
+        AASequenceSet,
+        AlignedRead,
+        GeneName,
+        NucInsertion,
+    )
+
+    read = AlignedRead(
+        read_id="insertion_test",
+        unaligned_nucleotide_sequences="AAAA",
+        aligned_nucleotide_sequences="AAAA",
+        nucleotide_insertions=[],
+        amino_acid_insertions=AAInsertionSet([GeneName("gene1")]),
+        aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
+    )
+    initial_len = len(read.nucleotide_insertions)
+    new_insertion = NucInsertion(20, "TTTT")
+    read.set_nuc_insertion(new_insertion)
+    assert len(read.nucleotide_insertions) == initial_len + 1
+    assert read.nucleotide_insertions[-1].position == 20
+    assert read.nucleotide_insertions[-1].sequence == "TTTT"
+
+
+def test_get_amino_acid_insertions():
+    """Test get_amino_acid_insertions method."""
+    from sr2silo.process.interface import (
+        AAInsertion,
+        AAInsertionSet,
+        AASequenceSet,
+        AlignedRead,
+        GeneName,
+    )
+
+    aa_ins_set = AAInsertionSet([GeneName("gene1")])
+    aa_ins_set.set_insertions_for_gene(GeneName("gene1"), [AAInsertion(7, "ABC")])
+    read = AlignedRead(
+        read_id="aa_ins_test",
+        unaligned_nucleotide_sequences="CCCC",
+        aligned_nucleotide_sequences="CCCC",
+        nucleotide_insertions=[],
+        amino_acid_insertions=aa_ins_set,
+        aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
+    )
+    retrieved = read.get_amino_acid_insertions().to_dict()
+    assert "gene1" in retrieved
+    assert retrieved["gene1"] == ["7 : ABC"]
+
+
+def test_get_metadata_without_setting():
+    """Test get_metadata when metadata is not set."""
+    from sr2silo.process.interface import (
+        AAInsertionSet,
+        AASequenceSet,
+        AlignedRead,
+        GeneName,
+    )
+
+    read = AlignedRead(
+        read_id="meta_test",
+        unaligned_nucleotide_sequences="GGGG",
+        aligned_nucleotide_sequences="GGGG",
+        nucleotide_insertions=[],
+        amino_acid_insertions=AAInsertionSet([GeneName("gene1")]),
+        aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
+    )
+    metadata = read.get_metadata()
+    assert metadata is None
+
+
+def test_gene_set_get_gene_name_list():
+    """Test GeneSet.get_gene_name_list returns gene names as strings."""
+    from sr2silo.process.interface import Gene, GeneName, GeneSet
+
+    gene1 = Gene(GeneName("geneA"), 500)
+    gene2 = Gene(GeneName("geneB"), 1500)
+    gene_set = GeneSet([gene1, gene2])
+    names = gene_set.get_gene_name_list()
+    # The names are stored as strings
+    assert "geneA" in names
+    assert "geneB" in names
+
+
+def test_str_methods():
+    """Test __str__ methods for various classes."""
+
+    # Test NucInsertion.__str__
+    nuc = NucInsertion(30, "GGCC")
+    assert str(nuc) == "30 : GGCC"
+
+    # Test AAInsertion.__str__
+    aa = AAInsertion(10, "MLK")
+    assert str(aa) == "10 : MLK"
+
+    # Test AAInsertionSet.__str__ equals its to_dict string
+    aa_ins_set = AAInsertionSet([GeneName("gene1")])
+    aa_ins_set.set_insertions_for_gene(GeneName("gene1"), [aa])
+    assert str(aa_ins_set) == str(aa_ins_set.to_dict())
+
+    # Test AASequenceSet.__str__ equals its to_dict string
+    aa_seq_set = AASequenceSet([GeneName("gene1")])
+    aa_seq_set.set_sequence(GeneName("gene1"), "MLKMLK")
+    assert str(aa_seq_set) == str(aa_seq_set.to_dict())
+
+    # Test Gene.__str__ via its to_dict conversion in GeneSet
+    gene = Gene(GeneName("geneX"), 750)
+    expected = "{gene_name: geneX, gene_length: 750}"
+    assert str(gene) == expected
