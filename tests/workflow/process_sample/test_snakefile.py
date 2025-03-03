@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess as sp
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import sys
 
 # Add the project root directory to the Python path
 sys.path.append(str(Path(__file__).resolve().parents[3]))
@@ -29,8 +29,12 @@ def test_process_sample():
         (workdir / "results").mkdir(exist_ok=True)
 
         # Define paths
-        mock_data_path = Path("tests/data/samples_large/A1_05_2024_10_08/20241024_2411515907/alignments/REF_aln_trim.bam")
-        expected_path = Path("tests/workflow/process_sample/expected/results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst")
+        mock_data_path = Path(
+            "tests/data/samples_large/A1_05_2024_10_08/20241024_2411515907/alignments/"
+        )
+        expected_path = Path(
+            "tests/workflow/process_sample/expected/results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst"
+        )
         config_path = Path("tests/workflow/process_sample/config.yaml")
 
         # Copy config to the temporary workdir
@@ -47,7 +51,7 @@ def test_process_sample():
             [
                 "snakemake",
                 "--snakefile",
-                "workflow/rules/amplicon_cov.smk",
+                "workflow/Snakefile",
                 "--configfile",
                 str(wrk_config_path),
                 "--config",
