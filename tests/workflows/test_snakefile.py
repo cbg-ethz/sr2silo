@@ -1,11 +1,13 @@
-import os
-import subprocess as sp
-from tempfile import TemporaryDirectory
-import shutil
-from pathlib import Path
+from __future__ import annotations
 
+import os
+import shutil
+import subprocess as sp
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from common import OutputChecker
+
 
 def test_get_coverage_for_batch():
     """
