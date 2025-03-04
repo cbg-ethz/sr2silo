@@ -44,6 +44,16 @@ class AAInsertion:
 class AlignedRead:
     """Class to represent an aligned read."""
 
+    __slots__ = [
+        "read_id",
+        "unaligned_nucleotide_sequences",
+        "aligned_nucleotide_sequences",
+        "nucleotide_insertions",
+        "amino_acid_insertions",
+        "aligned_amino_acid_sequences",
+        "metadata",
+    ]
+
     def __init__(
         self,
         read_id: str,
