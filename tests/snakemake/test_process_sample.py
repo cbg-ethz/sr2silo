@@ -55,10 +55,6 @@ def test_process_sample():
                 workdir,
             ]
         )
-
-        # print logs
-        print("logs:")
-        # logs/sr2silo/process_sample/sampleId_A1_05_2024_10_08_batchId_20241024_2411515907.log
         with open(
             workdir / "logs/sr2silo/process_sample/"
             "sampleId_A1_05_2024_10_08_batchId_20241024_2411515907.log"
