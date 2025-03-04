@@ -1,13 +1,16 @@
-import os
-import sys
+from __future__ import annotations
 
-import subprocess as sp
-from tempfile import TemporaryDirectory
+import os
 import shutil
+import subprocess as sp
+import sys
 from pathlib import Path, PurePosixPath
+from tempfile import TemporaryDirectory
+
 import zstandard as zstd
 
 sys.path.insert(0, os.path.dirname(__file__))
+
 
 def test_process_sample():
 
@@ -15,9 +18,10 @@ def test_process_sample():
 
         workdir = Path(tmpdir) / "workdir"
         data_path = PurePosixPath("tests/snakemake/process_sample/data")
-        expected_path = PurePosixPath("tests/snakemake/process_sample/expected/results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst")
+        expected_path = PurePosixPath(
+            "tests/snakemake/process_sample/expected/results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst"
+        )
         config_path = PurePosixPath("tests/snakemake/process_sample/config.yaml")
-
 
         # Copy data to the temporary workdir.
         shutil.copytree(data_path, workdir)
@@ -31,34 +35,34 @@ def test_process_sample():
         # make dir for results
         os.makedirs(workdir / "results")
 
-        # print the working dir contens
-        print("workdir contens:")
-        print(os.listdir(workdir))
-
-        print("tests contens:")
-        print(os.listdir("tests/snakemake/process_sample"))
-
         # dbg
-        print("results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst", file=sys.stderr)
+        print(
+            "results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst",
+            file=sys.stderr,
+        )
 
         # Run the test job.
-        sp.check_output([
-            "python",
-            "-m",
-            "snakemake",
-            "results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst",
-            "-f",
-            "-j1",
-            "--target-files-omit-workdir-adjustment",
-
-            "--directory",
-            workdir,
-        ])
+        sp.check_output(
+            [
+                "python",
+                "-m",
+                "snakemake",
+                "results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst",
+                "-f",
+                "-j1",
+                "--target-files-omit-workdir-adjustment",
+                "--directory",
+                workdir,
+            ]
+        )
 
         # print logs
         print("logs:")
         # logs/sr2silo/process_sample/sampleId_A1_05_2024_10_08_batchId_20241024_2411515907.log
-        with open(workdir / "logs/sr2silo/process_sample/sampleId_A1_05_2024_10_08_batchId_20241024_2411515907.log") as f:
+        with open(
+            workdir / "logs/sr2silo/process_sample/"
+            "sampleId_A1_05_2024_10_08_batchId_20241024_2411515907.log"
+        ) as f:
             print(f.read())
 
         # Check the output byte by byte using cmp.
@@ -68,12 +72,17 @@ def test_process_sample():
         # common.OutputChecker(data_path, expected_path, workdir).check()
 
         # Decompress both files and compare them as strings as they are not binary
-        with open(workdir / "results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst", "rb") as f:
+        with open(
+            workdir / "results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907."
+            "ndjson.zst",
+            "rb",
+        ) as f:
             decompressor = zstd.ZstdDecompressor()
-            generated_content = decompressor.decompress(f.read()).decode('utf-8')
+            generated_content = decompressor.decompress(f.read()).decode("utf-8")
 
         with open(expected_path, "rb") as f:
-            expected_content = decompressor.decompress(f.read()).decode('utf-8')
+            expected_content = decompressor.decompress(f.read()).decode("utf-8")
 
-        assert generated_content == expected_content, "The contents of the generated and expected files do not match."
-
+        assert (
+            generated_content == expected_content
+        ), "The contents of the generated and expected files do not match."
