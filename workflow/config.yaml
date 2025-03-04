@@ -1,4 +1,4 @@
-BASE_SAMPLE_DIR: "tests/data/samples_large/"
+BASE_SAMPLE_DIR: "tests/data/samples_large"
 SAMPLE_BATCH_IDS:
   A1_05_2024_10_08: "20241024_2411515907"
 TIMELINE_FILE: "tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
