@@ -7,7 +7,7 @@ SAMPLE_ID="A1_05_2024_10_08"
 BATCH_ID="20241024_2411515907"
 OUTPUT_FILE="./results_neo/silo_input.ndjson"
 TIMELINE_FILE="./tests/data/samples/timeline_A1_05_2024_10_08.tsv"
-PRIMERS_FILE="./tests/data/samples_large/primers.yaml"
+PRIMERS_FILE="./resources/sars-cov-2/primers/primers.yaml"
 NUC_REFERENCE="sars-cov-2"
 
 # Run using sr2silo CLI

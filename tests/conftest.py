@@ -158,7 +158,7 @@ def real_sample_files_import_to_loculus(tmp_path):
             "alignments/REF_aln_trim.bam"
         ),
         "timeline_file": Path("./tests/data/samples/timeline_A1_05_2024_10_08.tsv"),
-        "primer_file": Path("./tests/data/samples_large/primers.yaml"),
+        "primer_file": Path("./resources/sars-cov-2/primers/primers.yaml"),
         "output_file": tmp_path / "silo_input.ndjson.zst",
         "sample_id": "A1_05_2024_10_08",
         "batch_id": "20241024_2411515907",
