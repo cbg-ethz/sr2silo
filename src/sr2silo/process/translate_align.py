@@ -381,13 +381,11 @@ def parse_translate_align(
         logging.info(f"Loaded gene reference with genes: {gene_set}")
 
         logging.info("Processing nucleotide alignments")
-        # TODO: speed up - check progress bar does not update
         aligned_reads = make_read_with_nuc_seq(
             FASTQ_NUC_ALIGNMENT_FILE, nuc_reference_length, gene_set
         )
 
         logging.info("Adding nucleotide insertions to reads")
-        # TODO: speed up - check progress bar does not update
         aligned_reads = enrich_read_with_nuc_ins(
             aligned_reads, FASTA_NUC_INSERTIONS_FILE
         )
