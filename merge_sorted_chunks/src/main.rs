@@ -43,7 +43,7 @@ fn main() -> std::io::Result<()> {
                 "The given tmp directory is not empty"
             );
         } else {
-            fs::create_dir(&given_tmp_dir)?
+            fs::create_dir_all(&given_tmp_dir)?
         };
         PathBuf::from(given_tmp_dir)
     } else {
