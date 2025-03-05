@@ -1,13 +1,13 @@
 use clap::Parser;
 use itertools::Itertools;
+use rayon::prelude::*;
 use serde_json::Value;
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, VecDeque};
+use std::collections::BinaryHeap;
 use std::fs::File;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::thread::JoinHandle;
+use std::sync::mpsc::channel;
 use std::{env, fs, thread};
 use zstd::stream::Decoder;
 use zstd::Encoder;
@@ -52,7 +52,6 @@ fn main() -> std::io::Result<()> {
     );
 
     let reader = stdin();
-    let reader = reader.lock();
 
     let mut merge_iteration = 0;
 
@@ -102,53 +101,39 @@ fn merge_files_in_batches<I>(
     max_threads: usize,
 ) -> std::io::Result<Vec<PathBuf>>
 where
-    I: IntoIterator<Item = PathBuf>,
+    I: IntoIterator<Item = PathBuf> + Send + 'static,
+    I::IntoIter: Iterator<Item = PathBuf> + Send,
 {
-    let tmp_dir = Arc::new(tmp_dir.clone());
-    let sort_field = Arc::new(sort_field.clone());
-    let mut next_input_files = Vec::new();
-    let mut handles: VecDeque<JoinHandle<std::io::Result<()>>> = VecDeque::new();
+    let (tx, rx) = channel();
 
-    for (batch_id, batch) in input_files
-        .into_iter()
-        .chunks(batch_size)
-        .into_iter()
-        .enumerate()
-    {
-        let tmp_dir = Arc::clone(&tmp_dir);
-        let sort_field = Arc::clone(&sort_field);
-        let batch: Vec<PathBuf> = batch.collect();
-        let file_name = tmp_dir.join(format!(
-            "merged_chunks_{}_{}.ndjson.zst",
-            merge_iteration, batch_id
-        ));
-
-        next_input_files.push(file_name.clone());
-
-        // Limit parallelism by waiting when we hit max_threads
-        while handles.len() >= max_threads {
-            if let Some(handle) = handles.pop_front() {
-                handle.join().unwrap().expect("IO error in worker thread"); // Wait for one to finish
-            }
+    thread::spawn(move || {
+        for (batch_id, batch) in input_files
+            .into_iter()
+            .chunks(batch_size)
+            .into_iter()
+            .enumerate()
+        {
+            tx.send((batch_id, batch.collect::<Vec<PathBuf>>()))
+                .unwrap()
         }
+    });
 
-        let handle = thread::spawn(move || -> std::io::Result<()> {
-            let file = File::create(&file_name)?;
+    rx.into_iter()
+        .par_bridge()
+        .map(|(batch_id, batch)| -> std::io::Result<PathBuf> {
+            let file_name = tmp_dir.join(format!(
+                "merged_chunks_{}_{}.ndjson.zst",
+                merge_iteration, batch_id
+            ));
+
+            let file = File::create(file_name.clone()).unwrap();
             let mut encoder = Encoder::new(file, 3)?;
             merge_files(batch, &mut encoder, &sort_field)?;
             encoder.finish()?;
-            Ok(())
-        });
 
-        handles.push_back(handle);
-    }
-
-    // Wait for all remaining threads to complete
-    for handle in handles {
-        handle.join().unwrap()?;
-    }
-
-    Ok(next_input_files)
+            Ok(file_name)
+        })
+        .collect()
 }
 
 // Wrapper struct to allow sorting JSON values in a min-heap
