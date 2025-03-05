@@ -51,7 +51,7 @@ fn main() -> std::io::Result<()> {
             "The given output directory is not empty"
         );
     } else {
-        fs::create_dir(output_path)?
+        fs::create_dir_all(output_path)?
     };
 
     let mut chunk_counter = 0;
