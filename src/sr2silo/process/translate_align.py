@@ -16,6 +16,7 @@ from tqdm import tqdm
 
 import sr2silo.process.convert as convert
 from sr2silo.process.interface import (
+    AAInsertion,
     AAInsertionSet,
     AASequenceSet,
     AlignedRead,
@@ -228,7 +229,7 @@ def nuc_to_aa_alignment(
 def make_read_with_nuc_seq(
     fastq_nuc_alignment_file: Path, nuc_reference_length: int, gene_set: GeneSet
 ) -> Dict[str, AlignedRead]:
-    """Makes aligned reads from a FASTQ file with indels.
+    """Makes aligned reads from a FASTQ file, with alignment info, with indels.
 
     Args:
         fastq_nuc_alignment_file (Path): Path to the FASTQ file with alignment
@@ -332,13 +333,19 @@ def enrich_read_with_aa_seq(
                 seq = fields[9]
                 (
                     aa_aligned,
-                    aa_insertions,
+                    insertions,
                     aa_deletions,
                 ) = convert.sam_to_seq_and_indels(seq, cigar)
+
+                # Convert generic Insertion objects to AAInsertion objects
+                aa_insertions = [
+                    AAInsertion(position=ins.position, sequence=ins.sequence)
+                    for ins in insertions
+                ]
+
                 padded_aa_alignment = convert.pad_alignment(
                     aa_aligned, pos, gene_set.get_gene_length(gene_name)
                 )
-
                 aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(
                     gene_name, aa_insertions
                 )

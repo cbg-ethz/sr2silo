@@ -15,30 +15,29 @@ logging.basicConfig(
 )
 
 
-class NucInsertion:
+class Insertion:
+    """Base class for insertions."""
+
+    def __init__(self, position: int, sequence: str):
+        """Initialize with a position and a sequence."""
+        self.position = position
+        self.sequence = sequence
+
+    def __str__(self) -> str:
+        """toString method."""
+        return f"{self.position} : {self.sequence}"
+
+
+class NucInsertion(Insertion):
     """A nuclotide insertion."""
 
-    def __init__(self, position: int, sequence: str):
-        """Initialize with a position and a sequence."""
-        self.position = position
-        self.sequence = sequence
-
-    def __str__(self) -> str:
-        """toString method."""
-        return f"{self.position} : {self.sequence}"
+    pass
 
 
-class AAInsertion:
+class AAInsertion(Insertion):
     """An amino acid insertion."""
 
-    def __init__(self, position: int, sequence: str):
-        """Initialize with a position and a sequence."""
-        self.position = position
-        self.sequence = sequence
-
-    def __str__(self) -> str:
-        """toString method."""
-        return f"{self.position} : {self.sequence}"
+    pass
 
 
 class AlignedRead:

@@ -14,7 +14,7 @@ from sr2silo.process.convert import (
     pad_alignment,
     sam_to_seq_and_indels,
 )
-from sr2silo.process.interface import AAInsertion
+from sr2silo.process.interface import Insertion
 
 
 def test_bam_to_sam(bam_data: Dict):
@@ -75,7 +75,7 @@ def test_pad_alignment():
 
 
 def test_sam_to_seq_and_indels():
-    """Test the sam_to_seq_and_indels function, including AAInsertion conversion."""
+    """Test the sam_to_seq_and_indels function, including Insertion conversion."""
 
     # Example from the docstring:
     # sequence = "AGCTTAGCTAGCTT"
@@ -99,9 +99,7 @@ def test_sam_to_seq_and_indels():
 
     # assert the elements of insertiosn and deletions
     for ins in insertions:
-        assert isinstance(
-            ins, AAInsertion
-        ), "insertions contains a non-AAInsertion object"
+        assert isinstance(ins, Insertion), "insertions contains a non-Insertion object"
     for del_ in deletions:
         assert isinstance(del_, tuple), "deletions contains a non-tuple object"
 
@@ -112,9 +110,9 @@ def test_sam_to_seq_and_indels():
         deletions == expected_deletions
     ), f"Expected deletions {expected_deletions}, got {deletions}"
     assert len(insertions) == 1, f"Expected 1 insertion, got {len(insertions)}"
-    # Check that the insertion is an instance of AAInsertion and has correct attributes.
+    # Check that the insertion is an instance of Insertion and has correct attributes.
     ins = insertions[0]
-    assert isinstance(ins, AAInsertion), "Insertion is not an instance of AAInsertion"
+    assert isinstance(ins, Insertion), "Insertion is not an instance of Insertion"
     assert ins.position == 5, f"Expected insertion position 5, got {ins.position}"
     assert ins.sequence == "A", f"Expected insertion sequence 'A', got {ins.sequence}"
 

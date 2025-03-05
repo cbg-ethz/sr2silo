@@ -10,7 +10,12 @@ from typing import List, Tuple, Union
 
 import pysam
 
-from sr2silo.process.interface import AAInsertion, Gene, GeneName, GeneSet
+from sr2silo.process.interface import (
+    Gene,
+    GeneName,
+    GeneSet,
+    Insertion,
+)
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -253,14 +258,13 @@ def pad_alignment(
     return padded_alignment
 
 
-# TODO: identify whether used for only AA or Nuc as well, adjust types // description
 def sam_to_seq_and_indels(
     seq: str, cigar: str
-) -> Tuple[str, List[AAInsertion], List[Tuple[int, int]]]:
+) -> Tuple[str, List[Insertion], List[Tuple[int, int]]]:
     """
-    Processes a SAM file-style sequence and a CIGAR string to return the
-    cleartext sequence, along with detailed information about insertions
-    and deletions.
+    Processes a SAM file-style sequence (nuclitide / amino acids) and a CIGAR
+    string to return the cleartext sequence, along with detailed information
+    about insertions and deletions.
 
     Args:
         seq (str): The sequence string from the SAM file, representing the read.
@@ -271,10 +275,10 @@ def sam_to_seq_and_indels(
         tuple: A tuple containing:
             - cleartext_sequence (str): The sequence aligned to the reference,
                                          excluding insertions and deletions.
-            - insertions (list of tuples): A list of tuples, each containing:
+            - insertions (list of Insertion): A list of Insertion objects, each containing:
                 - position (int): The position in the reference where the
                                   insertion occurs.
-                - inserted_sequence (str): The sequence that is inserted at
+                - sequence (str): The sequence that is inserted at
                                            the given position.
             - deletions (list of tuples): A list of tuples, each containing:
                 - position (int): The position in the reference where the
@@ -284,7 +288,6 @@ def sam_to_seq_and_indels(
     Example:
         sequence = "AGCTTAGCTAGCTT"
         cigar = "5M1I5M1D3M"
-        cleartext, insertions, deletions = sam_to_seq_and_indels(sequence, cigar)
 
         # Output:
         # Cleartext Sequence: AGCTTAGCTAGC
@@ -332,9 +335,9 @@ def sam_to_seq_and_indels(
             pass
 
     # convert insertions to AAInsertion objects
+    # Using the Insertion parent class by default, can be cast to specific types as needed
     insertions = [
-        AAInsertion(position=ins_pos, sequence=ins_seq)
-        for ins_pos, ins_seq in insertions
+        Insertion(position=ins_pos, sequence=ins_seq) for ins_pos, ins_seq in insertions
     ]
 
     return "".join(cleartext_sequence), insertions, deletions
