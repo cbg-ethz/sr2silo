@@ -208,31 +208,11 @@ def bam_to_fastq_handle_indels(
                     )
 
 
-def parse_cigar_new(cigar: str) -> List[Tuple[int, str]]:
+def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
     """Parse the CIGAR string into a list of tuples."""
     return [
         (int(length), op) for length, op in re.findall(r"(\d+)([MIDNSHP=X])", cigar)
     ]
-
-
-# TODO identify where needed and remove this function
-def parse_cigar(cigar: str) -> list[tuple[str, int]]:
-    """
-    Parse a cigar string into a list of tuples.
-
-    Args:
-        cigar: A string representing the cigar string.
-    Returns:
-        A list of tuples where the first element is the operation
-        type and the second is the length of the operation.
-
-    Credits: adapted from David Gicev @davidgicev
-    """
-    pattern = re.compile(r"(\d+)([MIDNSHP=X])")
-
-    parsed_cigar = pattern.findall(cigar)
-
-    return [(op, int(length)) for length, op in parsed_cigar]
 
 
 def pad_alignment(
@@ -323,7 +303,7 @@ def sam_to_seq_and_indels(
             - 'H': Hard clipping (clipped sequences NOT present in SEQ).
             - 'P': Padding (silent deletion from padded reference).
     """
-    parsed_cigar = parse_cigar_new(cigar)
+    parsed_cigar = parse_cigar(cigar)
     cleartext_sequence = []
     insertions = []
     deletions = []
