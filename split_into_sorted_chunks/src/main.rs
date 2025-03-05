@@ -32,7 +32,7 @@ struct Args {
     filename_stem: String,
 
     #[arg(long)]
-    sort_column: String,
+    sort_field: String,
 
     #[arg(long, default_value_t = 10000)]
     chunk_size: usize,
@@ -53,7 +53,7 @@ fn main() -> std::io::Result<()> {
         lines.push(json);
 
         if lines.len() >= args.chunk_size {
-            let sorted_lines = sort_by(lines, &args.sort_column);
+            let sorted_lines = sort_by(lines, &args.sort_field);
             let chunk_file: PathBuf = Path::join(
                 Path::new(&args.output_path),
                 format!("{}_{}.ndjson.zst", args.filename_stem, chunk_counter),
@@ -70,7 +70,7 @@ fn main() -> std::io::Result<()> {
 
     // Process any remaining lines
     if !lines.is_empty() {
-        let sorted_lines = sort_by(lines, &args.sort_column);
+        let sorted_lines = sort_by(lines, &args.sort_field);
         let chunk_file = format!("{}_{}.ndjson.zst", args.filename_stem, chunk_counter);
         let file = File::create(Path::join(Path::new(&args.output_path), &chunk_file))?;
         let mut encoder = Encoder::new(file, 3)?;
