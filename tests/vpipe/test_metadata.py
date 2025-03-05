@@ -30,14 +30,14 @@ def test_batch_id_decoder():
     assert result == expected
 
 
-def test_get_metadata():
+def test_get_metadata(primers: Path, timeline: Path):
     """Test the get_metadata function."""
 
     metadata = get_metadata(
         sample_id="A1_05_2024_10_08",
         batch_id="20241024_2411515907",
-        timeline=Path("tests/data/samples/timeline_A1_05_2024_10_08.tsv"),
-        primers=Path("tests/data/samples/primers.yaml"),
+        timeline=timeline,
+        primers=primers,
     )
 
     expected_metadata = {
