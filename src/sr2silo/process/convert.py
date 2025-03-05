@@ -10,7 +10,12 @@ from typing import List, Tuple, Union
 
 import pysam
 
-from sr2silo.process.interface import AAInsertion, Gene, GeneName, GeneSet
+from sr2silo.process.interface import (
+    Gene,
+    GeneName,
+    GeneSet,
+    Insertion,
+)
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -208,118 +213,11 @@ def bam_to_fastq_handle_indels(
                     )
 
 
-def parse_cigar_new(cigar: str) -> List[Tuple[int, str]]:
+def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
     """Parse the CIGAR string into a list of tuples."""
     return [
         (int(length), op) for length, op in re.findall(r"(\d+)([MIDNSHP=X])", cigar)
     ]
-
-
-# TODO identify where needed and remove this function
-def parse_cigar(cigar: str) -> list[tuple[str, int]]:
-    """
-    Parse a cigar string into a list of tuples.
-
-    Args:
-        cigar: A string representing the cigar string.
-    Returns:
-        A list of tuples where the first element is the operation
-        type and the second is the length of the operation.
-
-    Credits: adapted from David Gicev @davidgicev
-    """
-    pattern = re.compile(r"(\d+)([MIDNSHP=X])")
-
-    parsed_cigar = pattern.findall(cigar)
-
-    return [(op, int(length)) for length, op in parsed_cigar]
-
-
-# TODO: identify where needed, likely duplicate with sam_to_seq_and_indels
-def normalize_reads(sam_data: str, output_fasta: Path, output_insertions: Path) -> None:
-    """
-    Normalize (to clear text sequence using CIGAR)
-    all reads in a SAM file output FASTA and insertions files.
-
-    Note that the input SAM file must be read in
-    its entirety before calling this function,
-    whilst the output files can be written incrementally.
-
-    Args:
-        sam_data: A file-like object containing SAM formatted data.
-    Returns:
-        A string with merged, normalized reads in FASTA format.
-        TODO: annotate the output format
-
-    Credits: adapted from David Gicev @davidgicev
-    """
-
-    logging.warning(
-        "pair_normalize_reads: Nuliotide Insertions are not yet implemented, "
-        "{output_insertions} will be empty."
-    )
-
-    unpaired = dict()
-
-    with output_fasta.open("w") as fasta_file, output_insertions.open(
-        "w"
-    ) as insertions_file:
-        for line in sam_data.splitlines():
-            if line.startswith("@"):
-                continue
-
-            fields = line.strip().split("\t")
-
-            qname = fields[0]  # Query template NAME
-            pos = int(fields[3])  # 1-based leftmost mapping position
-            cigar = parse_cigar(fields[5])  # cigar string
-            seq = fields[9]  # segment sequence
-            qual = fields[10]  # ASCII of Phred-scaled base quality + 33
-
-            result_sequence = ""
-            result_qual = ""
-            index = 0
-            inserts = []
-
-            for operation in cigar:
-                ops_type, count = operation
-                if ops_type == "S":
-                    index += count
-                    continue
-                if ops_type == "M":
-                    result_sequence += seq[index : index + count]
-                    result_qual += qual[index : index + count]
-                    index += count
-                    continue
-                if ops_type == "D":
-                    result_sequence += "-" * count
-                    result_qual += "!" * count
-                    continue
-                if ops_type == "I":
-                    inserts.append((index + pos, seq[index : index + count]))
-                    index += count
-                    continue
-
-            read = {
-                "pos": pos,
-                "cigar": cigar,
-                "RESULT_seqUENCE": result_sequence,
-                "RESULT_qual": result_qual,
-                "insertions": inserts,
-            }
-
-            fasta_file.write(f">{qname}|{read['pos']}\n{read['RESULT_seqUENCE']}\n")
-
-            insertions = read["insertions"].copy()
-            # insertion_index = read["pos"] + len(read["RESULT_seqUENCE"])
-
-            insertions_file.write(f"{qname}\t{insertions}\n")
-
-        for read_id, unpaired_read in unpaired.items():
-            fasta_file.write(
-                f">{read_id}|{unpaired_read['pos']}\n{unpaired_read['RESULT_seqUENCE']}\n"
-            )
-            insertions_file.write(f"{read_id}\t{unpaired_read['insertions']}\n")
 
 
 def pad_alignment(
@@ -360,14 +258,13 @@ def pad_alignment(
     return padded_alignment
 
 
-# TODO: identify whether used for only AA or Nuc as well, adjust types // description
 def sam_to_seq_and_indels(
     seq: str, cigar: str
-) -> Tuple[str, List[AAInsertion], List[Tuple[int, int]]]:
+) -> Tuple[str, List[Insertion], List[Tuple[int, int]]]:
     """
-    Processes a SAM file-style sequence and a CIGAR string to return the
-    cleartext sequence, along with detailed information about insertions
-    and deletions.
+    Processes a SAM file-style sequence (nuclitide / amino acids) and a CIGAR
+    string to return the cleartext sequence, along with detailed information
+    about insertions and deletions.
 
     Args:
         seq (str): The sequence string from the SAM file, representing the read.
@@ -378,11 +275,7 @@ def sam_to_seq_and_indels(
         tuple: A tuple containing:
             - cleartext_sequence (str): The sequence aligned to the reference,
                                          excluding insertions and deletions.
-            - insertions (list of tuples): A list of tuples, each containing:
-                - position (int): The position in the reference where the
-                                  insertion occurs.
-                - inserted_sequence (str): The sequence that is inserted at
-                                           the given position.
+            - insertions (list of Insertion): A list of Insertion objects
             - deletions (list of tuples): A list of tuples, each containing:
                 - position (int): The position in the reference where the
                                   deletion starts.
@@ -391,7 +284,6 @@ def sam_to_seq_and_indels(
     Example:
         sequence = "AGCTTAGCTAGCTT"
         cigar = "5M1I5M1D3M"
-        cleartext, insertions, deletions = sam_to_seq_and_indels(sequence, cigar)
 
         # Output:
         # Cleartext Sequence: AGCTTAGCTAGC
@@ -410,7 +302,7 @@ def sam_to_seq_and_indels(
             - 'H': Hard clipping (clipped sequences NOT present in SEQ).
             - 'P': Padding (silent deletion from padded reference).
     """
-    parsed_cigar = parse_cigar_new(cigar)
+    parsed_cigar = parse_cigar(cigar)
     cleartext_sequence = []
     insertions = []
     deletions = []
@@ -438,10 +330,8 @@ def sam_to_seq_and_indels(
         elif op == "P":  # Padding (silent deletion from padded reference)
             pass
 
-    # convert insertions to AAInsertion objects
     insertions = [
-        AAInsertion(position=ins_pos, sequence=ins_seq)
-        for ins_pos, ins_seq in insertions
+        Insertion(position=ins_pos, sequence=ins_seq) for ins_pos, ins_seq in insertions
     ]
 
     return "".join(cleartext_sequence), insertions, deletions

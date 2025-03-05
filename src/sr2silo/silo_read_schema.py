@@ -17,9 +17,10 @@ logging.basicConfig(
 )
 
 
-# TODO: note that this is V-Pipe Specific
 class ReadMetadata(BaseModel):
-    """SILO-specific pydantic schema for ReadMetadata JSON format."""
+    """V-Pipe SILO-specific pydantic schema for ReadMetadata JSON format.
+    (specific to WISE / run at ETHZ)
+    """
 
     read_id: str
     sample_id: str

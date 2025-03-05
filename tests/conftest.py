@@ -8,30 +8,11 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import List
 
 import pysam
 import pytest
-from _pytest.nodes import Item
 
 from sr2silo.process import bam_to_sam
-
-
-# TODO: Add custom markers here
-def pytest_collection_modifyitems(items: List[Item]):
-    """Add custom markers to tests."""
-    for item in items:
-        if "spark" in item.nodeid:
-            item.add_marker(pytest.mark.spark)
-        elif "_int_" in item.nodeid:
-            item.add_marker(pytest.mark.integration)
-
-
-@pytest.fixture
-def unit_test_mocks(monkeypatch: None):
-    """Include Mocks here to execute all commands offline and fast."""
-    pass
-
 
 # Define test data paths
 TEST_DATA_DIR = Path(__file__).parent / "data"
@@ -46,6 +27,8 @@ LARGE_TEST_DATA_DIR = (
     / "A1_05_2024_10_08/20241024_2411515907"
     / "alignments"
 )
+# This is a BAM file contains the subset of reads that have insertions
+# for effective testing
 INPUT_BAM_INSERTIONS_PATH = LARGE_TEST_DATA_DIR / "REF_aln_trim.bam"
 EXPECTED_BAM_INSERTIONS_PATH_inserts = (
     LARGE_TEST_DATA_DIR / "REF_aln_trim_subsample_insertions.fasta"
@@ -53,9 +36,6 @@ EXPECTED_BAM_INSERTIONS_PATH_inserts = (
 EXPECTED_BAM_INSERTIONS_PATH_cleartext = (
     LARGE_TEST_DATA_DIR / "REF_aln_trim_subsample.fasta"
 )
-
-
-"""Returns a sample BAM data path and its corresponding SAM data as a string."""
 
 
 @pytest.fixture
@@ -117,6 +97,7 @@ class DummyBam:
     """A dummy BAM file that yields one dummy read."""
 
     def __enter__(self):
+        """Return self."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -131,9 +112,11 @@ class DummyAlignmentFile:
     """A dummy replacement for pysam.AlignmentFile."""
 
     def __init__(self, *args, **kwargs):
+        """Do nothing."""
         pass
 
     def __enter__(self):
+        """Return a DummyBam object."""
         return DummyBam()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -147,18 +130,32 @@ def dummy_alignment(monkeypatch):
     return Path("dummy.bam")
 
 
-# TODO: centralize these filepaths to constants avice to avoid duplication
 @pytest.fixture
-def real_sample_files_import_to_loculus(tmp_path):
+def primers():
+    """Return the primers file path."""
+    return Path("./resources/sars-cov-2/primers/primers.yaml")
+
+
+@pytest.fixture
+def timeline():
+    """Return the timeline file path."""
+    return Path("./tests/data/samples/timeline_A1_05_2024_10_08.tsv")
+
+
+@pytest.fixture
+def sample():
+    """Return the sample bam file path."""
+    return Path(INPUT_BAM_INSERTIONS_PATH)
+
+
+@pytest.fixture
+def real_sample_files_import_to_loculus(tmp_path, primers, timeline, sample):
     """Get real sample files from the test data directory for
     `sr2silo import-to-loculus`."""
     return {
-        "input_file": Path(
-            "./tests/data/samples/A1_05_2024_10_08/20241024_2411515907/"
-            "alignments/REF_aln_trim.bam"
-        ),
-        "timeline_file": Path("./tests/data/samples/timeline_A1_05_2024_10_08.tsv"),
-        "primer_file": Path("./resources/sars-cov-2/primers/primers.yaml"),
+        "input_file": sample,
+        "timeline_file": timeline,
+        "primer_file": primers,
         "output_file": tmp_path / "silo_input.ndjson.zst",
         "sample_id": "A1_05_2024_10_08",
         "batch_id": "20241024_2411515907",
