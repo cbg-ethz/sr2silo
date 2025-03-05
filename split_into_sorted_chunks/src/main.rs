@@ -1,5 +1,6 @@
 use clap::Parser;
 use serde_json::Value;
+use std::fs;
 use std::fs::File;
 use std::io::{stdin, BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
@@ -40,6 +41,16 @@ struct Args {
 
 fn main() -> std::io::Result<()> {
     let args = Args::parse();
+
+    if fs::exists(&args.output_path)? {
+        assert_eq!(
+            fs::read_dir(&args.output_path)?.count(),
+            0,
+            "The given output directory is not empty"
+        );
+    } else {
+        fs::create_dir(&args.output_path)?
+    };
 
     let mut chunk_counter = 0;
 
