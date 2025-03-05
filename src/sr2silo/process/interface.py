@@ -104,7 +104,6 @@ class AlignedRead:
                 f"aligned_amino_acid_sequences must be a dict, got "
                 f"{type(self.aligned_amino_acid_sequences).__name__}"
             )
-        # TODO: rework what metadata is allowed to be
         if self.metadata is not None and not isinstance(
             self.metadata, (dict, ReadMetadata)
         ):

@@ -39,7 +39,6 @@ def suppress_info_and_below():
         logger.setLevel(original_level)  # Restore original level
 
 
-# TODO: to use as orthogonal test against blastX
 def translate_nextclade(
     input_files: List[Path], result_dir: Path, nextclade_reference: str
 ) -> None:
