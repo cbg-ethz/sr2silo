@@ -1,4 +1,4 @@
-"""Converts V-PIPE's outputs of nucleotide read sequencs output to
+"""Converts V-PIPE's outputs of nucleotide read sequences output to
 ready to import nuclotides and amino acid sequences to the SILO database."""
 
 from __future__ import annotations
@@ -177,7 +177,6 @@ def nuc_align_to_silo_njson(
     nuc_reference_fp = resource_fp / "nuc_reference_genomes.fasta"
     aa_reference_fp = resource_fp / "aa_reference_genomes.fasta"
 
-    # TODO: get reference from nextclade or loculus
     metadata["nextclade_reference"] = reference
     # metadata["nuc_reference"] = nuc_reference
     # metadata["aa_reference"] = aa_reference
@@ -188,8 +187,7 @@ def nuc_align_to_silo_njson(
     logging.info(f"Metadata saved to: {metadata_file}")
 
     #####  Merge & Pair reads #####
-
-    ## TODO: to implement from smallgenomeutils
+    logging.info("Merging and pairing reads: Not implemented yet")
 
     ##### Translate / Align / Normalize to JSON #####
     logging.info("Start translating, aligning and normalizing reads to JSON")
