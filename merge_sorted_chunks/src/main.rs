@@ -24,12 +24,16 @@ struct Args {
     #[arg(long, default_value_t = 64)]
     parallel_files: usize,
 
-    #[arg(long, default_value_t = 16)]
-    num_threads: usize,
+    #[arg(long)]
+    num_threads: Option<usize>,
 }
 
 fn main() -> std::io::Result<()> {
     let args = Args::parse();
+
+    if let Some(num_threads) = args.num_threads {
+        rayon::ThreadPoolBuilder::new().num_threads(num_threads).build_global().unwrap();
+    }
 
     let tmp_dir = if let Some(given_tmp_dir) = args.tmp_directory {
         if Path::new(&given_tmp_dir).exists() {
@@ -66,7 +70,6 @@ fn main() -> std::io::Result<()> {
         &args.sort_field,
         args.parallel_files,
         merge_iteration,
-        args.num_threads,
     )?;
 
     merge_iteration += 1;
@@ -82,7 +85,6 @@ fn main() -> std::io::Result<()> {
             &args.sort_field,
             args.parallel_files,
             merge_iteration,
-            args.num_threads,
         )?;
         merge_iteration += 1;
     }
@@ -98,7 +100,6 @@ fn merge_files_in_batches<I>(
     sort_field: &String,
     batch_size: usize,
     merge_iteration: usize,
-    max_threads: usize,
 ) -> std::io::Result<Vec<PathBuf>>
 where
     I: IntoIterator<Item = PathBuf> + Send + 'static,
