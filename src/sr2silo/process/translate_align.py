@@ -7,7 +7,6 @@ import logging
 import os
 import subprocess
 import tempfile
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List
 
@@ -15,6 +14,7 @@ import zstandard as zstd
 from tqdm import tqdm
 
 import sr2silo.process.convert as convert
+from sr2silo.logger import suppress_info_and_below
 from sr2silo.process.interface import (
     AAInsertion,
     AAInsertionSet,
@@ -24,19 +24,6 @@ from sr2silo.process.interface import (
     GeneSet,
     NucInsertion,
 )
-
-
-# TODO: consider moving to utils
-@contextmanager
-def suppress_info_and_below():
-    """Suppress INFO and below log messages."""
-    logger = logging.getLogger()
-    original_level = logger.getEffectiveLevel()  # Save current level
-    logger.setLevel(logging.WARNING)  # Suppress INFO and below
-    try:
-        yield
-    finally:
-        logger.setLevel(original_level)  # Restore original level
 
 
 def translate_nextclade(
