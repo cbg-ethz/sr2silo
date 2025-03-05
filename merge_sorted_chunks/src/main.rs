@@ -37,7 +37,7 @@ fn main() -> std::io::Result<()> {
         .get_matches();
 
     let tmp_dir = if let Some(given_tmp_dir) = matches.get_one::<String>("tmp_dir") {
-        if fs::exists(given_tmp_dir)? {
+        if Path::new(&given_tmp_dir).exists() {
             assert_eq!(
                 fs::read_dir(given_tmp_dir)?.count(),
                 0,

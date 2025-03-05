@@ -42,14 +42,16 @@ struct Args {
 fn main() -> std::io::Result<()> {
     let args = Args::parse();
 
-    if fs::exists(&args.output_path)? {
+    let output_path = Path::new(&args.output_path);
+
+    if output_path.exists() {
         assert_eq!(
-            fs::read_dir(&args.output_path)?.count(),
+            fs::read_dir(output_path)?.count(),
             0,
             "The given output directory is not empty"
         );
     } else {
-        fs::create_dir(&args.output_path)?
+        fs::create_dir(output_path)?
     };
 
     let mut chunk_counter = 0;
@@ -66,7 +68,7 @@ fn main() -> std::io::Result<()> {
         if lines.len() >= args.chunk_size {
             let sorted_lines = sort_by(lines, &args.sort_field);
             let chunk_file: PathBuf = Path::join(
-                Path::new(&args.output_path),
+                output_path,
                 format!("{}_{}.ndjson.zst", args.filename_stem, chunk_counter),
             );
             let file = File::create(chunk_file.clone())?;
@@ -83,7 +85,7 @@ fn main() -> std::io::Result<()> {
     if !lines.is_empty() {
         let sorted_lines = sort_by(lines, &args.sort_field);
         let chunk_file = format!("{}_{}.ndjson.zst", args.filename_stem, chunk_counter);
-        let file = File::create(Path::join(Path::new(&args.output_path), &chunk_file))?;
+        let file = File::create(Path::join(Path::new(output_path), &chunk_file))?;
         let mut encoder = Encoder::new(file, 3)?;
         write_ndjson_lines(&mut encoder, &sorted_lines)?;
         encoder.finish()?;
