@@ -275,11 +275,7 @@ def sam_to_seq_and_indels(
         tuple: A tuple containing:
             - cleartext_sequence (str): The sequence aligned to the reference,
                                          excluding insertions and deletions.
-            - insertions (list of Insertion): A list of Insertion objects, each containing:
-                - position (int): The position in the reference where the
-                                  insertion occurs.
-                - sequence (str): The sequence that is inserted at
-                                           the given position.
+            - insertions (list of Insertion): A list of Insertion objects
             - deletions (list of tuples): A list of tuples, each containing:
                 - position (int): The position in the reference where the
                                   deletion starts.
@@ -334,8 +330,6 @@ def sam_to_seq_and_indels(
         elif op == "P":  # Padding (silent deletion from padded reference)
             pass
 
-    # convert insertions to AAInsertion objects
-    # Using the Insertion parent class by default, can be cast to specific types as needed
     insertions = [
         Insertion(position=ins_pos, sequence=ins_seq) for ins_pos, ins_seq in insertions
     ]
