@@ -92,8 +92,6 @@ def translate_nextclade(
             command = ["mv", f"{temp_dir}/results", str(result_path)]
 
 
-# TODO: consider passing the db if already present to this function,
-# to avoid recomputation, just extract this function from here
 def nuc_to_aa_alignment(
     in_nuc_alignment_fp: Path,
     in_aa_reference_fp: Path,
