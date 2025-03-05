@@ -1,4 +1,4 @@
-use clap::Command;
+use clap::Parser;
 use itertools::Itertools;
 use serde_json::Value;
 use std::cmp::Ordering;
@@ -7,41 +7,34 @@ use std::fs::File;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::{env, fs, thread};
 use std::thread::JoinHandle;
+use std::{env, fs, thread};
 use zstd::stream::Decoder;
 use zstd::Encoder;
 
-fn main() -> std::io::Result<()> {
-    let matches = Command::new("Merge Sorted Chunks")
-        .version("1.0")
-        .author("Alexander Taepper")
-        .arg(
-            clap::Arg::new("sort_field")
-                .long("sort-field")
-                .value_name("FIELD")
-                .help("Specifies the field in the json to sort by")
-                .required(true),
-        )
-        .arg(
-            clap::Arg::new("tmp_dir")
-                .long("tmp-directory")
-                .value_name("PATH")
-                .help("Specifies a directory for placing intermediate files"),
-        )
-        .arg(
-            clap::Arg::new("parallel_files")
-                .long("parallel-files")
-                .value_name("u32")
-                .help("Specifies the number of files that should be merged per iteration")
-                .default_value("64"),
-        )
-        .get_matches();
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(long)]
+    sort_field: String,
 
-    let tmp_dir = if let Some(given_tmp_dir) = matches.get_one::<String>("tmp_dir") {
+    #[arg(long)]
+    tmp_directory: Option<String>,
+
+    #[arg(long, default_value_t = 64)]
+    parallel_files: usize,
+
+    #[arg(long, default_value_t = 16)]
+    num_threads: usize,
+}
+
+fn main() -> std::io::Result<()> {
+    let args = Args::parse();
+
+    let tmp_dir = if let Some(given_tmp_dir) = args.tmp_directory {
         if Path::new(&given_tmp_dir).exists() {
             assert_eq!(
-                fs::read_dir(given_tmp_dir)?.count(),
+                fs::read_dir(&given_tmp_dir)?.count(),
                 0,
                 "The given tmp directory is not empty"
             );
@@ -53,17 +46,10 @@ fn main() -> std::io::Result<()> {
         env::temp_dir()
     };
 
-    let parallel_files: usize = matches
-        .get_one::<String>("parallel_files")
-        .unwrap()
-        .parse()
-        .unwrap();
     assert!(
-        parallel_files > 1,
+        args.parallel_files > 1,
         "We need to work on at least 2 files in parallel."
     );
-
-    let sort_field = matches.get_one("sort_field").unwrap();
 
     let reader = stdin();
     let reader = reader.lock();
@@ -78,10 +64,10 @@ fn main() -> std::io::Result<()> {
     let mut input_files = merge_files_in_batches(
         input_files_stdin,
         &tmp_dir,
-        sort_field,
-        parallel_files,
+        &args.sort_field,
+        args.parallel_files,
         merge_iteration,
-        16
+        args.num_threads,
     )?;
 
     merge_iteration += 1;
@@ -90,19 +76,19 @@ fn main() -> std::io::Result<()> {
         panic!("No input files received");
     }
 
-    while input_files.len() > parallel_files {
+    while input_files.len() > args.parallel_files {
         input_files = merge_files_in_batches(
             input_files,
             &tmp_dir,
-            sort_field,
-            parallel_files,
+            &args.sort_field,
+            args.parallel_files,
             merge_iteration,
-            16
+            args.num_threads,
         )?;
         merge_iteration += 1;
     }
 
-    merge_files(input_files, &mut stdout().lock(), sort_field)?;
+    merge_files(input_files, &mut stdout().lock(), &args.sort_field)?;
 
     Ok(())
 }
@@ -113,7 +99,7 @@ fn merge_files_in_batches<I>(
     sort_field: &String,
     batch_size: usize,
     merge_iteration: usize,
-    max_threads: usize
+    max_threads: usize,
 ) -> std::io::Result<Vec<PathBuf>>
 where
     I: IntoIterator<Item = PathBuf>,
@@ -123,11 +109,19 @@ where
     let mut next_input_files = Vec::new();
     let mut handles: VecDeque<JoinHandle<std::io::Result<()>>> = VecDeque::new();
 
-    for (batch_id, batch) in input_files.into_iter().chunks(batch_size).into_iter().enumerate() {
+    for (batch_id, batch) in input_files
+        .into_iter()
+        .chunks(batch_size)
+        .into_iter()
+        .enumerate()
+    {
         let tmp_dir = Arc::clone(&tmp_dir);
         let sort_field = Arc::clone(&sort_field);
         let batch: Vec<PathBuf> = batch.collect();
-        let file_name = tmp_dir.join(format!("merged_chunks_{}_{}.ndjson.zst", merge_iteration, batch_id));
+        let file_name = tmp_dir.join(format!(
+            "merged_chunks_{}_{}.ndjson.zst",
+            merge_iteration, batch_id
+        ));
 
         next_input_files.push(file_name.clone());
 
