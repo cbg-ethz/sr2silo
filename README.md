@@ -110,8 +110,7 @@ For development work, including running tests with nextclade:
 ```bash
 make setup-dev
 ```
-This creates an environment dependencies required for development and orthogonal tests (i.e. nextclade) Python development dependencies managed through Poetry.
-
+This command sets up the development environment with all necessary dependencies, including those for orthogonal tests (e.g. nextclade), managed via Poetry.
 #### Workflow Environment
 
 For working with the snakemake workflow:
