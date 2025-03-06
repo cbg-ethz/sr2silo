@@ -25,35 +25,35 @@ jobs:
         with:
           auto-update-conda: true
           channels: conda-forge, bioconda
-          environment-file: environment.yml
-          activate-environment: sr2silo
+          environment-file: environments/dev-environment.yml
+          activate-environment: sr2silo-dev
 
-      - name: Setup environment using Makefile
+      - name: Install Poetry and dependencies
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo
-          make setup
+          conda activate sr2silo-dev
+          poetry install --with dev
 
       - name: Run unit tests
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo
+          conda activate sr2silo-dev
           poetry run pytest
 
       - name: Run Ruff
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo
+          conda activate sr2silo-dev
           poetry run ruff check .
 
       - name: Run interrogate
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo
+          conda activate sr2silo-dev
           poetry run interrogate src
 
       - name: Run Pyright
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo
+          conda activate sr2silo-dev
           poetry run pyright
