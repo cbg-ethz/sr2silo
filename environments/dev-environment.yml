@@ -1,11 +1,11 @@
-name: sr2silo
+name: sr2silo-dev
 channels:
   - conda-forge
   - bioconda
   - defaults
 dependencies:
   - python>=3.11
-  - snakemake=8.18 # fixed as snakemake unit tests fail with 8.19
-  - nextclade>=3.5.0
   - poetry>=1.8.3
   - diamond>=2.1.0
+  - snakemake=8.18  # fixed as snakemake unit tests fail with 8.19
+  - nextclade>=3.5.0
