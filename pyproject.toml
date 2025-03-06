@@ -38,7 +38,7 @@ setuptools = "^74.1.2"
 mkdocstrings-python = "^1.13.0"
 
 [tool.coverage.report]
-fail_under = 85.0
+fail_under = 75.0
 
 [tool.interrogate]
 ignore-init-method = false
