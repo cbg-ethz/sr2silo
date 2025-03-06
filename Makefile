@@ -19,13 +19,8 @@ install-poetry:
 	@conda run -n sr2silo poetry install
 
 .PHONY: setup
-setup: create-env activate-env install-poetry install-diamond
+setup: create-env activate-env install-poetry
 	@echo "Environment setup complete."
-
-.PHONY: install-diamond
-install-diamond:
-	@echo "Installing Diamond into the sr2silo environment..."
-	conda install -n sr2silo -c bioconda -c conda-forge diamond
 
 .PHONY: clean
 clean:

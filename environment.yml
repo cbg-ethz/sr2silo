@@ -8,3 +8,4 @@ dependencies:
   - snakemake=8.18 # fixed as snakemake unit tests fail with 8.19
   - nextclade>=3.5.0
   - poetry>=1.8.3
+  - diamond>=2.1.0
