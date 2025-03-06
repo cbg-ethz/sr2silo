@@ -26,7 +26,7 @@ jobs:
           auto-update-conda: true
           channels: conda-forge, bioconda
           environment-file: environments/dev-environment.yml
-          activate-environment: sr2silo
+          activate-environment: sr2silo-dev
 
       - name: Setup environment using Makefile
         run: |
