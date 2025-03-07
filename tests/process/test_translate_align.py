@@ -143,7 +143,23 @@ def test_parse_translate_align_orth_nextclade(fasta_raw_data):
             # TODO: add ammino acid insertions test from "aaInsertions" if test data contains them
 
     ## from nextclade.aligned.fasta --> alignedNucSequence  (need to adjust Padding Char from - to N) - also adjust deletion char to from XXX to -
+    alignedSequenceStore = {}
+    with open(output_dir / "nextclade.aligned.fasta") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith(">"):
+                read_id = line[1:]
+                alignedSequenceStore[read_id] = ""
+            else:
+                alignedSequenceStore[read_id] += line  # type: ignore
 
+    # replace padding char from - to N
+    for read_id, aligned_sequence in alignedSequenceStore.items():
+        alignedSequenceStore[read_id] = aligned_sequence.replace("-", "N")
+
+    # TODO: replace deletion char from XXX to - (deletion char nextclade unknown)
 
     ## from nextclade.cds_translation.<<GeneName>>.fasta --> alignedAASequence (need to adjust Padding Char from - to X) - also adjust deletion char to from XXX to -
 
