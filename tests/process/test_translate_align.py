@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import copy
 import logging
+import subprocess
 import tempfile
 from pathlib import Path
+from typing import List
 
 import pytest
 
@@ -26,19 +28,116 @@ logging.basicConfig(
 )
 
 
-def test_translate():
-    """Test the translation function."""
+def translate_align_nextclade(
+    input_files: List[Path], result_dir: Path, nextclade_reference: str
+) -> None:
+    """Nextclades alignment of reads in fasta format and translation and
+    alignment of the reads in amino acid space.
 
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        output_dir = Path(tmpdirname) / "output"
-        output_dir.mkdir(parents=True, exist_ok=True)
+    Note: This function is a wrapper around the nextclade command line tool.
 
-        translate_align.translate_nextclade(
+    This implementation is meant only of orthogonal testing.
+
+    Args:
+        input_file (str): The path to the input file.
+                          the nucleotide sequences in fasta format.
+        result_dir (str): The path to the directory to save the results.
+        nextclade_reference (str): The path to the nextclade reference.
+                                    e.g. nextstrain/sars-cov-2/XBB
+                                    see `nextclade dataset list`
+    """
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        logging.debug(f"temp_dir: {temp_dir}")
+        # first get the test dataset from the gff3 file
+        command = [
+            "nextclade",
+            "dataset",
+            "get",
+            "--name",
+            f"{nextclade_reference}",
+            "--output-dir",
+            temp_dir,
+        ]
+        logging.debug(f"Running command: {command}")
+        subprocess.run(command, check=True)
+
+        for input_file in input_files:
+            logging.info(f"Translating {input_file}")
+
+            # then replace the sequences.fasta in the temp_dir
+            #  with the sequences.fasta from the input file
+            command = ["cp", input_file, f"{temp_dir}/sequences.fasta"]
+            logging.debug(f"Running command: {command}")
+            subprocess.run(command, check=True)
+
+            # then run the nextclade run command
+            command = [
+                "nextclade",
+                "run",
+                "--input-dataset",
+                temp_dir,
+                f"--output-all={result_dir}/",
+                f"{temp_dir}/sequences.fasta",
+            ]
+
+            logging.debug(f"Running nextclade: {command}")
+
+            try:
+                result = subprocess.run(
+                    command, check=True, capture_output=True, text=True
+                )
+                logging.debug(result.stdout)
+                logging.debug(result.stderr)
+            except subprocess.CalledProcessError as e:
+                logging.error(f"nextclade failed with exit code {e.returncode}")
+                logging.error(e.stderr)
+                raise
+
+            # move the results to the result_dir
+            result_path = result_dir / input_file.stem
+            command = ["mv", f"{temp_dir}/results", str(result_path)]
+
+
+def test_translate_align_nextclade():
+    """Test that the translate_align using nextclade executes
+    without error.
+    """
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+
+        translate_align_nextclade(
             [Path("tests/data/merged_expected.fasta")],
-            output_dir,
+            Path(tmpdir),
             "nextstrain/sars-cov-2/XBB",
         )
-    assert True
+
+
+def test_parse_translate_align_orth_nextclade():
+    """Test the translate_align() orthogonally using nextclade."""
+
+    # with tempfile.TemporaryDirectory() as tmpdirname:
+
+    tempdirname = Path("nextclade_output")
+    tempdirname.mkdir(parents=True, exist_ok=True)
+
+    output_dir = Path(tempdirname) / "output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Test Data
+    # TODO: get the test data with a lot of insertions
+
+    translate_align_nextclade(
+        [Path("tests/data/merged_expected.fasta")],
+        output_dir,
+        "nextstrain/sars-cov-2/XBB",
+    )
+
+    # Parse the Nextclade file to AlignedReads
+
+    # Run the parse_translate_align function
+
+    # The do attribute comparison
 
 
 def test_parse_translate_align(aligned_reads):
@@ -74,6 +173,7 @@ def test_parse_translate_align(aligned_reads):
             )
 
 
+# TODO: Implement the following tests
 @pytest.mark.skip(reason="Not implemented")
 def test_read_in_AligendReads_nuc_seq():
     """Test the make_read_with_nuc_seq function."""
@@ -115,6 +215,7 @@ def test_read_in_AligendReads_nuc_ins(aligned_reads):
         )
 
 
+# TODO: Implement the following tests
 @pytest.mark.skip(reason="Not implemented")
 def test_read_in_AligendReads_aa_ins():
     """Test the read_in_AlignedReads_aa_ins function."""
