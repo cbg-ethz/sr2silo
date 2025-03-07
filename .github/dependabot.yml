@@ -13,7 +13,7 @@ updates:
       - "dependencies"
       - "github-actions"
 
-  # Maintain dependencies for Python with Poetry
+  # Maintain dependencies for Python with Poetry (using pip ecosystem)
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
@@ -26,16 +26,3 @@ updates:
       - "dependencies"
       - "python"
     versioning-strategy: lockfile-only
-
-  # Maintain dependencies for Conda
-  - package-ecosystem: "conda"
-    directory: "/environments"
-    schedule:
-      interval: "monthly"
-    target-branch: "dev"
-    commit-message:
-      prefix: "conda"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "conda"
