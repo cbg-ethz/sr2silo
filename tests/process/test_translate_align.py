@@ -162,6 +162,49 @@ def test_parse_translate_align_orth_nextclade(fasta_raw_data):
     # TODO: replace deletion char from XXX to - (deletion char nextclade unknown)
 
     ## from nextclade.cds_translation.<<GeneName>>.fasta --> alignedAASequence (need to adjust Padding Char from - to X) - also adjust deletion char to from XXX to -
+    alignedAASequenceStore = {}
+
+    # get all gene names from the nextclade.cds_translation files
+    gene_names = [
+        file.stem.split(".")[2]
+        for file in (output_dir).glob("nextclade.cds_translation.*.fasta")
+    ]
+    # make List[GeneName]
+    gene_names = [GeneName(gene_name) for gene_name in gene_names]
+
+    # get all file names in dir that fit the pattern nextclade.cds_translation.<<GeneName>>.fasta
+    for file in (output_dir).glob("nextclade.cds_translation.*.fasta"):
+        gene_name = file.stem.split(".")[2]
+        with open(file) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith(">"):
+                    read_id = line[1:]
+                    # if read id not in store make new AASequenceSet
+                    if read_id not in alignedAASequenceStore:
+                        alignedAASequenceStore[read_id] = AASequenceSet(gene_names)
+                else:
+                    # convert padding char from - to N and also the undertermined char X to N
+                    alignedAASequenceStore[read_id].set_sequence(gene_name, line.replace("-", "N").replace("X", "N"))  # type: ignore
+
+                    #  TODO: replace deletion char from XXX to -   (deletion char nextclade unknown)
+
+    # make AlignedReads from the data
+    aligned_reads = {}
+    for read_id in alignedSequenceStore.keys():
+        aligned_read = AlignedRead(
+            read_id=read_id,
+            unaligned_nucleotide_sequences="",
+            aligned_nucleotide_sequences=alignedSequenceStore[read_id],
+            nucleotide_insertions=nuc_insertions_store.get(read_id, []),
+            amino_acid_insertions=AAInsertionSet(gene_names),
+            aligned_amino_acid_sequences=alignedAASequenceStore.get(
+                read_id, AASequenceSet(gene_names)
+            ),
+        )
+        aligned_reads[read_id] = aligned_read
 
     ### Run the parse_translate_align function
 
