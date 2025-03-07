@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import logging
 import subprocess
 import tempfile
@@ -21,6 +22,7 @@ from sr2silo.process.interface import (
     Gene,
     GeneName,
     GeneSet,
+    NucInsertion,
 )
 
 logging.basicConfig(
@@ -94,10 +96,6 @@ def translate_align_nextclade(
                 logging.error(e.stderr)
                 raise
 
-            # move the results to the result_dir
-            result_path = result_dir / input_file.stem
-            command = ["mv", f"{temp_dir}/results", str(result_path)]
-
 
 def test_translate_align_nextclade(temp_dir):
     """Test that the translate_align using nextclade executes
@@ -129,8 +127,23 @@ def test_parse_translate_align_orth_nextclade(fasta_raw_data):
 
     ### Parse the Nextclade file to AlignedReads
     ## Read in Insertions from nextclade.ndjson, "insertions" for NucInsertions and "aaInsertions" for AAInsertions
+    # for each line in the json file, load the JSON and get insertions
+
+    nuc_insertions_store = {}
+    for line in (output_dir / "nextclade.ndjson").read_text().split("\n"):
+        if not line:
+            continue
+        json_data = json.loads(line)
+        read_id = json_data["seqName"]
+        nuc_insertions = []
+        # now json_data["insertions"] is a list as  [{'pos': 1929, 'ins': 'CTA'}]  read in these objects as NucInsertions
+        for nuc_ins in json_data["insertions"]:
+            nuc_insertions.append(NucInsertion(nuc_ins["pos"], nuc_ins["ins"]))
+            nuc_insertions_store[read_id] = nuc_insertions
+            # TODO: add ammino acid insertions test from "aaInsertions" if test data contains them
 
     ## from nextclade.aligned.fasta --> alignedNucSequence  (need to adjust Padding Char from - to N) - also adjust deletion char to from XXX to -
+
 
     ## from nextclade.cds_translation.<<GeneName>>.fasta --> alignedAASequence (need to adjust Padding Char from - to X) - also adjust deletion char to from XXX to -
 
