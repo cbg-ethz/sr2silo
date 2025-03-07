@@ -210,7 +210,7 @@ def test_parse_translate_align_orth_nextclade(fasta_raw_data):
 
     ### The do attribute comparison
 
-    assert False
+    raise NotImplementedError
 
 
 def test_parse_translate_align(aligned_reads):
