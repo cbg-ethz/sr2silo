@@ -99,21 +99,18 @@ def translate_align_nextclade(
             command = ["mv", f"{temp_dir}/results", str(result_path)]
 
 
-def test_translate_align_nextclade():
+def test_translate_align_nextclade(temp_dir):
     """Test that the translate_align using nextclade executes
     without error.
     """
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-
-        translate_align_nextclade(
-            [Path("tests/data/merged_expected.fasta")],
-            Path(tmpdir),
-            "nextstrain/sars-cov-2/XBB",
-        )
+    translate_align_nextclade(
+        [Path("tests/data/merged_expected.fasta")],
+        Path(temp_dir),
+        "nextstrain/sars-cov-2/XBB",
+    )
 
 
-def test_parse_translate_align_orth_nextclade():
+def test_parse_translate_align_orth_nextclade(fasta_raw_data):
     """Test the translate_align() orthogonally using nextclade."""
 
     # with tempfile.TemporaryDirectory() as tmpdirname:
@@ -124,20 +121,24 @@ def test_parse_translate_align_orth_nextclade():
     output_dir = Path(tempdirname) / "output"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Test Data
-    # TODO: get the test data with a lot of insertions
-
     translate_align_nextclade(
-        [Path("tests/data/merged_expected.fasta")],
+        [fasta_raw_data],
         output_dir,
         "nextstrain/sars-cov-2/XBB",
     )
 
-    # Parse the Nextclade file to AlignedReads
+    ### Parse the Nextclade file to AlignedReads
+    ## Read in Insertions from nextclade.ndjson, "insertions" for NucInsertions and "aaInsertions" for AAInsertions
 
-    # Run the parse_translate_align function
+    ## from nextclade.aligned.fasta --> alignedNucSequence  (need to adjust Padding Char from - to N) - also adjust deletion char to from XXX to -
 
-    # The do attribute comparison
+    ## from nextclade.cds_translation.<<GeneName>>.fasta --> alignedAASequence (need to adjust Padding Char from - to X) - also adjust deletion char to from XXX to -
+
+    ### Run the parse_translate_align function
+
+    ### The do attribute comparison
+
+    assert False
 
 
 def test_parse_translate_align(aligned_reads):

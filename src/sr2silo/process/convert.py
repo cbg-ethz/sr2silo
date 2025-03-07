@@ -48,7 +48,7 @@ def get_sequence_from_fasta(fasta_fp: Path) -> str:
 
 def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
     """
-    Sorts a BAM file using pysam.sort to avoid loading all alignments into memory.
+    Sorts a BAM file using pysam.sort by their alignment positions.
 
     Args:
         input_bam_path (Path): Path to the input BAM file.
@@ -90,6 +90,7 @@ def create_index(bam_file: Path):
 def bam_to_fasta(bam_file: Path, fasta_file: Path):
     """
     Convert a BAM file to a FASTA file. Bluntly resolved the sam to fasta.
+    That means insertions are included in these reads.
 
     Args:
         bam_file: Path to the input BAM file.
@@ -100,6 +101,10 @@ def bam_to_fasta(bam_file: Path, fasta_file: Path):
         raise ValueError("Input file is not a BAM file")
     if not fasta_file.suffix.endswith(".fasta"):
         raise ValueError("Output file is not a FASTA file")
+
+    # check if index exists, make index if not
+    if not bam_file.with_suffix(".bai").exists():
+        sort_and_index_bam(bam_file, bam_file)
 
     with pysam.AlignmentFile(str(bam_file), "rb") as bam:
         with open(fasta_file, "w") as fq:
