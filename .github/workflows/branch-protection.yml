@@ -1,0 +1,24 @@
+name: Branch Protection
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+jobs:
+  enforce-branch-protection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Enforce branch protection on main
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "Direct pushes to main branch are not allowed. Please create a pull request from dev branch."
+          echo "This is a safeguard. If you're seeing this, please configure branch protection rules in the GitHub repository settings."
+          if [[ "${{ github.event.repository.default_branch }}" == "main" ]]; then
+            exit 1
+          fi

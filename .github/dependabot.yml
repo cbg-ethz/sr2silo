@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "dev"
+    commit-message:
+      prefix: "GitHub Actions"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # Maintain dependencies for Python with Poetry
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "dev"
+    commit-message:
+      prefix: "pip"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+    versioning-strategy: lockfile-only
+
+  # Maintain dependencies for Conda
+  - package-ecosystem: "conda"
+    directory: "/environments"
+    schedule:
+      interval: "monthly"
+    target-branch: "dev"
+    commit-message:
+      prefix: "conda"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "conda"
