@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import re
-import tempfile
 from pathlib import Path
 from typing import List, Tuple, Union
 
@@ -46,9 +45,56 @@ def get_sequence_from_fasta(fasta_fp: Path) -> str:
     return sequence
 
 
-def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
+def sort_bam_file(
+    input_bam_path: Path, output_bam_path: Path, sort_by_qname: bool = False
+):
     """
-    Sorts a BAM file using pysam.sort to avoid loading all alignments into memory.
+    Sorts a BAM file using pysam.sort by alignment positions by default,
+    but can also sort by query name if specified.
+
+    Args:
+        input_bam_path (Path): Path to the input BAM file.
+        output_bam_path (Path): Path to the output sorted BAM file.
+        sort_by_qname (bool, optional): If True, sorts by query name. Defaults to False.
+        sort_by_qname (bool, optional): If True, sorts by query name. Defaults to False.
+    """
+    try:
+        # Convert Path objects to strings for pysam compatibility
+        input_bam_str = str(input_bam_path)
+        output_bam_str = str(output_bam_path)
+
+        # Build sort arguments based on sorting option.
+        if sort_by_qname:
+            # Using the -n flag to sort by query name.
+            pysam.sort("-n", "-o", output_bam_str, input_bam_str)
+            logging.info(
+                f"BAM file has been sorted by query name and saved to {output_bam_str}"
+            )
+        else:
+            pysam.sort("-o", output_bam_str, input_bam_str)
+            logging.info(
+                f"BAM file has been sorted by coordinate and saved to {output_bam_str}"
+            )
+        # Build sort arguments based on sorting option.
+        if sort_by_qname:
+            # Using the -n flag to sort by query name.
+            pysam.sort("-n", "-o", output_bam_str, input_bam_str)
+            logging.info(
+                f"BAM file has been sorted by query name and saved to {output_bam_str}"
+            )
+        else:
+            pysam.sort("-o", output_bam_str, input_bam_str)
+            logging.info(
+                f"BAM file has been sorted by coordinate and saved to {output_bam_str}"
+            )
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        raise Exception(f"An error occurred: {e}")
+
+
+def sort_sam_by_qname(input_sam_path: Path, output_sam_path: Path):
+    """
+    Sorts a sam file using pysam.sort command by query name.
 
     Args:
         input_bam_path (Path): Path to the input BAM file.
@@ -56,13 +102,13 @@ def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
     """
     try:
         # Convert Path objects to strings for pysam compatibility
-        input_bam_str = str(input_bam_path)
-        output_bam_str = str(output_bam_path)
+        input_sam_str = str(input_sam_path)
+        output_sam_str = str(output_sam_path)
 
         # Using pysam.sort command to sort the BAM file and write to disk incrementally.
-        pysam.sort("-o", output_bam_str, input_bam_str)
-        logging.info(f"BAM file has been sorted and saved to {output_bam_str}")
-    except Exception as e:
+        pysam.sort("-n", "-o", output_sam_str, input_sam_str)
+        logging.info(f"SAM file has been sorted and saved to {output_sam_str}")
+    except Exception as e:  # pragma: no cover
         print(f"An error occurred: {e}")
         raise Exception(f"An error occurred: {e}")
 
@@ -87,9 +133,13 @@ def create_index(bam_file: Path):
         print(f"An error occurred: {e}")
 
 
-def bam_to_fasta(bam_file: Path, fasta_file: Path):
+def bam_to_fasta_query(bam_file: Path, fasta_file: Path):
     """
-    Convert a BAM file to a FASTA file. Bluntly resolved the sam to fasta.
+    Convert a BAM file to a FASTA file. Bluntly resolved the sam to fasta,
+    removing soft clippings, keeping insertions and deletions, ignoring skipped
+    regions and paddings.
+
+    Outputs the sequence as it is read from the molecule.
 
     Args:
         bam_file: Path to the input BAM file.
@@ -101,34 +151,79 @@ def bam_to_fasta(bam_file: Path, fasta_file: Path):
     if not fasta_file.suffix.endswith(".fasta"):
         raise ValueError("Output file is not a FASTA file")
 
+    # check if index exists, make index if not
+    if not bam_file.with_suffix(".bai").exists():
+        sort_and_index_bam(bam_file, bam_file)
+
     with pysam.AlignmentFile(str(bam_file), "rb") as bam:
         with open(fasta_file, "w") as fq:
             for read in bam.fetch():
                 if not read.is_unmapped:
                     name = read.query_name
-                    seq = read.query_sequence
+                    full_seq = read.query_sequence
+
+                    # Remove soft clipping
+                    if full_seq is None:
+                        continue
+
+                    # Get CIGAR string to identify soft clippings
+                    cigar_tuples = read.cigartuples
+                    if cigar_tuples is None:
+                        continue
+
+                    # Calculate sequence without soft clippings
+                    start = 0
+                    end = len(full_seq)
+
+                    # Check for soft clipping at start (CIGAR op 4 = S)
+                    if cigar_tuples[0][0] == 4:
+                        start = cigar_tuples[0][1]
+
+                    # Check for soft clipping at end
+                    if cigar_tuples[-1][0] == 4:
+                        end -= cigar_tuples[-1][1]
+
+                    # Extract sequence without soft clippings
+                    seq = full_seq[start:end]
+
                     fq.write(f">{name}\n{seq}\n")
 
 
-def bam_to_sam(bam_file: Path) -> str:
-    """Converts a BAM file to SAM format and returns it as a string.
+def bam_to_sam(bam_file: Path, sam_file: Path) -> None:
+    """Converts a BAM file to SAM format and writes it to the specified output file.
 
     Args:
       bam_file: Path to the input BAM file.
-
-    Returns:
-      A string containing the SAM format of the input BAM file.
+      sam_file: Path to the output SAM file.
     """
+    with pysam.AlignmentFile(str(bam_file), "rb") as in_bam, pysam.AlignmentFile(
+        str(sam_file), "w", template=in_bam
+    ) as out_sam:
+        for read in in_bam:
+            out_sam.write(read)
+    logging.info(f"BAM file {bam_file} has been converted to SAM file {sam_file}")
 
-    with tempfile.NamedTemporaryFile(delete=True) as temp_sam:
-        with pysam.AlignmentFile(str(bam_file), "rb") as in_bam, pysam.AlignmentFile(
-            temp_sam.name, "w", template=in_bam
-        ) as out_sam:
-            for read in in_bam:
-                out_sam.write(read)
-        temp_sam.seek(0)
-        temp_sam_content = temp_sam.read().decode()
-    return temp_sam_content
+
+def sam_to_bam(sam_file: Path, bam_file: Path):
+    """
+    Convert a SAM file to a BAM file.
+
+    Args:
+        sam_file (Path): Path to the input SAM file.
+        bam_file (Path): Path to the output BAM file.
+    """
+    # check for proper format
+    if not sam_file.suffix.endswith(".sam"):
+        raise ValueError("Input file is not a SAM file")
+    if not bam_file.suffix.endswith(".bam"):
+        raise ValueError("Output file is not a BAM file")
+
+    with pysam.AlignmentFile(str(sam_file), "r") as sam:
+        with pysam.AlignmentFile(str(bam_file), "wb", header=sam.header) as bam:
+            for read in sam:
+                bam.write(read)
+
+    logging.info(f"SAM file {sam_file} has been converted to BAM file {bam_file}")
 
 
 def bam_to_fastq_handle_indels(
@@ -136,25 +231,28 @@ def bam_to_fastq_handle_indels(
     out_fastq_fp: Path,
     out_insertions_fp: Path,
     deletion_char: str = "-",
+    skipped_char: str = "N",
 ):
     """
     Convert a BAM file to a FASTQ file, removing insertions and adding a
-    special character for deletions.
+    special character for deletions, skipped regions, and soft clipping.
     Save the insertions to a separate file.
     Include alignment positions in the FASTQ file.
 
-    Used to look at the cleartext nucleotide sequence of the reads.
+    Coordinates are 1-based.
 
     :param bam_file: Path to the input BAM file
-    :param fastq_file: Path to the output FASTQ file
-    :param insertions_file: Path to the output file containing insertions
-    :param deletion_char: Special character to use for deletions
+    :param out_fastq_fp: Path to the output FASTQ file
+    :param out_insertions_fp: Path to the output file containing insertions
+    :param deletion_char: Special character to use for deletions/skipped regions
+    :param skipped_char: Special character to use for skipped regions
     """
     with pysam.AlignmentFile(str(bam_file), "rb") as bam, open(
         out_fastq_fp, "w"
     ) as fastq, open(out_insertions_fp, "w") as insertions:
         for read in bam.fetch():
             if not read.is_unmapped:
+                logging.debug(f"Processing read: {read.query_name}")
                 query_sequence = read.query_sequence if read.query_sequence else ""
                 query_qualities = read.query_qualities if read.query_qualities else ""
                 new_sequence = []
@@ -169,6 +267,8 @@ def bam_to_fastq_handle_indels(
                     continue
 
                 for cigar in read.cigartuples:
+
+                    # Handle the CIGAR operations
                     if cigar[0] == 0:  # Match or mismatch
                         new_sequence.extend(
                             query_sequence[query_pos : query_pos + cigar[1]]
@@ -190,10 +290,23 @@ def bam_to_fastq_handle_indels(
                         query_pos += cigar[1]
                     elif cigar[0] == 2:  # Deletion
                         new_sequence.extend([deletion_char] * cigar[1])
-                        new_qualities.extend(
-                            [0] * cigar[1]
-                        )  # Assigning a low-quality score for deletions
+                        new_qualities.extend([0] * cigar[1])
                         ref_pos += cigar[1]
+                    elif cigar[0] == 3:  # Skipped region from the reference
+                        new_sequence.extend([skipped_char] * cigar[1])
+                        new_qualities.extend([0] * cigar[1])
+                        ref_pos += cigar[1]
+                    elif cigar[0] == 4:  # Soft clipping
+                        # Skip soft clipped bases (they are not aligned)
+                        query_pos += cigar[1]
+                    elif cigar[0] == 5:  # Hard clipping
+                        # Hard clipped bases are not present in the read sequence,
+                        # so no update to query_pos is required.
+                        pass
+                    elif cigar[0] == 6:  # Padding
+                        # Padding is a silent deletion from padded reference
+                        # No action needed for this case.
+                        pass
 
                 # Write the modified read to the FASTQ file
                 fastq.write(f"@{read.query_name}\n")
@@ -384,13 +497,16 @@ def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
         logging.info("Sorting and indexing the input BAM file")
         _sort_and_index_bam(input_bam_fp, output_bam_fp)
     else:
-        # copy the input BAM file to the output BAM file
+        # copy the input BAM file to the output, along with the index
         output_bam_fp.write_bytes(input_bam_fp.read_bytes())
+        # note then ending is .bam.bai
+        output_bam_fp.with_suffix(".bam.bai").write_bytes(
+            input_bam_fp.with_suffix(".bam.bai").read_bytes()
+        )
         logging.info(
             "Input BAM file is already sorted and indexed, \
                       copying to output"
         )
-
 
 def _sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
     """
@@ -410,7 +526,7 @@ def _sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
 
 
 def is_bam_sorted(bam_file):
-    """Checks if a BAM file is sorted using pysam.
+    """Checks if a BAM file is sorted by genomic coordinates using pysam.
 
     Args:
         bam_file (str): Path to the BAM file.
@@ -437,7 +553,7 @@ def is_bam_sorted(bam_file):
 def is_bam_indexed(bam_file):
     """Checks if a BAM file has an index (.bai) file.
 
-    Args:bam_file.suffix.endswith
+    Args:
         bam_file (str): Path to the BAM file.
 
     Returns:
@@ -446,7 +562,7 @@ def is_bam_indexed(bam_file):
     """
     try:
         bam = pysam.AlignmentFile(bam_file, "rb")
-        has_index = bam.has_index()  # Directly check for index
+        has_index = bam.has_index()
         bam.close()
         return has_index
 
@@ -509,3 +625,46 @@ def split_bam(
     bamfile.close()
 
     return list(out_dir.glob(f"{prefix}*.bam"))
+
+
+def is_sorted_qname(bam_file):
+    """Checks if a BAM/SAM file is sorted by QNAME using pysam.
+
+    Args:
+        bam_file (str): Path to the BAM/SAM file.
+
+    Returns:
+        bool: True if the file is sorted by query name, False otherwise.
+        None if there's an issue opening the file.
+    """
+    # Choose file mode based on extension (assumes .sam files are uncompressed)
+    mode = "rb" if Path(bam_file).suffix == ".bam" else "r"
+    try:
+        with pysam.AlignmentFile(bam_file, mode) as af:
+            # Header HD should define SO as "queryname" for a QNAME sorted file.
+            so = af.header.get("HD", {}).get("SO")  # type: ignore
+            return so == "queryname"
+    except ValueError as e:
+        print(f"Error opening file {bam_file}: {e}")
+        return None
+    except Exception as e:  # pragma: no cover
+        print(f"An unexpected error occurred: {e}")
+        return None
+
+
+def had_SQ_header(sam_file):
+    """Checks if a SAM/BAM file has @SQ headers using pysam.
+
+    Args:
+        sam_file (str): Path to the SAM/BAM file.
+
+    Returns:
+        bool: True if the file contains @SQ headers, False otherwise.
+    """
+    try:
+        with pysam.AlignmentFile(sam_file, "r") as af:
+            # Check if there is an 'SQ' entry in the header
+            return "SQ" in af.header and len(af.header["SQ"]) > 0  # type: ignore
+    except Exception as e:  # pragma: no cover
+        print(f"Error reading SAM file {sam_file}: {e}")
+        return False

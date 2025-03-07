@@ -7,12 +7,14 @@ In VSCode, Code Coverage is recorded in config.xml. Delete this file to reset re
 from __future__ import annotations
 
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
+from typing import List
 
 import pysam
 import pytest
 
-from sr2silo.process import bam_to_sam
+from sr2silo.process import bam_to_fasta_query, bam_to_sam
 
 # Define test data paths
 TEST_DATA_DIR = Path(__file__).parent / "data"
@@ -20,7 +22,7 @@ TEST_DATA_DIR = Path(__file__).parent / "data"
 INPUT_BAM_PATH = TEST_DATA_DIR / "REF_aln_trim_subsample.bam"
 EXPECTED_SAM_PATH = TEST_DATA_DIR / "REF_aln_trim_subsample_expected.sam"
 
-
+# TODO - centralize the test data.
 LARGE_TEST_DATA_DIR = (
     TEST_DATA_DIR
     / "samples_large"
@@ -37,32 +39,44 @@ EXPECTED_BAM_INSERTIONS_PATH_cleartext = (
     LARGE_TEST_DATA_DIR / "REF_aln_trim_subsample.fasta"
 )
 
-
-@pytest.fixture
-def bam_data() -> dict:
-    """Return a sample BAM data path and its corresponding SAM data as a string."""
-    dict_data = dict()
-    # read in these files as test
-    dict_data["bam_path"] = INPUT_BAM_PATH
-    with open(EXPECTED_SAM_PATH) as f:
-        dict_data["sam_data"] = f.read()
-
-    return dict_data
+# The following file is a BAM file that contains reads that have insertions
+# for effective testing
+NUC_ALIGNMENT_BAM = TEST_DATA_DIR / "bam" / "combined.bam"
 
 
 @pytest.fixture
-def sam_data():
-    """Return a sample SAM data as a string."""
-    return bam_to_sam(INPUT_BAM_PATH)
+def bam_data() -> Path:
+    """Return a sample BAM file path.
+
+    Complementary to sam_data.
+    """
+    return INPUT_BAM_PATH
 
 
 @pytest.fixture
-def sam_with_insert_data():
+def sam_data() -> Path:
+    """Return a sample SAM file path.
+    This is the expected SAM data for
+    the test data in the INPUT_BAM_PATH."""
+    return EXPECTED_SAM_PATH
+
+
+@pytest.fixture
+def sam_with_insert_data() -> dict:
     """Return a sample SAM data as a string with insertions."""
 
     data_expected = dict()
     data_expected["bam_data_fp"] = INPUT_BAM_INSERTIONS_PATH
-    data_expected["sam_data"] = bam_to_sam(INPUT_BAM_INSERTIONS_PATH)
+
+    # Convert the BAM file to SAM, and read in the SAM file
+    with temp_dir() as tmpdir:
+        # Convert the BAM file to SAM
+        sam_fp = tmpdir / "sam_data.sam"
+        bam_to_sam(INPUT_BAM_INSERTIONS_PATH, sam_fp)
+        # read in the SAM file
+        sam_content = sam_fp.read_text()
+        data_expected["sam_data"] = sam_content
+
     # Read in the insertions file
     insertions_content = EXPECTED_BAM_INSERTIONS_PATH_inserts.read_text()
     data_expected["insertions"] = insertions_content
@@ -72,6 +86,22 @@ def sam_with_insert_data():
     data_expected["cleartext"] = cleartext_content
 
     return data_expected
+
+
+@pytest.fixture
+def mock_fasta_query() -> List[Path]:  # noqa: F821
+    """Return a query nuclitide reads file reconstructed from the BAM file,
+    for amino acid translation and alignment.
+
+       That is putting insertions back into the reads.
+
+    Returns:
+        List[Path, Path]: Bam Path, Fasta Path
+
+    """
+    bam_to_fasta_query(NUC_ALIGNMENT_BAM, NUC_ALIGNMENT_BAM.with_suffix(".fasta"))
+
+    return [NUC_ALIGNMENT_BAM, NUC_ALIGNMENT_BAM.with_suffix(".fasta")]
 
 
 @pytest.fixture

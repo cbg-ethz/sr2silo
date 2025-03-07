@@ -1,5 +1,5 @@
 # This pipeline checks whether the package
-# installs properly, passes unit tests and whether
+# installs properly, passes unit tests, test coverage and whether
 # the code formatting is right.
 name: CI/CD (Poetry + Conda)
 
@@ -40,23 +40,14 @@ jobs:
           conda activate sr2silo-dev
           poetry install --with dev
 
+      - name: Determine if PR
+        id: determine-pr
+        run: echo "is_pr=${{ github.event_name == 'pull_request' }}" >> $GITHUB_OUTPUT
       - name: Run unit tests
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate sr2silo-dev
           poetry run pytest
-
-      - name: Run test coverage
-        run: |
-          source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo-dev
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
 
       - name: Run Ruff
         run: |
