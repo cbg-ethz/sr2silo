@@ -389,8 +389,12 @@ def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
         logging.info("Sorting and indexing the input BAM file")
         _sort_and_index_bam(input_bam_fp, output_bam_fp)
     else:
-        # copy the input BAM file to the output BAM file
+        # copy the input BAM file to the output, along with the index
         output_bam_fp.write_bytes(input_bam_fp.read_bytes())
+        # note then ending is .bam.bai
+        output_bam_fp.with_suffix(".bam.bai").write_bytes(
+            input_bam_fp.with_suffix(".bam.bai").read_bytes()
+        )
         logging.info(
             "Input BAM file is already sorted and indexed, \
                       copying to output"
@@ -442,7 +446,7 @@ def is_bam_sorted(bam_file):
 def is_bam_indexed(bam_file):
     """Checks if a BAM file has an index (.bai) file.
 
-    Args:bam_file.suffix.endswith
+    Args:
         bam_file (str): Path to the BAM file.
 
     Returns:
@@ -451,7 +455,7 @@ def is_bam_indexed(bam_file):
     """
     try:
         bam = pysam.AlignmentFile(bam_file, "rb")
-        has_index = bam.has_index()  # Directly check for index
+        has_index = bam.has_index()
         bam.close()
         return has_index
 
