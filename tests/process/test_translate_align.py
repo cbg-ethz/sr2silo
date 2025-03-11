@@ -113,6 +113,9 @@ def test_parse_translate_align_orth_nextclade(bam_and_fasta_raw_data):
 
     # get the test data
     fasta_raw_data = bam_and_fasta_raw_data[1]
+
+    print(fasta_raw_data)
+
     bam_path = bam_and_fasta_raw_data[0]
 
     # with tempfile.TemporaryDirectory() as tmpdirname:
@@ -222,7 +225,34 @@ def test_parse_translate_align_orth_nextclade(bam_and_fasta_raw_data):
         nuc_alignment_fp=bam_path,
     )
 
-    raise NotImplementedError
+    # check that the read_ids are the same
+    assert aligned_reads.keys() == aligned_read_actual.keys()
+
+    # write all reads expected and actual to a file
+    with open("aligned_reads.ndjson", "w") as f:
+        for read_id in aligned_reads.keys():
+            f.write(str(aligned_reads[read_id]) + "\n")
+
+    with open("aligned_reads_actual.ndjson", "w") as f:
+        for read_id in aligned_reads.keys():
+            f.write(str(aligned_read_actual[read_id]) + "\n")
+
+    # for a given read_id check that the aligned sequences are the same
+    for read_id in aligned_reads.keys():
+        for field in [
+            # "aligned_nucleotide_sequences", # skip ad V-Pipe does the alignment
+            # "aligned_amino_acid_sequences",
+            "nucleotide_insertions",
+            "amino_acid_insertions",
+        ]:
+            expected_value = getattr(aligned_reads[read_id], field)
+            actual_value = getattr(aligned_read_actual[read_id], field)
+
+            # Use direct comparison now that we have implemented __eq__ for AAInsertionSet
+            assert expected_value == actual_value, (
+                f"Mismatch for read_id '{read_id}' in field '{field}': "
+                f"expected {expected_value}, got {actual_value}"
+            )
 
 
 def test_parse_translate_align(aligned_reads):
@@ -267,7 +297,6 @@ def test_read_in_AligendReads_nuc_seq():
 
 def test_read_in_AligendReads_nuc_ins(aligned_reads):
     """Test the enrich_read_with_nuc_ins function."""
-
     fasta_nuc_insertions_file = Path("tests/data/process/nuc_insertions.fasta")
 
     expected_aligned_reads = translate_align.enrich_read_with_nuc_ins(
