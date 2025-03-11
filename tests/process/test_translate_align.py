@@ -108,8 +108,12 @@ def test_translate_align_nextclade(temp_dir):
     )
 
 
-def test_parse_translate_align_orth_nextclade(fasta_raw_data):
+def test_parse_translate_align_orth_nextclade(bam_and_fasta_raw_data):
     """Test the translate_align() orthogonally using nextclade."""
+
+    # get the test data
+    fasta_raw_data = bam_and_fasta_raw_data[1]
+    bam_path = bam_and_fasta_raw_data[0]
 
     # with tempfile.TemporaryDirectory() as tmpdirname:
 
@@ -208,7 +212,15 @@ def test_parse_translate_align_orth_nextclade(fasta_raw_data):
 
     ### Run the parse_translate_align function
 
-    ### The do attribute comparison
+    aligned_read_actual = translate_align.parse_translate_align(
+        nuc_reference_fp=Path(
+            "resources/sars-cov-2/nuc_reference_genomes.fasta"
+        ),  # TODO: replace with fixture
+        aa_reference_fp=Path(
+            "resources/sars-cov-2/aa_reference_genomes.fasta"
+        ),  # TODO: replace with fixture
+        nuc_alignment_fp=bam_path,
+    )
 
     raise NotImplementedError
 

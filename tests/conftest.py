@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from typing import List
 
 import pysam
 import pytest
@@ -79,13 +80,18 @@ def sam_with_insert_data():
 
 
 @pytest.fixture
-def fasta_raw_data():
+def bam_and_fasta_raw_data() -> List[Path]:  # noqa: F821
     """Return a raw nuclitide read file reconstructed from the BAM file.
 
-    That is putting insertions back into the reads.
+       That is putting insertions back into the reads.
+
+    Returns:
+        List[Path, Path]: Bam Path, Fasta Path
+
     """
     bam_to_fasta(NUC_ALIGNMENT_BAM, NUC_ALIGNMENT_BAM.with_suffix(".fasta"))
-    return NUC_ALIGNMENT_BAM.with_suffix(".fasta")
+
+    return [NUC_ALIGNMENT_BAM, NUC_ALIGNMENT_BAM.with_suffix(".fasta")]
 
 
 @pytest.fixture
