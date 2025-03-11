@@ -48,6 +48,38 @@ def make_reference_nextclade(reference_fasta_fp: Path) -> None:
         f.write(sr2silo_reference)
 
 
+def get_reference_nextclade(reference_fasta_fp: Path) -> None:
+    """This function gets the reference file out of nextclade,"""
+
+    nextclade_reference = "nextstrain/sars-cov-2/XBB"
+
+    temp_dir = tempfile.mkdtemp()
+    logging.debug(f"temp_dir: {temp_dir}")
+
+    # first get the test dataset from the gff3 file
+    command = [
+        "nextclade",
+        "dataset",
+        "get",
+        "--name",
+        f"{nextclade_reference}",
+        "--output-dir",
+        temp_dir,
+    ]
+
+    logging.debug(f"Running command: {command}")
+
+    subprocess.run(command, check=True)
+
+    # make dir
+    Path(reference_fasta_fp).parent.mkdir(parents=True, exist_ok=True)
+
+    # copy the reference.fasta file to the output file
+    command = ["cp", f"{temp_dir}/reference.fasta", reference_fasta_fp]
+    logging.debug(f"Running command: {command}")
+    subprocess.run(command, check=True)
+
+
 def translate_align_nextclade_ref(
     input_files: List[Path], result_dir: Path, reference_fasta_fp: Path
 ) -> None:
@@ -260,12 +292,10 @@ def test_parse_translate_align_orth_nextclade(bam_and_fasta_raw_data):
     output_dir = Path(tempdirname) / "output"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    nuc_reference_genomes_fp = output_dir / "nuc_reference_genomes.fasta"
-    make_reference_nextclade(nuc_reference_genomes_fp)
+    # nuc_reference_genomes_fp = output_dir / "nuc_reference_genomes.fasta"
+    # make_reference_nextclade(nuc_reference_genomes_fp)
 
-    translate_align_nextclade_ref(
-        [fasta_raw_data], output_dir, nuc_reference_genomes_fp
-    )
+    translate_align_nextclade([fasta_raw_data], output_dir, "nextstrain/sars-cov-2/XBB")
 
     ### Parse the Nextclade file to AlignedReads
     ## Read in Insertions from nextclade.ndjson, "insertions" for NucInsertions and "aaInsertions" for AAInsertions
@@ -349,10 +379,15 @@ def test_parse_translate_align_orth_nextclade(bam_and_fasta_raw_data):
         aligned_reads[read_id] = aligned_read
 
     ### Run the parse_translate_align function
+    nuc_reference_fp = Path(
+        "resources/sars-cov-2/nextclade/nuc_reference_genomes.fasta"
+    )
+    get_reference_nextclade(
+        Path("resources/sars-cov-2/nextclade/nuc_reference_genomes.fasta")
+    )
+
     aligned_read_actual = translate_align.parse_translate_align(
-        nuc_reference_fp=Path(
-            "resources/sars-cov-2/nuc_reference_genomes.fasta"
-        ),  # TODO: replace with fixture
+        nuc_reference_fp=nuc_reference_fp,  # TODO: replace with fixture
         aa_reference_fp=Path(
             "resources/sars-cov-2/aa_reference_genomes.fasta"
         ),  # TODO: replace with fixture
