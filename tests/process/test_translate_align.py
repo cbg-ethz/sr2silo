@@ -214,7 +214,6 @@ def test_parse_translate_align_orth_nextclade(bam_and_fasta_raw_data):
         aligned_reads[read_id] = aligned_read
 
     ### Run the parse_translate_align function
-
     aligned_read_actual = translate_align.parse_translate_align(
         nuc_reference_fp=Path(
             "resources/sars-cov-2/nuc_reference_genomes.fasta"
@@ -242,17 +241,33 @@ def test_parse_translate_align_orth_nextclade(bam_and_fasta_raw_data):
         for field in [
             # "aligned_nucleotide_sequences", # skip ad V-Pipe does the alignment
             # "aligned_amino_acid_sequences",
-            "nucleotide_insertions",
             "amino_acid_insertions",
         ]:
             expected_value = getattr(aligned_reads[read_id], field)
             actual_value = getattr(aligned_read_actual[read_id], field)
 
-            # Use direct comparison now that we have implemented __eq__ for AAInsertionSet
+            # Use direct comparison
             assert expected_value == actual_value, (
                 f"Mismatch for read_id '{read_id}' in field '{field}': "
                 f"expected {expected_value}, got {actual_value}"
             )
+
+        # Special handling for nucleotide insertions - compare by string representation
+        expected_nuc_insertions = aligned_reads[read_id].nucleotide_insertions
+        actual_nuc_insertions = getattr(
+            aligned_read_actual[read_id], "nucleotide_insertions"
+        )
+
+        # Convert both lists to sorted lists of string representations for stable comparison
+        expected_nuc_insertions_str = sorted(
+            str(ins) for ins in expected_nuc_insertions
+        )
+        actual_nuc_insertions_str = sorted(str(ins) for ins in actual_nuc_insertions)
+
+        assert expected_nuc_insertions_str == actual_nuc_insertions_str, (
+            f"Mismatch for read_id '{read_id}' in nucleotide_insertions: "
+            f"expected {expected_nuc_insertions_str}, got {actual_nuc_insertions_str}"
+        )
 
 
 def test_parse_translate_align(aligned_reads):
