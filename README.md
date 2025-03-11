@@ -12,6 +12,7 @@
 
 [![Project Status: POC – This project is currently under active development.](https://www.repostatus.org/badges/latest/concept.svg)](https://www.repostatus.org/#concept)
 [![CI/CD](https://github.com/gordonkoehn/UsefulGnom/actions/workflows/test.yml/badge.svg)](https://github.com/gordonkoehn/UsefulGnom/actions/workflows/test.yml)
+[![Code Coverage](https://codecov.io/gh/cbg-ethz/sr2silo/branch/main/graph/badge.svg)](https://codecov.io/gh/cbg-ethz/sr2silo)
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Pytest](https://img.shields.io/badge/tested%20with-pytest-0A9EDC.svg)](https://docs.pytest.org/en/stable/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/charliermarsh/ruff)
@@ -92,27 +93,59 @@ For the V-Pipe to Silo implementation we carry through the following metadata:
 To build the package and maintain dependencies, we use [Poetry](https://python-poetry.org/).
 In particular, it's good to install it and become familiar with its basic functionalities by reading the documentation.
 
-
 ### Installation
 
-1. Build and set up the Conda environment using the Makefile:
-   ```bash
-   make setup
-   ```
-   This command creates the Conda environment (if not already created), installs Poetry, and sets up Diamond.
+The project uses a modular environment system to separate core functionality, development requirements, and workflow dependencies. Environment files are located in the `environments/` directory:
 
-#### Additional Setup for Development
+#### Core Environment Setup
 
-2. Install additional development dependencies:
-   ```bash
-   poetry install --with dev
-   poetry run pre-commit install
-   ```
+For basic usage of sr2silo:
+```bash
+make setup
+```
+This creates the core conda environment with essential dependencies and installs the package using Poetry.
 
-3. Run tests:
-   ```bash
-   poetry run pytest
-   ```
+#### Development Environment
+
+For development work, including running tests with nextclade:
+```bash
+make setup-dev
+```
+This command sets up the development environment with all necessary dependencies, including those for orthogonal tests (e.g. nextclade), managed via Poetry.
+#### Workflow Environment
+
+For working with the snakemake workflow:
+```bash
+make setup-workflow
+```
+This creates an environment specifically configured for running the sr2silo in snakemake workflows.
+
+#### All Environments
+
+You can set up all environments at once:
+```bash
+make setup-all
+```
+
+### Additional Setup for Development
+
+After setting up the development environment:
+```bash
+conda activate sr2silo-dev
+poetry install --with dev
+poetry run pre-commit install
+```
+
+### Run Tests
+
+```bash
+make test
+```
+or
+```bash
+conda activate sr2silo-dev
+pytest
+```
 
 ### Run CLI
 

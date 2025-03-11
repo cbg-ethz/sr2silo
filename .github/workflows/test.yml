@@ -5,9 +5,9 @@ name: CI/CD (Poetry + Conda)
 
 on:
   push:
-    branches: [ main ]  # Or your main branch name
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev ]
 
 jobs:
   build:
@@ -15,45 +15,63 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
 
       - name: Run black formatting check
         uses: psf/black@stable
 
       - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
           channels: conda-forge, bioconda
-          environment-file: environment.yml
-          activate-environment: sr2silo
+          environment-file: environments/dev-environment.yml
+          activate-environment: sr2silo-dev
 
-      - name: Setup environment using Makefile
+      - name: Install Poetry and dependencies
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo
-          make setup
+          conda activate sr2silo-dev
+          poetry install --with dev
 
       - name: Run unit tests
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo
+          conda activate sr2silo-dev
           poetry run pytest
+
+      - name: Run test coverage
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate sr2silo-dev
+          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
 
       - name: Run Ruff
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo
+          conda activate sr2silo-dev
           poetry run ruff check .
 
       - name: Run interrogate
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo
+          conda activate sr2silo-dev
           poetry run interrogate src
 
       - name: Run Pyright
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo
+          conda activate sr2silo-dev
           poetry run pyright

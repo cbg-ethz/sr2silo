@@ -4,21 +4,20 @@
 
 import yaml
 
+
+configfile: "workflow/config.yaml"
+
+
 # Load configuration
 with open("workflow/config.yaml", "r") as file:
     config = yaml.safe_load(file)
 
-BASE_SAMPLE_DIR = config["BASE_SAMPLE_DIR"]
-SAMPLE_BATCH_IDS = config["SAMPLE_BATCH_IDS"]
-TIMELINE_FILE = config["TIMELINE_FILE"]
-PRIMERS_FILE = config["PRIMERS_FILE"]
-NUC_REFERENCE = config["NUC_REFERENCE"]
-RESULTS_DIR = config["RESULTS_DIR"]
 
 
 def get_batch_id(sample_id):
     """Get the batch ids from the sample batch ids."""
-    return SAMPLE_BATCH_IDS[sample_id]
+    return config["SAMPLE_BATCH_IDS"][sample_id]
+
 
 
 rule all:
@@ -123,27 +122,24 @@ rule process_sample:
         + "/sampleId-{sample_id}_batchId-{batch_id}.ndjson.zst",
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
-        batch_id=lambda wildcards: get_batch_id(wildcards.sample_id),
-        result_dir=lambda wildcards: f"{RESULTS_DIR}/{wildcards.sample_id}_{get_batch_id(wildcards.sample_id)}",
-        timeline_file=TIMELINE_FILE,
-        primers_file=PRIMERS_FILE,
-        nuc_reference=NUC_REFERENCE,
-        aa_reference=NUC_REFERENCE,  # Adding the nuc ref, here for placeholder same as nuc_reference
-        database_config="scripts/database_config.yaml",
+        batch_id=lambda wildcards: wildcards.batch_id,
+        timeline_file=config["TIMELINE_FILE"],
+        primers_file=config["PRIMERS_FILE"],
+        nuc_reference=config["NUC_REFERENCE"],
+        aa_reference=config["NUC_REFERENCE"],
     log:
-        "logs/sr2silo/process_sample/{sample_id}_{batch_id}.log",
+        "logs/sr2silo/process_sample/sampleId_{sample_id}_batchId_{batch_id}.log",  # Clearer wildcard separation
     shell:
         """
         echo "Processing sample {params.sample_id} started" >> {log}
-        python -u scripts/vp_transformer.py \
-            --input_file {input.sample_fp} \
-            --sample_id {params.sample_id} \
-            --batch_id {params.batch_id} \
-            --timeline_file {params.timeline_file} \
-            --primer_file {params.primers_file} \
-            --output_fp {output.result_fp} \
+        sr2silo import-to-loculus \
+            --input-file {input.sample_fp} \
+            --sample-id {params.sample_id} \
+            --batch-id {params.batch_id} \
+            --timeline-file {params.timeline_file} \
+            --primer-file {params.primers_file} \
+            --output-fp {output.result_fp} \
             --reference {params.nuc_reference} \
-            --database_config {params.database_config} \
-            --skip_upload 2>&1 | tee -a {log}
+            --no-upload 2>&1 | tee -a {log}
         echo "Processing sample {params.sample_id} completed" >> {log}
         """

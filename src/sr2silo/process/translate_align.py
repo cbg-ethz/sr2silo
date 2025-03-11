@@ -7,7 +7,6 @@ import logging
 import os
 import subprocess
 import tempfile
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List
 
@@ -15,7 +14,9 @@ import zstandard as zstd
 from tqdm import tqdm
 
 import sr2silo.process.convert as convert
+from sr2silo.logger import suppress_info_and_below
 from sr2silo.process.interface import (
+    AAInsertion,
     AAInsertionSet,
     AASequenceSet,
     AlignedRead,
@@ -25,20 +26,6 @@ from sr2silo.process.interface import (
 )
 
 
-# TODO: consider moving to utils
-@contextmanager
-def suppress_info_and_below():
-    """Suppress INFO and below log messages."""
-    logger = logging.getLogger()
-    original_level = logger.getEffectiveLevel()  # Save current level
-    logger.setLevel(logging.WARNING)  # Suppress INFO and below
-    try:
-        yield
-    finally:
-        logger.setLevel(original_level)  # Restore original level
-
-
-# TODO: to use as orthogonal test against blastX
 def translate_nextclade(
     input_files: List[Path], result_dir: Path, nextclade_reference: str
 ) -> None:
@@ -105,8 +92,6 @@ def translate_nextclade(
             command = ["mv", f"{temp_dir}/results", str(result_path)]
 
 
-# TODO: consider passing the db if already present to this function,
-# to avoid recomputation, just extract this function from here
 def nuc_to_aa_alignment(
     in_nuc_alignment_fp: Path,
     in_aa_reference_fp: Path,
@@ -228,7 +213,7 @@ def nuc_to_aa_alignment(
 def make_read_with_nuc_seq(
     fastq_nuc_alignment_file: Path, nuc_reference_length: int, gene_set: GeneSet
 ) -> Dict[str, AlignedRead]:
-    """Makes aligned reads from a FASTQ file with indels.
+    """Makes aligned reads from a FASTQ file, with alignment info, with indels.
 
     Args:
         fastq_nuc_alignment_file (Path): Path to the FASTQ file with alignment
@@ -332,13 +317,19 @@ def enrich_read_with_aa_seq(
                 seq = fields[9]
                 (
                     aa_aligned,
-                    aa_insertions,
+                    insertions,
                     aa_deletions,
                 ) = convert.sam_to_seq_and_indels(seq, cigar)
+
+                # Convert generic Insertion objects to AAInsertion objects
+                aa_insertions = [
+                    AAInsertion(position=ins.position, sequence=ins.sequence)
+                    for ins in insertions
+                ]
+
                 padded_aa_alignment = convert.pad_alignment(
                     aa_aligned, pos, gene_set.get_gene_length(gene_name)
                 )
-
                 aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(
                     gene_name, aa_insertions
                 )
@@ -390,13 +381,11 @@ def parse_translate_align(
         logging.info(f"Loaded gene reference with genes: {gene_set}")
 
         logging.info("Processing nucleotide alignments")
-        # TODO: speed up - check progress bar does not update
         aligned_reads = make_read_with_nuc_seq(
             FASTQ_NUC_ALIGNMENT_FILE, nuc_reference_length, gene_set
         )
 
         logging.info("Adding nucleotide insertions to reads")
-        # TODO: speed up - check progress bar does not update
         aligned_reads = enrich_read_with_nuc_ins(
             aligned_reads, FASTA_NUC_INSERTIONS_FILE
         )

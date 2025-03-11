@@ -11,7 +11,6 @@ sr2silo = "sr2silo.main:app"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-pysam = "^0.23.0"
 pyyaml = "^6.0.2"
 boto3 = "^1.35.72"
 moto = { extras = ["all", "ec2", "s3"], version = "^5.0.22" }
@@ -22,6 +21,8 @@ pydantic = "^2.10.6"
 zstandard = "^0.23.0"
 typer = "^0.15.1"
 biopython = "^1.85"
+pysam = "^0.23.0"
+
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.1"
@@ -40,7 +41,6 @@ mkdocstrings-python = "^1.13.0"
 
 [tool.coverage.report]
 fail_under = 85.0
-
 [tool.interrogate]
 ignore-init-method = false
 ignore-init-module = false

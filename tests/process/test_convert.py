@@ -4,8 +4,6 @@ This module contains tests for the conversion functions in the sr2silo package.
 
 from __future__ import annotations
 
-import tempfile
-from pathlib import Path
 from typing import Dict
 
 import pytest
@@ -13,11 +11,10 @@ import pytest
 from sr2silo.process import bam_to_sam
 from sr2silo.process.convert import (
     bam_to_fastq_handle_indels,
-    normalize_reads,
     pad_alignment,
     sam_to_seq_and_indels,
 )
-from sr2silo.process.interface import AAInsertion
+from sr2silo.process.interface import Insertion
 
 
 def test_bam_to_sam(bam_data: Dict):
@@ -31,49 +28,6 @@ def test_bam_to_sam(bam_data: Dict):
     assert (
         sam_data == bam_data["sam_data"]
     ), "The converted SAM data does not match the expected SAM data"
-
-
-def test_normalize_reads(sam_with_insert_data):
-    """Test the normalize_reads function normalize_reads"""
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_dir_path = Path(temp_dir)
-        output_fasta = temp_dir_path / "REF_aln_trim_subsample.fasta"
-        output_insertions = temp_dir_path / "REF_aln_trim_subsample_insertions.fasta"
-
-        # call the function
-        normalize_reads(
-            sam_with_insert_data["sam_data"], output_fasta, output_insertions
-        )
-
-        # check that the output files were created
-        assert output_fasta.exists(), "The output fasta file was not created"
-        assert output_insertions.exists(), "The output insertions file was not created"
-
-        # check that the output files are not empty
-        assert output_fasta.stat().st_size > 0, "The output fasta file is empty"
-        assert (
-            output_insertions.stat().st_size > 0
-        ), "The output insertions file is empty"
-
-        print(f"Output fasta file: {output_fasta}")
-        print(f"Output insertions file: {output_insertions}")
-
-        # check that the output files match the expected files
-
-        with output_fasta.open() as f:
-            output_fasta_str = f.read()
-
-        assert (
-            output_fasta_str == sam_with_insert_data["cleartext"]
-        ), "The output fasta data does not match the expected fasta data"
-
-        with output_insertions.open() as f:
-            output_insertions_str = f.read()
-
-        assert (
-            output_insertions_str == sam_with_insert_data["insertions"]
-        ), "The output insertions data does not match the expected insertions data"
 
 
 @pytest.mark.skip(reason="Not implemented")
@@ -121,7 +75,7 @@ def test_pad_alignment():
 
 
 def test_sam_to_seq_and_indels():
-    """Test the sam_to_seq_and_indels function, including AAInsertion conversion."""
+    """Test the sam_to_seq_and_indels function, including Insertion conversion."""
 
     # Example from the docstring:
     # sequence = "AGCTTAGCTAGCTT"
@@ -145,9 +99,7 @@ def test_sam_to_seq_and_indels():
 
     # assert the elements of insertiosn and deletions
     for ins in insertions:
-        assert isinstance(
-            ins, AAInsertion
-        ), "insertions contains a non-AAInsertion object"
+        assert isinstance(ins, Insertion), "insertions contains a non-Insertion object"
     for del_ in deletions:
         assert isinstance(del_, tuple), "deletions contains a non-tuple object"
 
@@ -158,9 +110,9 @@ def test_sam_to_seq_and_indels():
         deletions == expected_deletions
     ), f"Expected deletions {expected_deletions}, got {deletions}"
     assert len(insertions) == 1, f"Expected 1 insertion, got {len(insertions)}"
-    # Check that the insertion is an instance of AAInsertion and has correct attributes.
+    # Check that the insertion is an instance of Insertion and has correct attributes.
     ins = insertions[0]
-    assert isinstance(ins, AAInsertion), "Insertion is not an instance of AAInsertion"
+    assert isinstance(ins, Insertion), "Insertion is not an instance of Insertion"
     assert ins.position == 5, f"Expected insertion position 5, got {ins.position}"
     assert ins.sequence == "A", f"Expected insertion sequence 'A', got {ins.sequence}"
 

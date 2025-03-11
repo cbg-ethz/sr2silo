@@ -40,9 +40,10 @@ plugins:
 
 nav:
   - Home: index.md
-  - Contributing: contributing.md
+  - Contributing:
+      - Overview: contributing.md
+      - Branching Strategy: contributing/branching-strategy.md
   - API: api/silo.md
-
 
 watch:
   - src/sr2silo

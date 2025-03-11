@@ -3,6 +3,8 @@ name: docs
 
 on:
   push:
+    branches: [ main, dev ]
+  pull_request:
     branches: [ main ]
 
 permissions:
@@ -12,18 +14,18 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11.2"
+          python-version: "3.11"
           cache: "pip"
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
           virtualenvs-create: true
           virtualenvs-in-project: true
-          version: "1.3.2"
+          version: "1.8.3"
       - name: Cache dependencies
         id: cache-deps
         uses: actions/cache@v4
@@ -36,4 +38,10 @@ jobs:
       - name: Install the module
         run: poetry install --with dev --no-interaction
       - name: Generate the documentation
+        # Only deploy from main branch
+        if: github.ref == 'refs/heads/main'
         run: poetry run mkdocs gh-deploy --force
+      - name: Build documentation (no deploy)
+        # Just build but don't deploy on other branches
+        if: github.ref != 'refs/heads/main'
+        run: poetry run mkdocs build
