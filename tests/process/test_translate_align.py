@@ -30,6 +30,96 @@ logging.basicConfig(
 )
 
 
+def make_reference_nextclade(reference_fasta_fp: Path) -> None:
+    """This function makes a reference file out of sr2silos reference file,
+    to be used with nextclade.
+    """
+
+    # get reference of sr2silo - resources/sars-cov-2/nuc_reference_genomes.fasta
+    sr2silo_reference = (
+        Path("resources/sars-cov-2/nuc_reference_genomes.fasta").read_text().split("\n")
+    )
+    sr2silo_reference = "".join(
+        [line for line in sr2silo_reference if not line.startswith(">")]
+    )
+    # write to file with one header > and the seqeunce in one line
+    with open(reference_fasta_fp, "w") as f:
+        f.write(">reference\n")
+        f.write(sr2silo_reference)
+
+
+def translate_align_nextclade_ref(
+    input_files: List[Path], result_dir: Path, reference_fasta_fp: Path
+) -> None:
+    """Nextclades alignment of reads in fasta format and translation and
+    alignment of the reads in amino acid space.
+
+    Note: This function is a wrapper around the nextclade command line tool.
+
+    This implementation is meant only of orthogonal testing.
+
+    Args:
+        input_file (str): The path to the input file.
+                          the nucleotide sequences in fasta format.
+        result_dir (str): The path to the directory to save the results.
+
+        reference_fasta_fp (str): The path to the reference fasta file.
+    """
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        logging.debug(f"temp_dir: {temp_dir}")
+        # first get the test dataset from the gff3 file
+        command = [
+            "nextclade",
+            "dataset",
+            "get",
+            "--name",
+            "nextstrain/sars-cov-2/XBB",
+            "--output-dir",
+            temp_dir,
+        ]
+        logging.debug(f"Running command: {command}")
+        subprocess.run(command, check=True)
+
+        # then replace the reference.fasta in the temp_dir
+        #  with the reference.fasta from the input file
+        command = ["cp", reference_fasta_fp, f"{temp_dir}/reference.fasta"]
+        logging.debug(f"Running command: {command}")
+        subprocess.run(command, check=True)
+
+        for input_file in input_files:
+            logging.info(f"Translating {input_file}")
+
+            # then replace the sequences.fasta in the temp_dir
+            #  with the sequences.fasta from the input file
+            command = ["cp", input_file, f"{temp_dir}/sequences.fasta"]
+            logging.debug(f"Running command: {command}")
+            subprocess.run(command, check=True)
+
+            # then run the nextclade run command
+            command = [
+                "nextclade",
+                "run",
+                "--input-dataset",
+                temp_dir,
+                f"--output-all={result_dir}/",
+                f"{temp_dir}/sequences.fasta",
+            ]
+
+            logging.debug(f"Running nextclade: {command}")
+
+            try:
+                result = subprocess.run(
+                    command, check=True, capture_output=True, text=True
+                )
+                logging.debug(result.stdout)
+                logging.debug(result.stderr)
+            except subprocess.CalledProcessError as e:
+                logging.error(f"nextclade failed with exit code {e.returncode}")
+                logging.error(e.stderr)
+                raise
+
+
 def translate_align_nextclade(
     input_files: List[Path], result_dir: Path, nextclade_reference: str
 ) -> None:
@@ -108,14 +198,58 @@ def test_translate_align_nextclade(temp_dir):
     )
 
 
+def test_validate_nextclade_reference():
+
+    nextclade_reference = "nextstrain/sars-cov-2/XBB"
+
+    temp_dir = tempfile.mkdtemp()
+    logging.debug(f"temp_dir: {temp_dir}")
+
+    # first get the test dataset from the gff3 file
+    command = [
+        "nextclade",
+        "dataset",
+        "get",
+        "--name",
+        f"{nextclade_reference}",
+        "--output-dir",
+        temp_dir,
+    ]
+
+    logging.debug(f"Running command: {command}")
+    subprocess.run(command, check=True)
+
+    # read in the reference.fasta file to str, skip lines with > as they are headers
+    reference_fasta = Path(temp_dir) / "reference.fasta"
+    reference_fasta_str = reference_fasta.read_text().split("\n")
+    reference_fasta_str = "".join(
+        [line for line in reference_fasta_str if not line.startswith(">")]
+    )
+
+    # get reference of sr2silo - resources/sars-cov-2/nuc_reference_genomes.fasta
+    sr2silo_reference = (
+        Path("resources/sars-cov-2/nuc_reference_genomes.fasta").read_text().split("\n")
+    )
+    sr2silo_reference = "".join(
+        [line for line in sr2silo_reference if not line.startswith(">")]
+    )
+    # write to file with one header > and the seqeunce in one line
+    with open("reference.fasta", "w") as f:
+        f.write(">reference\n")
+        f.write(reference_fasta_str)
+
+    # check that the reference.fasta file is the same as the reference.fasta file in sr2silo
+    # these are long strings please show me the difference explicitly
+    assert (
+        reference_fasta_str == sr2silo_reference
+    ), "The reference.fasta file is not the same as the reference.fasta file in sr2silo"
+
+
 def test_parse_translate_align_orth_nextclade(bam_and_fasta_raw_data):
     """Test the translate_align() orthogonally using nextclade."""
 
     # get the test data
     fasta_raw_data = bam_and_fasta_raw_data[1]
-
-    print(fasta_raw_data)
-
     bam_path = bam_and_fasta_raw_data[0]
 
     # with tempfile.TemporaryDirectory() as tmpdirname:
@@ -126,10 +260,11 @@ def test_parse_translate_align_orth_nextclade(bam_and_fasta_raw_data):
     output_dir = Path(tempdirname) / "output"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    translate_align_nextclade(
-        [fasta_raw_data],
-        output_dir,
-        "nextstrain/sars-cov-2/XBB",
+    nuc_reference_genomes_fp = output_dir / "nuc_reference_genomes.fasta"
+    make_reference_nextclade(nuc_reference_genomes_fp)
+
+    translate_align_nextclade_ref(
+        [fasta_raw_data], output_dir, nuc_reference_genomes_fp
     )
 
     ### Parse the Nextclade file to AlignedReads
