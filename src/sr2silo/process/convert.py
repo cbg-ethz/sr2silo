@@ -410,7 +410,7 @@ def _sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
 
 
 def is_bam_sorted(bam_file):
-    """Checks if a BAM file is sorted using pysam.
+    """Checks if a BAM file is sorted by genomic coordinates using pysam.
 
     Args:
         bam_file (str): Path to the BAM file.

@@ -40,6 +40,10 @@ jobs:
           conda activate sr2silo-dev
           poetry install --with dev
 
+      - name: Determine if PR
+        id: determine-pr
+        run: echo "::set-output name=is_pr::${{ github.event_name == 'pull_request' }}"
+
       - name: Run unit tests
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
@@ -50,13 +54,26 @@ jobs:
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate sr2silo-dev
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+          if [ "${{ steps.determine-pr.outputs.is_pr }}" == 'true' ]; then
+            echo "Running coverage on changed files"
+            changed_files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '^src/' | tr '\n' ' ')
+            if [ -z "$changed_files" ]; then
+              echo "No changed files to run coverage on"
+              exit 0
+            fi
+            poetry run pytest --cov=$changed_files --cov-report=term
+          else
+            echo "Running coverage on all files"
+            poetry run pytest --cov=src --cov-report=xml:./reports/coverage/coverage.xml --cov-report=term
+          fi
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
+      - name: Generate coverage badge
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate sr2silo-dev
+          poetry install genbadge
+          poetry run genbadge coverage
 
       - name: Run Ruff
         run: |

@@ -148,3 +148,7 @@ results
 
 # Snakemake
 .snakemake/
+
+
+# Bioinformatics files
+.bai

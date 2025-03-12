@@ -19,6 +19,7 @@ from sr2silo.process.interface import (
     GeneSet,
     NucInsertion,
 )
+from sr2silo.process.merge import paired_end_read_merger
 from sr2silo.process.translate_align import (
     enrich_read_with_metadata,
     nuc_to_aa_alignment,
@@ -41,4 +42,5 @@ __all__ = [
     "parse_translate_align",
     "enrich_read_with_metadata",
     "parse_translate_align_in_batches",
+    "paired_end_read_merger",
 ]
