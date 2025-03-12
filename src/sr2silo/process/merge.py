@@ -128,5 +128,3 @@ def sort_sam_by_qname(input_sam_path: Path, output_sam_path: Path):
     except Exception as e:
         print(f"An error occurred: {e}")
         raise Exception(f"An error occurred: {e}")
-
-    return NotImplementedError

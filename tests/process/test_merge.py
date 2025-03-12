@@ -60,3 +60,45 @@ def test_sort_sam_by_qname():
         with pysam.AlignmentFile(str(output_sam_path), "rb") as af:
             so = af.header.get("HD", {}).get("SO")  # type: ignore
             assert so == "queryname", "Output sam file is not sorted by query name."
+
+
+def test_paired_end_read_merger_exceptions():
+    """Test the exceptions in paired_end_read_merger function."""
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        output_merged_sam_fp = Path(tmp_dir) / "merged.sam"
+
+        # Test FileNotFoundError for nuc_align_sam_fp
+        try:
+            paired_end_read_merger(
+                Path("non_existent.sam"), REF_GENOME_FP, output_merged_sam_fp
+            )
+        except FileNotFoundError as e:
+            assert "File not found" in str(e)
+
+        # Test FileNotFoundError for ref_genome_fasta_fp
+        try:
+            paired_end_read_merger(
+                SAM_FP, Path("non_existent.fasta"), output_merged_sam_fp
+            )
+        except FileNotFoundError as e:
+            assert "File not found" in str(e)
+
+        # Test ValueError for missing @SQ headers
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_sam:
+            tmp_sam.write(b"@HD\tVN:1.0\tSO:queryname\n@SQ\tSN:chr1\tLN:1000\n")
+            tmp_sam_fp = Path(tmp_sam.name)
+
+        # Sort the temporary SAM file
+        sorted_tmp_sam_fp = Path(tmp_dir) / "sorted_tmp.sam"
+        sort_sam_by_qname(tmp_sam_fp, sorted_tmp_sam_fp)
+
+        try:
+            paired_end_read_merger(
+                sorted_tmp_sam_fp, REF_GENOME_FP, output_merged_sam_fp
+            )
+        except ValueError as e:
+            assert "does not have @SQ headers" in str(e)
+
+        # Clean up temporary file
+        tmp_sam_fp.unlink()
