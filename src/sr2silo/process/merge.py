@@ -16,7 +16,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# TODO: check that the input file is sorted by QNAME and needs @SQ header
 def paired_end_read_merger(
     nuc_align_sam_fp: Path, ref_genome_fasta_fp: Path, output_merged_sam_fp: Path
 ) -> None:
@@ -110,9 +109,9 @@ def had_SQ_header(sam_file):
         return False
 
 
-def sort_sam_by_qname(input_bam_path: Path, output_bam_path: Path):
+def sort_sam_by_qname(input_sam_path: Path, output_sam_path: Path):
     """
-    Sorts a sam file using pysam.sort to avoid loading all alignments into memory.
+    Sorts a sam file using pysam.sort command by query name.
 
     Args:
         input_bam_path (Path): Path to the input BAM file.
@@ -120,12 +119,12 @@ def sort_sam_by_qname(input_bam_path: Path, output_bam_path: Path):
     """
     try:
         # Convert Path objects to strings for pysam compatibility
-        input_bam_str = str(input_bam_path)
-        output_bam_str = str(output_bam_path)
+        input_sam_str = str(input_sam_path)
+        output_sam_str = str(output_sam_path)
 
         # Using pysam.sort command to sort the BAM file and write to disk incrementally.
-        pysam.sort("-o", output_bam_str, input_bam_str)
-        logging.info(f"BAM file has been sorted and saved to {output_bam_str}")
+        pysam.sort("-n", "-o", output_sam_str, input_sam_str)
+        logging.info(f"SAM file has been sorted and saved to {output_sam_str}")
     except Exception as e:
         print(f"An error occurred: {e}")
         raise Exception(f"An error occurred: {e}")
