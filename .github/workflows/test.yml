@@ -64,7 +64,7 @@ jobs:
             poetry run pytest --cov=$changed_files --cov-report=term
           else
             echo "Running coverage on all files"
-            poetry run pytest --cov=src --cov-report=xml:./reports/coverage/coverage.xml --cov-report=term
+            poetry run pytest --cov=src --cov-report=xml:./reports/coverage/coverage.xml --cov-report=html:./reports/coverage/html --cov-report=term
           fi
 
       - name: Generate coverage badge
@@ -72,7 +72,7 @@ jobs:
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate sr2silo-dev
-          poetry run genbadge coverage
+          poetry run genbadge coverage -o ./reports/coverage/coverage.svg
 
       - name: Run Ruff
         run: |
