@@ -61,17 +61,19 @@ jobs:
               echo "No changed files to run coverage on"
               exit 0
             fi
-            poetry run pytest --cov=$changed_files --cov-report=xml --cov-report=term
+            poetry run pytest --cov=$changed_files --cov-report=term
           else
             echo "Running coverage on all files"
-            poetry run pytest --cov=src --cov-report=xml --cov-report=term
+            poetry run pytest --cov=src --cov-report=xml:./reports/coverage/coverage.xml --cov-report=term
           fi
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
+      - name: Generate coverage badge
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate sr2silo-dev
+          poetry install genbadge
+          poetry run genbadge coverage
 
       - name: Run Ruff
         run: |
