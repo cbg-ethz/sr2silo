@@ -13,112 +13,31 @@ with open("workflow/config.yaml", "r") as file:
     config = yaml.safe_load(file)
 
 
-
 def get_batch_id(sample_id):
     """Get the batch ids from the sample batch ids."""
     return config["SAMPLE_BATCH_IDS"][sample_id]
-
 
 
 rule all:
     input:
         expand(
             "{results_dir}/sampleId-{sample_id}_batchId-{batch_id}.ndjson.zst",
-            results_dir=RESULTS_DIR,
-            sample_id=SAMPLE_BATCH_IDS.keys(),
+            results_dir=config["RESULTS_DIR"],
+            sample_id=config["SAMPLE_BATCH_IDS"].keys(),
             batch_id=[
-                get_batch_id(sample_id) for sample_id in SAMPLE_BATCH_IDS.keys()
+                get_batch_id(sample_id)
+                for sample_id in config["SAMPLE_BATCH_IDS"].keys()
             ],
         ),
-
-
-rule test_merge_paired_reads:
-    """Test the paired-end read merger script with local test files."""
-    input:
-        bam="tests/data/samples/A1_05_2024_10_08/20241024_2411515907/alignments/REF_aln_trim.bam",
-        ref="resources/sars-cov-2/nuc_reference_genomes.fasta",
-    output:
-        merged_sam="results/test/REF_aln_trim_merged.sam",
-        nonfused_sam="results/test/REF_aln_trim_nonfused.sam",
-        sorted_bam="results/test/REF_aln_trim_merged.bam",
-    log:
-        "logs/sr2silo/test_merge_reads.log",
-    shell:
-        """
-        mkdir -p results/test
-
-        # First sort the BAM file by read name to ensure pairs are adjacent
-        samtools sort -O sam -n {input.bam} > results/test/REF_aln_trim_sorted.sam 2>> {log}
-
-        # Run the paired-end read merger script
-        poetry run python scripts/paired_end_read_merger.py \
-            results/test/REF_aln_trim_sorted.sam \
-            {output.merged_sam} \
-            {output.nonfused_sam} \
-            {input.ref} 2>> {log}
-
-        # Convert the merged SAM back to BAM and sort by coordinate
-        samtools view -b {output.merged_sam} | samtools sort > {output.sorted_bam} 2>> {log}
-        samtools index {output.sorted_bam} 2>> {log}
-
-        # Clean up temporary SAM file
-        rm -f results/test/REF_aln_trim_sorted.sam
-
-        # Print some statistics for verification
-        echo "Statistics for original BAM file:" >> {log}
-        samtools flagstat {input.bam} >> {log}
-        echo "Statistics for merged BAM file:" >> {log}
-        samtools flagstat {output.sorted_bam} >> {log}
-        """
-
-
-rule merge_paired_reads:
-    """Merge paired-end reads based on alignment."""
-    input:
-        bam=f"{BASE_SAMPLE_DIR}" + "/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam",
-        ref="resources/sars-cov-2/nuc_reference_genomes.fasta",
-    output:
-        merged_sam=temp(
-            f"{BASE_SAMPLE_DIR}"
-            + "/{sample_id}/{batch_id}/alignments/REF_aln_trim_merged.sam"
-        ),
-        nonfused_sam=temp(
-            f"{BASE_SAMPLE_DIR}"
-            + "/{sample_id}/{batch_id}/alignments/REF_aln_trim_nonfused.sam"
-        ),
-        sorted_bam=f"{BASE_SAMPLE_DIR}"
-        + "/{sample_id}/{batch_id}/alignments/REF_aln_trim_merged.bam",
-    log:
-        "logs/sr2silo/merge_reads/{sample_id}_{batch_id}.log",
-    shell:
-        """
-        # First sort the BAM file by read name to ensure pairs are adjacent
-        samtools sort -O sam -n {input.bam} > {BASE_SAMPLE_DIR}/{wildcards.sample_id}/{wildcards.batch_id}/alignments/REF_aln_trim_sorted.sam 2>> {log}
-
-        # Run the paired-end read merger script
-        python scripts/paired_end_read_merger.py \
-            {BASE_SAMPLE_DIR}/{wildcards.sample_id}/{wildcards.batch_id}/alignments/REF_aln_trim_sorted.sam \
-            {output.merged_sam} \
-            {output.nonfused_sam} \
-            {input.ref} 2>> {log}
-
-        # Convert the merged SAM back to BAM and sort by coordinate
-        samtools view -b {output.merged_sam} | samtools sort > {output.sorted_bam} 2>> {log}
-        samtools index {output.sorted_bam} 2>> {log}
-
-        # Clean up temporary SAM file
-        rm -f {BASE_SAMPLE_DIR}/{wildcards.sample_id}/{wildcards.batch_id}/alignments/REF_aln_trim_sorted.sam
-        """
 
 
 rule process_sample:
     """Processes the sample to ndjson, skip upload to loculus."""
     input:
-        sample_fp=f"{BASE_SAMPLE_DIR}"
-        + "/{sample_id}/{batch_id}/alignments/REF_aln_trim_merged.bam",
-        # Changed to use merged BAM file
+        sample_fp=f"{config['BASE_SAMPLE_DIR']}"
+        + "/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam",
     output:
-        result_fp=f"{RESULTS_DIR}"
+        result_fp=f"{config['RESULTS_DIR']}"
         + "/sampleId-{sample_id}_batchId-{batch_id}.ndjson.zst",
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
