@@ -57,6 +57,10 @@ jobs:
           if [ "${{ steps.determine-pr.outputs.is_pr }}" == 'true' ]; then
             echo "Running coverage on changed files"
             changed_files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '^src/' | tr '\n' ' ')
+            if [ -z "$changed_files" ]; then
+              echo "No changed files to run coverage on"
+              exit 0
+            fi
             poetry run pytest --cov=$changed_files --cov-report=xml --cov-report=term
           else
             echo "Running coverage on all files"
