@@ -41,6 +41,7 @@ mkdocstrings-python = "^1.13.0"
 
 [tool.coverage.report]
 fail_under = 75.0
+
 [tool.interrogate]
 ignore-init-method = false
 ignore-init-module = false
