@@ -10,7 +10,7 @@ import pysam
 from sr2silo.process import paired_end_read_merger
 from sr2silo.process.merge import sort_sam_by_qname
 
-SAM_FP = Path("tests/data/REF_aln_trim_subsample_expected_so.sam")
+SAM_FP = Path("tests/data/REF_aln_trim_subsample_expected.sam")
 REF_GENOME_FP = Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
 
 
