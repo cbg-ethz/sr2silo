@@ -24,7 +24,19 @@ def test_paired_end_read_merger():
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         output_merged_sam_fp = Path(tmp_dir) / "merged.sam"
-        paired_end_read_merger(SAM_FP, REF_GENOME_FP, output_merged_sam_fp)
+
+        # Test with unsorted SAM file (should fail)
+        try:
+            paired_end_read_merger(SAM_FP, REF_GENOME_FP, output_merged_sam_fp)
+        except ValueError as e:
+            assert "not sorted by QNAME" in str(e)
+
+        # Sort the SAM file
+        sorted_sam_fp = Path(tmp_dir) / "sorted.sam"
+        sort_sam_by_qname(SAM_FP, sorted_sam_fp)
+
+        # Test with sorted SAM file (should pass)
+        paired_end_read_merger(sorted_sam_fp, REF_GENOME_FP, output_merged_sam_fp)
 
         with open(output_merged_sam_fp, "r") as f:
             lines = f.readlines()
