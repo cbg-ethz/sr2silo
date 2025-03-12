@@ -42,7 +42,7 @@ def paired_end_read_merger(
     if not is_bam_sorted_qname(nuc_align_sam_fp):
         raise ValueError(f"Input file {nuc_align_sam_fp} is not sorted by QNAME.")
 
-    if not had_SQ_header(nuc_align_sam_fp):
+    if not had_SQ_header(nuc_align_sam_fp):  # pragma: no cover
         logging.error(f"Input file {nuc_align_sam_fp} does not have @SQ headers.")
         raise ValueError(f"Input file {nuc_align_sam_fp} does not have @SQ headers.")
 
@@ -60,10 +60,10 @@ def paired_end_read_merger(
 
     try:
         subprocess.run(command, check=True)
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError as e:  # pragma: no cover
         logger.error(f"Error: {e}")
         raise e
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         logger.error(f"Error: {e}")
         raise e
 
@@ -86,7 +86,7 @@ def is_bam_sorted_qname(bam_file):
     except ValueError as e:
         print(f"Error opening file {bam_file}: {e}")
         return None
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         print(f"An unexpected error occurred: {e}")
         return None
 
@@ -104,7 +104,7 @@ def had_SQ_header(sam_file):
         with pysam.AlignmentFile(sam_file, "r") as af:
             # Check if there is an 'SQ' entry in the header
             return "SQ" in af.header and len(af.header["SQ"]) > 0  # type: ignore
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         print(f"Error reading SAM file {sam_file}: {e}")
         return False
 
@@ -125,6 +125,6 @@ def sort_sam_by_qname(input_sam_path: Path, output_sam_path: Path):
         # Using pysam.sort command to sort the BAM file and write to disk incrementally.
         pysam.sort("-n", "-o", output_sam_str, input_sam_str)
         logging.info(f"SAM file has been sorted and saved to {output_sam_str}")
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         print(f"An error occurred: {e}")
         raise Exception(f"An error occurred: {e}")
