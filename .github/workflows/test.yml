@@ -65,7 +65,6 @@ jobs:
           else
             echo "Running coverage on all files"
             poetry run pytest --cov=src --cov-report=term
-          fi
 
      - name: Generate coverage badge
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
