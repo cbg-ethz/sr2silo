@@ -64,10 +64,9 @@ jobs:
             poetry run pytest --cov=$changed_files --cov-report=term
           else
             echo "Running coverage on all files"
-            poetry run pytest --cov=src --cov-report=xml:./reports/coverage/coverage.xml --cov-report=html:./reports/coverage/html --cov-report=term
-          fi
+            poetry run pytest --cov=src --cov-report=term
 
-      - name: Generate coverage badge
+     - name: Generate coverage badge
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
