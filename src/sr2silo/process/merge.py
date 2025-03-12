@@ -6,6 +6,7 @@ import logging
 import subprocess
 from pathlib import Path
 
+import pysam
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -30,6 +31,22 @@ def paired_end_read_merger(
         None
     """
 
+    if not nuc_align_sam_fp.exists():
+        raise FileNotFoundError(f"File not found: {nuc_align_sam_fp}")
+
+    if not ref_genome_fasta_fp.exists():
+        raise FileNotFoundError(f"File not found: {ref_genome_fasta_fp}")
+
+    if output_merged_sam_fp.exists():
+        raise FileExistsError(f"File already exists: {output_merged_sam_fp}")
+
+    if not is_bam_sorted_qname(nuc_align_sam_fp):
+        raise ValueError(f"Input file {nuc_align_sam_fp} is not sorted by QNAME.")
+
+    if not had_SQ_header(nuc_align_sam_fp):
+        logging.error(f"Input file {nuc_align_sam_fp} does not have @SQ headers.")
+        raise ValueError(f"Input file {nuc_align_sam_fp} does not have @SQ headers.")
+
     command = [
         "paired_end_read_merger",
         str(nuc_align_sam_fp),
@@ -53,31 +70,64 @@ def paired_end_read_merger(
 
 
 def is_bam_sorted_qname(bam_file):
-    """Checks if a BAM file is sorted by genomic coordinates using pysam.
+    """Checks if a BAM/SAM file is sorted by QNAME using pysam.
 
     Args:
-        bam_file (str): Path to the BAM file.
+        bam_file (str): Path to the BAM/SAM file.
 
     Returns:
-        bool: True if the BAM file is sorted, False otherwise.
-        Returns None if there's an issue opening the file.
+        bool: True if the file is sorted by query name, False otherwise.
+        None if there's an issue opening the file.
     """
     try:
-        bam = pysam.AlignmentFile(bam_file, "rb")  # Open in read-binary mode
-        is_sorted = (
-            bam.header.get("HD", {}).get("SO") == "coordinate"  # pyright: ignore
-        )  # pyright: ignore
-        bam.close()  # Important: Close the file!
-        return is_sorted
+        with pysam.AlignmentFile(bam_file, "rb") as af:
+            # Header HD should define SO as "queryname" for a QNAME sorted file.
+            so = af.header.get("HD", {}).get("SO")  # type: ignore
+            return so == "queryname"
     except ValueError as e:
-        print(f"Error opening BAM file {bam_file}: {e}")  # Handle file errors
-        return None  # Indicate an issue
-    except Exception as e:  # Catch other potential errors (like missing index)
+        print(f"Error opening file {bam_file}: {e}")
+        return None
+    except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return None
 
 
-def had_SQ_header():
-    """Check if the input file has a @SQ header."""
+def had_SQ_header(sam_file):
+    """Checks if a SAM/BAM file has @SQ headers using pysam.
+
+    Args:
+        sam_file (str): Path to the SAM/BAM file.
+
+    Returns:
+        bool: True if the file contains @SQ headers, False otherwise.
+    """
+    try:
+        with pysam.AlignmentFile(sam_file, "r") as af:
+            # Check if there is an 'SQ' entry in the header
+            return "SQ" in af.header and len(af.header["SQ"]) > 0  # type: ignore
+    except Exception as e:
+        print(f"Error reading SAM file {sam_file}: {e}")
+        return False
+
+
+def sort_sam_by_qname(input_bam_path: Path, output_bam_path: Path):
+    """
+    Sorts a sam file using pysam.sort to avoid loading all alignments into memory.
+
+    Args:
+        input_bam_path (Path): Path to the input BAM file.
+        output_bam_path (Path): Path to the output sorted BAM file.
+    """
+    try:
+        # Convert Path objects to strings for pysam compatibility
+        input_bam_str = str(input_bam_path)
+        output_bam_str = str(output_bam_path)
+
+        # Using pysam.sort command to sort the BAM file and write to disk incrementally.
+        pysam.sort("-o", output_bam_str, input_bam_str)
+        logging.info(f"BAM file has been sorted and saved to {output_bam_str}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        raise Exception(f"An error occurred: {e}")
 
     return NotImplementedError

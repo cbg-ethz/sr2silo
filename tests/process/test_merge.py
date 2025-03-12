@@ -8,13 +8,28 @@ from sr2silo.process import paired_end_read_merger
 
 
 def test_paired_end_read_merger():
+    """Test the paired_end_read_merger function.
 
-    SAM_FP = Path("tests/data/bam/combined.sam")
+    test for:
+    - read ids are unique
+    - execute the function without errors
+    """
+
+    SAM_FP = Path("tests/data/REF_aln_trim_subsample_expected_so.sam")
     REF_GENOME_FP = Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
 
-    output_merged_sam_fp = Path("tests/data/bam/merged.sam")
+    output_merged_sam_fp = Path("tests/data/merged.sam")
 
     paired_end_read_merger(SAM_FP, REF_GENOME_FP, output_merged_sam_fp)
 
     with open(output_merged_sam_fp, "r") as f:
         lines = f.readlines()
+
+    # assert that each read id is unique
+    read_ids = set()
+    for line in lines:
+        if line.startswith("@"):
+            continue
+        read_id = line.split("\t")[0]
+        assert read_id not in read_ids
+        read_ids.add(read_id)
