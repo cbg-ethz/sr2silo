@@ -42,8 +42,7 @@ jobs:
 
       - name: Determine if PR
         id: determine-pr
-        run: echo "::set-output name=is_pr::${{ github.event_name == 'pull_request' }}"
-
+        run: echo "is_pr=${{ github.event_name == 'pull_request' }}" >> $GITHUB_OUTPUT
       - name: Run unit tests
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
