@@ -38,6 +38,7 @@ mkdocs-gen-files = "^0.4.0"
 mkdocs-literate-nav = "^0.6.0"
 setuptools = "^74.1.2"
 mkdocstrings-python = "^1.13.0"
+genbadge = "^1.1.1"
 
 [tool.coverage.report]
 fail_under = 75.0
