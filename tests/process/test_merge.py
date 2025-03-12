@@ -10,6 +10,9 @@ import pysam
 from sr2silo.process import paired_end_read_merger
 from sr2silo.process.merge import sort_sam_by_qname
 
+SAM_FP = Path("tests/data/REF_aln_trim_subsample_expected_so.sam")
+REF_GENOME_FP = Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
+
 
 def test_paired_end_read_merger():
     """Test the paired_end_read_merger function.
@@ -18,9 +21,6 @@ def test_paired_end_read_merger():
     - read ids are unique
     - execute the function without errors
     """
-
-    SAM_FP = Path("tests/data/REF_aln_trim_subsample_expected_so.sam")
-    REF_GENOME_FP = Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         output_merged_sam_fp = Path(tmp_dir) / "merged.sam"
@@ -41,10 +41,9 @@ def test_paired_end_read_merger():
 
 def test_sort_sam_by_qname():
     """Test the sort_sam_by_qname function."""
-    input_sam_path = Path("tests/data/REF_aln_trim_subsample_expected.sam")
     with tempfile.TemporaryDirectory() as tmp_dir:
         output_sam_path = Path(tmp_dir) / "sorted_output.sam"
-        sort_sam_by_qname(input_sam_path, output_sam_path)
+        sort_sam_by_qname(SAM_FP, output_sam_path)
         assert output_sam_path.exists(), "Output sam file was not created."
         with pysam.AlignmentFile(str(output_sam_path), "rb") as af:
             so = af.header.get("HD", {}).get("SO")  # type: ignore
