@@ -60,7 +60,7 @@ def test_process_sample():
                 workdir,
             ]
         )
-    except sp.CalledProcessError:
+    except sp.CalledProcessError as e:
         log_file = (
             workdir / "logs/sr2silo/process_sample/"
             "sampleId_A1_05_2024_10_08_batchId_20241024_2411515907.log"
@@ -70,6 +70,7 @@ def test_process_sample():
                 print(f.read())
         else:
             print(f"Log file {log_file} does not exist.", file=sys.stderr)
+        raise e
 
     # Check the output byte by byte using cmp.
     # To modify this behavior, you can inherit from common.OutputChecker in here
