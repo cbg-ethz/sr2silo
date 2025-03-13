@@ -46,22 +46,35 @@ def get_sequence_from_fasta(fasta_fp: Path) -> str:
     return sequence
 
 
-def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
+def sort_bam_file(
+    input_bam_path: Path, output_bam_path: Path, sort_by_qname: bool = False
+):
     """
-    Sorts a BAM file using pysam.sort to avoid loading all alignments into memory.
+    Sorts a BAM file using pysam.sort by alignment positions by default, but can also sort
+    by query name if specified.
 
     Args:
         input_bam_path (Path): Path to the input BAM file.
         output_bam_path (Path): Path to the output sorted BAM file.
+        sort_by_qname (bool, optional): If True, sorts by query name. Defaults to False.
     """
     try:
         # Convert Path objects to strings for pysam compatibility
         input_bam_str = str(input_bam_path)
         output_bam_str = str(output_bam_path)
 
-        # Using pysam.sort command to sort the BAM file and write to disk incrementally.
-        pysam.sort("-o", output_bam_str, input_bam_str)
-        logging.info(f"BAM file has been sorted and saved to {output_bam_str}")
+        # Build sort arguments based on sorting option.
+        if sort_by_qname:
+            # Using the -n flag to sort by query name.
+            pysam.sort("-n", "-o", output_bam_str, input_bam_str)
+            logging.info(
+                f"BAM file has been sorted by query name and saved to {output_bam_str}"
+            )
+        else:
+            pysam.sort("-o", output_bam_str, input_bam_str)
+            logging.info(
+                f"BAM file has been sorted by coordinate and saved to {output_bam_str}"
+            )
     except Exception as e:
         print(f"An error occurred: {e}")
         raise Exception(f"An error occurred: {e}")
@@ -90,6 +103,7 @@ def create_index(bam_file: Path):
 def bam_to_fasta(bam_file: Path, fasta_file: Path):
     """
     Convert a BAM file to a FASTA file. Bluntly resolved the sam to fasta.
+    That means insertions are included in these reads.
 
     Args:
         bam_file: Path to the input BAM file.
@@ -100,6 +114,10 @@ def bam_to_fasta(bam_file: Path, fasta_file: Path):
         raise ValueError("Input file is not a BAM file")
     if not fasta_file.suffix.endswith(".fasta"):
         raise ValueError("Output file is not a FASTA file")
+
+    # check if index exists, make index if not
+    if not bam_file.with_suffix(".bai").exists():
+        sort_and_index_bam(bam_file, bam_file)
 
     with pysam.AlignmentFile(str(bam_file), "rb") as bam:
         with open(fasta_file, "w") as fq:
@@ -384,8 +402,12 @@ def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
         logging.info("Sorting and indexing the input BAM file")
         _sort_and_index_bam(input_bam_fp, output_bam_fp)
     else:
-        # copy the input BAM file to the output BAM file
+        # copy the input BAM file to the output, along with the index
         output_bam_fp.write_bytes(input_bam_fp.read_bytes())
+        # note then ending is .bam.bai
+        output_bam_fp.with_suffix(".bam.bai").write_bytes(
+            input_bam_fp.with_suffix(".bam.bai").read_bytes()
+        )
         logging.info(
             "Input BAM file is already sorted and indexed, \
                       copying to output"
@@ -437,7 +459,7 @@ def is_bam_sorted(bam_file):
 def is_bam_indexed(bam_file):
     """Checks if a BAM file has an index (.bai) file.
 
-    Args:bam_file.suffix.endswith
+    Args:
         bam_file (str): Path to the BAM file.
 
     Returns:
@@ -446,7 +468,7 @@ def is_bam_indexed(bam_file):
     """
     try:
         bam = pysam.AlignmentFile(bam_file, "rb")
-        has_index = bam.has_index()  # Directly check for index
+        has_index = bam.has_index()
         bam.close()
         return has_index
 

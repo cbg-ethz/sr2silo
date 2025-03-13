@@ -6,6 +6,7 @@ translation of alignments, read pairing, and normalization, and conversions.
 from __future__ import annotations
 
 from sr2silo.process.convert import (
+    bam_to_fasta,
     bam_to_sam,
     get_gene_set_from_ref,
     pad_alignment,
@@ -28,6 +29,7 @@ from sr2silo.process.translate_align import (
 
 __all__ = [
     "bam_to_sam",
+    "bam_to_fasta",
     "pad_alignment",
     "AAInsertion",
     "AAInsertionSet",

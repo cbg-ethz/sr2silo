@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from typing import List
 
 import pysam
 import pytest
 
-from sr2silo.process import bam_to_sam
+from sr2silo.process import bam_to_fasta, bam_to_sam
 
 # Define test data paths
 TEST_DATA_DIR = Path(__file__).parent / "data"
@@ -20,7 +21,7 @@ TEST_DATA_DIR = Path(__file__).parent / "data"
 INPUT_BAM_PATH = TEST_DATA_DIR / "REF_aln_trim_subsample.bam"
 EXPECTED_SAM_PATH = TEST_DATA_DIR / "REF_aln_trim_subsample_expected.sam"
 
-
+# TODO - centralize the test data.
 LARGE_TEST_DATA_DIR = (
     TEST_DATA_DIR
     / "samples_large"
@@ -36,6 +37,10 @@ EXPECTED_BAM_INSERTIONS_PATH_inserts = (
 EXPECTED_BAM_INSERTIONS_PATH_cleartext = (
     LARGE_TEST_DATA_DIR / "REF_aln_trim_subsample.fasta"
 )
+
+# The following file is a BAM file that contains reads that have insertions
+# for effective testing
+NUC_ALIGNMENT_BAM = TEST_DATA_DIR / "bam" / "combined.bam"
 
 
 @pytest.fixture
@@ -72,6 +77,21 @@ def sam_with_insert_data():
     data_expected["cleartext"] = cleartext_content
 
     return data_expected
+
+
+@pytest.fixture
+def bam_and_fasta_raw_data() -> List[Path]:  # noqa: F821
+    """Return a raw nuclitide read file reconstructed from the BAM file.
+
+       That is putting insertions back into the reads.
+
+    Returns:
+        List[Path, Path]: Bam Path, Fasta Path
+
+    """
+    bam_to_fasta(NUC_ALIGNMENT_BAM, NUC_ALIGNMENT_BAM.with_suffix(".fasta"))
+
+    return [NUC_ALIGNMENT_BAM, NUC_ALIGNMENT_BAM.with_suffix(".fasta")]
 
 
 @pytest.fixture

@@ -12,6 +12,7 @@ from typing import Dict
 import pytest
 
 import sr2silo.process.translate_align as translate_align
+from sr2silo.process import enrich_read_with_metadata
 from sr2silo.process.interface import AlignedRead
 
 
@@ -30,8 +31,6 @@ def aligned_reads() -> Dict[str, AlignedRead]:
     aligned_reads = translate_align.parse_translate_align(
         nuc_ref_fp, aa_ref_fp, nuc_alignment_fp
     )
-
-    from sr2silo.process import enrich_read_with_metadata
 
     # make mock metadata with all empty strings, but readId
     # print emoptry ReadMetadata scehma to json
