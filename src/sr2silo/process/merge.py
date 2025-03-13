@@ -6,8 +6,10 @@ import logging
 import subprocess
 from pathlib import Path
 
-
-from sr2silo.process.convert import is_bam_sorted_qname, had_SQ_header
+from sr2silo.process.convert import (
+    had_SQ_header,
+    is_sorted_qname,
+)
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -40,7 +42,7 @@ def paired_end_read_merger(
     if output_merged_sam_fp.exists():
         raise FileExistsError(f"File already exists: {output_merged_sam_fp}")
 
-    if not is_bam_sorted_qname(nuc_align_sam_fp):
+    if not is_sorted_qname(nuc_align_sam_fp):
         raise ValueError(f"Input file {nuc_align_sam_fp} is not sorted by QNAME.")
 
     if not had_SQ_header(nuc_align_sam_fp):  # pragma: no cover
@@ -67,4 +69,3 @@ def paired_end_read_merger(
     except Exception as e:  # pragma: no cover
         logger.error(f"Error: {e}")
         raise e
-

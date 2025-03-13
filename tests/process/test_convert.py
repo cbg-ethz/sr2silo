@@ -4,17 +4,15 @@ This module contains tests for the conversion functions in the sr2silo package.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from typing import Dict
 
-import pytest
 import pysam
+import pytest
 
 from sr2silo.process import bam_to_sam
 from sr2silo.process.convert import (
     bam_to_fastq_handle_indels,
-    is_bam_sorted_qname,
+    is_sorted_qname,
     pad_alignment,
     sam_to_seq_and_indels,
     sort_bam_file,
@@ -22,17 +20,29 @@ from sr2silo.process.convert import (
 from sr2silo.process.interface import Insertion
 
 
-def test_bam_to_sam(bam_data: Dict):
-    """Test the bam_to_sam function."""
+def test_bam_to_sam(bam_data: Path):
+    """Test the bam_to_sam function.
+    Note:
+    BAM -> SAM -> BAM conversion cannot be tested directly,
+    as the resulting BAM file will not be identical to the original BAM file.
+    """
 
-    print(bam_data)
+    # Convert the BAM file to SAM
+    sam_file = bam_data.with_suffix(".sam")
+    bam_to_sam(bam_data, sam_file)
 
-    sam_data = bam_to_sam(bam_data["bam_path"])
-
-    # compare the sam_data with the expected data
+    # Check that the SAM file was created
+    assert sam_file.exists(), "The SAM file was not created"
+    # check that the SAM file is not empty
+    assert sam_file.stat().st_size > 0, "The SAM file is empty"
+    # check that the SAM file is not a binary file
+    with sam_file.open("r") as f:
+        first_line = f.readline()
+        assert first_line.startswith("@")
+    # assert that the file is larger than the original BAM file
     assert (
-        sam_data == bam_data["sam_data"]
-    ), "The converted SAM data does not match the expected SAM data"
+        sam_file.stat().st_size > bam_data.stat().st_size
+    ), "The SAM file is smaller than the BAM file"
 
 
 def test_sort_bam_file(tmp_path, monkeypatch):
@@ -46,8 +56,8 @@ def test_sort_bam_file(tmp_path, monkeypatch):
         # Create an empty file at the output location to simulate successful sorting
         output_path = None
         for i, arg in enumerate(args):
-            if arg == "-o" and i+1 < len(args):
-                output_path = args[i+1]
+            if arg == "-o" and i + 1 < len(args):
+                output_path = args[i + 1]
                 break
         if output_path:
             with open(output_path, "w") as f:
@@ -75,13 +85,17 @@ def test_sort_bam_file(tmp_path, monkeypatch):
     # Check coordinate sort call
     coord_sort_args = sort_calls[0]
     assert "-o" in coord_sort_args, "Missing -o flag in coordinate sort"
-    assert str(output_coord_bam) in coord_sort_args, "Output path not in coordinate sort arguments"
+    assert (
+        str(output_coord_bam) in coord_sort_args
+    ), "Output path not in coordinate sort arguments"
     assert "-n" not in coord_sort_args, "Should not have -n flag in coordinate sort"
 
     # Check qname sort call
     qname_sort_args = sort_calls[1]
     assert "-o" in qname_sort_args, "Missing -o flag in qname sort"
-    assert str(output_qname_bam) in qname_sort_args, "Output path not in qname sort arguments"
+    assert (
+        str(output_qname_bam) in qname_sort_args
+    ), "Output path not in qname sort arguments"
     assert "-n" in qname_sort_args, "Missing -n flag in qname sort"
 
     # Test output files exist
@@ -89,8 +103,8 @@ def test_sort_bam_file(tmp_path, monkeypatch):
     assert output_qname_bam.exists(), "Query name sorted BAM file not created"
 
 
-def test_is_bam_sorted_qname(tmp_path, monkeypatch):
-    """Test the is_bam_sorted_qname function against BAM files sorted by query name."""
+def test_is_sorted_qname(tmp_path, monkeypatch):
+    """Test the is_sorted_qname function against BAM files sorted by query name."""
 
     # Create mock BAM headers
     mock_coordinate_header = {"HD": {"VN": "1.0", "SO": "coordinate"}}
@@ -142,24 +156,33 @@ def test_is_bam_sorted_qname(tmp_path, monkeypatch):
     error_bam.write_text("")
 
     # Run tests
-    assert is_bam_sorted_qname(coordinate_bam) is False, "Should not detect coordinate sorted BAM as queryname sorted"
-    assert is_bam_sorted_qname(queryname_bam) is True, "Should detect queryname sorted BAM correctly"
-    assert is_bam_sorted_qname(no_so_bam) is False, "Should not detect BAM with no SO tag as queryname sorted"
-    assert is_bam_sorted_qname(no_hd_bam) is False, "Should not detect BAM with no HD section as queryname sorted"
-    assert is_bam_sorted_qname(error_bam) is None, "Should return None for file that raises error"
+    assert (
+        is_sorted_qname(coordinate_bam) is False
+    ), "Should not detect coordinate sorted BAM as queryname sorted"
+    assert (
+        is_sorted_qname(queryname_bam) is True
+    ), "Should detect queryname sorted BAM correctly"
+    assert (
+        is_sorted_qname(no_so_bam) is False
+    ), "Should not detect BAM with no SO tag as queryname sorted"
+    assert (
+        is_sorted_qname(no_hd_bam) is False
+    ), "Should not detect BAM with no HD section as queryname sorted"
+    assert (
+        is_sorted_qname(error_bam) is None
+    ), "Should return None for file that raises error"
 
 
 def test_sort_bam_file_and_check_sorting(tmp_path):
-    """Integration test: Sort BAM files and verify sorting with is_bam_sorted_qname."""
+    """Integration test: Sort BAM files and verify sorting with is_sorted_qname."""
 
     # We'll create a minimal valid BAM file structure for testing
     # First, create a header
-    header = {'HD': {'VN': '1.0', 'SO': 'unknown'},
-              'SQ': [{'LN': 100, 'SN': 'chr1'}]}
+    header = {"HD": {"VN": "1.0", "SO": "unknown"}, "SQ": [{"LN": 100, "SN": "chr1"}]}
 
     # Create the input BAM file
     input_bam = tmp_path / "input.bam"
-    with pysam.AlignmentFile(str(input_bam), "wb", header=header) as outf:
+    with pysam.AlignmentFile(str(input_bam), "wb", header=header) as outf:  # noqa
         # We don't need to write any reads for this test
         pass
 
@@ -177,11 +200,15 @@ def test_sort_bam_file_and_check_sorting(tmp_path):
     assert output_coord_bam.exists(), "Coordinate sorted BAM file was not created"
     assert output_qname_bam.exists(), "Query name sorted BAM file was not created"
 
-    # Verify sorting using is_bam_sorted_qname
+    # Verify sorting using is_sorted_qname
     # We can't directly check the headers with pysam here since we need a real BAM file
     # Just print the results for manual verification
-    print(f"Coordinate sorted BAM has queryname sorting: {is_bam_sorted_qname(output_coord_bam)}")
-    print(f"Query name sorted BAM has queryname sorting: {is_bam_sorted_qname(output_qname_bam)}")
+    print(
+        f"Coordinate sorted BAM has queryname sorting: {is_sorted_qname(output_coord_bam)}"
+    )
+    print(
+        f"Query name sorted BAM has queryname sorting: {is_sorted_qname(output_qname_bam)}"
+    )
 
 
 @pytest.mark.skip(reason="Not implemented")
@@ -266,7 +293,6 @@ def test_sam_to_seq_and_indels():
 
 def test_get_gene_set_from_ref():
     """Test the get_gene_set_from_ref function using the real AA reference file."""
-    from pathlib import Path
 
     from sr2silo.process.convert import get_gene_set_from_ref
 

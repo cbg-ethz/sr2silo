@@ -6,7 +6,6 @@ import tempfile
 from pathlib import Path
 
 from sr2silo.process import paired_end_read_merger
-
 from sr2silo.process.convert import sort_sam_by_qname
 
 SAM_FP = Path("tests/data/REF_aln_trim_subsample_expected.sam")

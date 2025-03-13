@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import tempfile
 from pathlib import Path
 
 from sr2silo.config import (
@@ -193,44 +194,61 @@ def nuc_align_to_silo_njson(
     logging.info(f"Metadata saved to: {metadata_file}")
 
     #####  Merge & Pair reads #####
-    logging.info("=== Merging and pairing reads ===")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir = Path(tmp_dir)
+        logging.info("=== Merging and pairing reads using temporary directory ===")
 
-    logging.debug("Sort by QNAME for matching")
-    input_bam_sorted_by_qname_fp = input_file.parent / f"{input_file.stem}.sorted_by_qname{input_file.suffix}"
-    sort_bam_file(input_file, input_bam_sorted_by_qname_fp, sort_by_qname=True)
+        logging.debug("Sort by QNAME for matching")
+        input_bam_sorted_by_qname_fp = (
+            tmp_dir / f"{input_file.stem}.sorted_by_qname{input_file.suffix}"
+        )
+        sort_bam_file(input_file, input_bam_sorted_by_qname_fp, sort_by_qname=True)
 
-    logging.debug("Decompressing input file to SAM")
-    input_sam_fp = input_bam_sorted_by_qname_fp.with_suffix(".sam")
-    bam_to_sam(input_bam_sorted_by_qname_fp, input_sam_fp)
-    logging.debug(f"Decompressed reads saved to: {input_sam_fp}")
+        logging.debug("Decompressing input file to SAM")
+        input_sam_fp = tmp_dir / f"{input_file.stem}.sam"
+        bam_to_sam(input_bam_sorted_by_qname_fp, input_sam_fp)
+        logging.debug(f"Decompressed reads saved to: {input_sam_fp}")
 
-    logging.debug("Starting to merge paired-end reads")
-    merged_reads_sam_fp = input_sam_fp.with_name(
-        f"{input_sam_fp.stem}_merged{input_sam_fp.suffix}"
-    )
-    paired_end_read_merger(
-        nuc_align_sam_fp=input_bam_sorted_by_qname_fp,
-        ref_genome_fasta_fp=nuc_reference_fp,
-        output_merged_sam_fp=merged_reads_sam_fp,
-    )
-    logging.debug(f"Merged reads saved to: {merged_reads_sam_fp}")
+        logging.debug("Starting to merge paired-end reads")
+        merged_reads_sam_tmp_fp = (
+            tmp_dir / f"{input_sam_fp.stem}_merged{input_sam_fp.suffix}"
+        )
+        paired_end_read_merger(
+            nuc_align_sam_fp=input_sam_fp,
+            ref_genome_fasta_fp=nuc_reference_fp,
+            output_merged_sam_fp=merged_reads_sam_tmp_fp,
+        )
+        logging.debug(
+            f"Merged reads saved to temporary file: {merged_reads_sam_tmp_fp}"
+        )
+
+        # Move the merged_reads_sam file to result_dir
+        merged_reads_sam_fp = result_dir / merged_reads_sam_tmp_fp.name
+        merged_reads_sam_tmp_fp.replace(merged_reads_sam_fp)
+        logging.info(
+            f"Merged reads file moved to results directory: {merged_reads_sam_fp}"
+        )
 
     logging.debug("Re-Compressing merged reads to BAM")
     merged_reads_fp = merged_reads_sam_fp.with_suffix(".bam")
     sam_to_bam(merged_reads_sam_fp, merged_reads_fp)
     logging.info(f"Re-Compressed reads saved to: {merged_reads_fp}")
 
-
     ##### Translate / Align / Normalize to JSON #####
     logging.info("=== Start translating, aligning and normalizing reads to JSON ===")
     aligned_reads_fp = output_fp
-    aligned_reads_fp = parse_translate_align_in_batches(
-        nuc_reference_fp=nuc_reference_fp,
-        aa_reference_fp=aa_reference_fp,
-        nuc_alignment_fp=input_file,
-        metadata_fp=metadata_file,
-        output_fp=aligned_reads_fp,
-    )
+    try:
+        aligned_reads_fp = parse_translate_align_in_batches(
+            nuc_reference_fp=nuc_reference_fp,
+            aa_reference_fp=aa_reference_fp,
+            nuc_alignment_fp=merged_reads_fp,
+            metadata_fp=metadata_file,
+            output_fp=aligned_reads_fp,
+        )
+    finally:
+        if merged_reads_fp.exists():
+            merged_reads_fp.unlink()
+            logging.info(f"Temporary file {merged_reads_fp} removed.")
     logging.info(f"Processed reads saved to: {aligned_reads_fp}")
     if upload:
         s3_link = upload_to_s3(aligned_reads_fp, sample_id)

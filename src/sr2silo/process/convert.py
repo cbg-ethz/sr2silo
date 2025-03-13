@@ -560,8 +560,7 @@ def split_bam(
     return list(out_dir.glob(f"{prefix}*.bam"))
 
 
-
-def is_bam_sorted_qname(bam_file):
+def is_sorted_qname(bam_file):
     """Checks if a BAM/SAM file is sorted by QNAME using pysam.
 
     Args:
@@ -571,8 +570,10 @@ def is_bam_sorted_qname(bam_file):
         bool: True if the file is sorted by query name, False otherwise.
         None if there's an issue opening the file.
     """
+    # Choose file mode based on extension (assumes .sam files are uncompressed)
+    mode = "rb" if Path(bam_file).suffix == ".bam" else "r"
     try:
-        with pysam.AlignmentFile(bam_file, "rb") as af:
+        with pysam.AlignmentFile(bam_file, mode) as af:
             # Header HD should define SO as "queryname" for a QNAME sorted file.
             so = af.header.get("HD", {}).get("SO")  # type: ignore
             return so == "queryname"
@@ -600,5 +601,3 @@ def had_SQ_header(sam_file):
     except Exception as e:  # pragma: no cover
         print(f"Error reading SAM file {sam_file}: {e}")
         return False
-
-
