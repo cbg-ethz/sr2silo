@@ -466,17 +466,14 @@ def parse_translate_align_in_batches(
     output_fp.parent.mkdir(parents=True, exist_ok=True)
 
     with suppress_info_and_below():
-        # split the input file into batches
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_dir_path = Path(temp_dir)
 
             bam_splits_fps = convert.split_bam(
                 input_bam=nuc_alignment_fp, out_dir=temp_dir_path, chunk_size=chunk_size
             )
-            # check file size and number of splits print to log
             logging.info(f"Number of splits: {len(bam_splits_fps)}")
             logging.info(f"Size of each split: {chunk_size}")
-            # get file sizes
             for fp in bam_splits_fps:
                 file_size_mb = os.path.getsize(fp) / (1024 * 1024)
                 logging.info(f"Size of {fp.name}: {file_size_mb:.2f} MB")
