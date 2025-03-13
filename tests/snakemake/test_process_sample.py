@@ -1,11 +1,12 @@
+"""Test the process_sample rule."""
+
 from __future__ import annotations
 
 import os
 import shutil
 import subprocess as sp
 import sys
-from pathlib import Path, PurePosixPath
-from tempfile import TemporaryDirectory
+from pathlib import Path
 
 import zstandard as zstd
 
@@ -13,35 +14,39 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 
 def test_process_sample():
+    """Test the process_sample rule."""
 
-    with TemporaryDirectory() as tmpdir:
+    # with TemporaryDirectory() as tmpdir:
 
-        workdir = Path(tmpdir) / "workdir"
-        data_path = PurePosixPath("tests/snakemake/process_sample/data")
-        expected_path = PurePosixPath(
-            "tests/snakemake/process_sample/expected/results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst"
-        )
-        config_path = PurePosixPath("tests/snakemake/process_sample/config.yaml")
+    tmpdir = Path("tmpdir")
 
-        # Copy data to the temporary workdir.
-        shutil.copytree(data_path, workdir)
+    workdir = Path(tmpdir) / "workdir"
+    data_path = Path("tests/snakemake/process_sample/data")
+    expected_path = Path(
+        "tests/snakemake/process_sample/expected/results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst"
+    )
+    config_path = Path("tests/snakemake/process_sample/config.yaml")
 
-        # Copy the config file to the workdir.
-        shutil.copytree(config_path.parent, workdir / "workflow")
+    # Copy data to the temporary workdir.
+    shutil.copytree(data_path, workdir)
 
-        # Copy the "resources" folder to the workdir.
-        shutil.copytree("resources", workdir / "resources")
+    # Copy the config file to the workdir.
+    shutil.copytree(config_path.parent, workdir / "workflow")
 
-        # make dir for results
-        os.makedirs(workdir / "results")
+    # Copy the "resources" folder to the workdir.
+    shutil.copytree("resources", workdir / "resources")
 
-        # dbg
-        print(
-            "results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst",
-            file=sys.stderr,
-        )
+    # make dir for results
+    os.makedirs(workdir / "results", exist_ok=True)
 
-        # Run the test job.
+    # dbg
+    print(
+        "results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst",
+        file=sys.stderr,
+    )
+
+    # Run the test job.
+    try:
         sp.check_output(
             [
                 "python",
@@ -55,30 +60,35 @@ def test_process_sample():
                 workdir,
             ]
         )
-        with open(
+    except sp.CalledProcessError:
+        log_file = (
             workdir / "logs/sr2silo/process_sample/"
             "sampleId_A1_05_2024_10_08_batchId_20241024_2411515907.log"
-        ) as f:
-            print(f.read())
+        )
+        if log_file.exists():
+            with open(log_file) as f:
+                print(f.read())
+        else:
+            print(f"Log file {log_file} does not exist.", file=sys.stderr)
 
-        # Check the output byte by byte using cmp.
-        # To modify this behavior, you can inherit from common.OutputChecker in here
-        # and overwrite the method `compare_files(generated_file, expected_file),
-        # also see common.py.
-        # common.OutputChecker(data_path, expected_path, workdir).check()
+    # Check the output byte by byte using cmp.
+    # To modify this behavior, you can inherit from common.OutputChecker in here
+    # and overwrite the method `compare_files(generated_file, expected_file),
+    # also see common.py.
+    # common.OutputChecker(data_path, expected_path, workdir).check()
 
-        # Decompress both files and compare them as strings as they are not binary
-        with open(
-            workdir / "results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907."
-            "ndjson.zst",
-            "rb",
-        ) as f:
-            decompressor = zstd.ZstdDecompressor()
-            generated_content = decompressor.decompress(f.read()).decode("utf-8")
+    # Decompress both files and compare them as strings as they are not binary
+    with open(
+        workdir / "results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907."
+        "ndjson.zst",
+        "rb",
+    ) as f:
+        decompressor = zstd.ZstdDecompressor()
+        generated_content = decompressor.decompress(f.read()).decode("utf-8")
 
-        with open(expected_path, "rb") as f:
-            expected_content = decompressor.decompress(f.read()).decode("utf-8")
+    with open(expected_path, "rb") as f:
+        expected_content = zstd.ZstdDecompressor().decompress(f.read()).decode("utf-8")
 
-        assert (
-            generated_content == expected_content
-        ), "The contents of the generated and expected files do not match."
+    assert (
+        generated_content == expected_content
+    ), f"The contents of the generated and expected files do not match.\n\nGenerated content:\n{generated_content}\n\nExpected content:\n{expected_content}"
