@@ -49,8 +49,8 @@ def sort_bam_file(
     input_bam_path: Path, output_bam_path: Path, sort_by_qname: bool = False
 ):
     """
-    Sorts a BAM file using pysam.sort by alignment positions by default, but can also sort
-    by query name if specified.
+    Sorts a BAM file using pysam.sort by alignment positions by default,
+    but can also sort by query name if specified.
 
     Args:
         input_bam_path (Path): Path to the input BAM file.
