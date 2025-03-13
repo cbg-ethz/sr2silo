@@ -45,21 +45,35 @@ def get_sequence_from_fasta(fasta_fp: Path) -> str:
     return sequence
 
 
-def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
+def sort_bam_file(
+    input_bam_path: Path, output_bam_path: Path, sort_by_qname: bool = False
+):
     """
-    Sorts a BAM file using pysam.sort by their alignment positions.
+    Sorts a BAM file using pysam.sort by alignment positions by default, but can also sort
+    by query name if specified.
+
     Args:
         input_bam_path (Path): Path to the input BAM file.
         output_bam_path (Path): Path to the output sorted BAM file.
+        sort_by_qname (bool, optional): If True, sorts by query name. Defaults to False.
     """
     try:
         # Convert Path objects to strings for pysam compatibility
         input_bam_str = str(input_bam_path)
         output_bam_str = str(output_bam_path)
 
-        # Using pysam.sort command to sort the BAM file and write to disk incrementally.
-        pysam.sort("-o", output_bam_str, input_bam_str)
-        logging.info(f"BAM file has been sorted and saved to {output_bam_str}")
+        # Build sort arguments based on sorting option.
+        if sort_by_qname:
+            # Using the -n flag to sort by query name.
+            pysam.sort("-n", "-o", output_bam_str, input_bam_str)
+            logging.info(
+                f"BAM file has been sorted by query name and saved to {output_bam_str}"
+            )
+        else:
+            pysam.sort("-o", output_bam_str, input_bam_str)
+            logging.info(
+                f"BAM file has been sorted by coordinate and saved to {output_bam_str}"
+            )
     except Exception as e:
         print(f"An error occurred: {e}")
         raise Exception(f"An error occurred: {e}")
