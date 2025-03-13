@@ -453,6 +453,10 @@ def parse_translate_align_in_batches(
         A chunk_size of 100000 reads is a good starting point for most cases.
         This will take about 3.5 GB ram for Covid Genomes and 1-2 minutes to process.
 
+    Constraints:
+        No sorting constraints are enforced on the input files.
+        The output file is compressed with zstd.
+
     Logs:
         All logs of INFO and below are suppressed.
 

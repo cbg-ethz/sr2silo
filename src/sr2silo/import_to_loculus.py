@@ -14,13 +14,18 @@ from sr2silo.config import (
     get_submission_url,
     is_ci_environment,
 )
-from sr2silo.process import parse_translate_align_in_batches
+from sr2silo.process import (
+    bam_to_sam,
+    paired_end_read_merger,
+    parse_translate_align_in_batches,
+    sam_to_bam,
+)
 from sr2silo.silo import LapisClient, Submission
 from sr2silo.storage import upload_file_to_s3
 from sr2silo.vpipe import Sample
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 
@@ -187,10 +192,32 @@ def nuc_align_to_silo_njson(
     logging.info(f"Metadata saved to: {metadata_file}")
 
     #####  Merge & Pair reads #####
-    logging.info("Merging and pairing reads: Not implemented yet")
+    logging.info("=== Merging and pairing reads ===")
+    logging.debug("Sort by QNAME for matching")
+
+    logging.debug("Decompressing input file to SAM")
+    input_sam_fp = input_file.with_suffix(".sam")
+    bam_to_sam(input_file, input_sam_fp)
+    logging.debug(f"Decompressed reads saved to: {input_sam_fp}")
+    logging.debug("Starting to merge paired-end reads")
+    merged_reads_sam_fp = input_sam_fp.with_name(
+        f"{input_sam_fp.stem}_merged{input_sam_fp.suffix}"
+    )
+    paired_end_read_merger(
+        nuc_align_sam_fp=input_file,
+        ref_genome_fasta_fp=nuc_reference_fp,
+        output_merged_sam_fp=merged_reads_sam_fp,
+    )
+    logging.debug(f"Merged reads saved to: {merged_reads_sam_fp}")
+    logging.debug("Re-Compressing merged reads to BAM")
+    merged_reads_fp = merged_reads_sam_fp.with_suffix(".bam")
+    sam_to_bam(merged_reads_sam_fp, merged_reads_fp)
+    logging.info(f"Re-Compressed reads saved to: {merged_reads_fp}")
+
+    # for translating and
 
     ##### Translate / Align / Normalize to JSON #####
-    logging.info("Start translating, aligning and normalizing reads to JSON")
+    logging.info("=== Start translating, aligning and normalizing reads to JSON ===")
     aligned_reads_fp = output_fp
     aligned_reads_fp = parse_translate_align_in_batches(
         nuc_reference_fp=nuc_reference_fp,
