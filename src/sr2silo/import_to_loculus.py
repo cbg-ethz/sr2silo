@@ -19,6 +19,7 @@ from sr2silo.process import (
     paired_end_read_merger,
     parse_translate_align_in_batches,
     sam_to_bam,
+    sort_bam_file,
 )
 from sr2silo.silo import LapisClient, Submission
 from sr2silo.storage import upload_file_to_s3
@@ -193,28 +194,32 @@ def nuc_align_to_silo_njson(
 
     #####  Merge & Pair reads #####
     logging.info("=== Merging and pairing reads ===")
+
     logging.debug("Sort by QNAME for matching")
+    input_bam_sorted_by_qname_fp = input_file.parent / f"{input_file.stem}.sorted_by_qname{input_file.suffix}"
+    sort_bam_file(input_file, input_bam_sorted_by_qname_fp, sort_by_qname=True)
 
     logging.debug("Decompressing input file to SAM")
-    input_sam_fp = input_file.with_suffix(".sam")
-    bam_to_sam(input_file, input_sam_fp)
+    input_sam_fp = input_bam_sorted_by_qname_fp.with_suffix(".sam")
+    bam_to_sam(input_bam_sorted_by_qname_fp, input_sam_fp)
     logging.debug(f"Decompressed reads saved to: {input_sam_fp}")
+
     logging.debug("Starting to merge paired-end reads")
     merged_reads_sam_fp = input_sam_fp.with_name(
         f"{input_sam_fp.stem}_merged{input_sam_fp.suffix}"
     )
     paired_end_read_merger(
-        nuc_align_sam_fp=input_file,
+        nuc_align_sam_fp=input_bam_sorted_by_qname_fp,
         ref_genome_fasta_fp=nuc_reference_fp,
         output_merged_sam_fp=merged_reads_sam_fp,
     )
     logging.debug(f"Merged reads saved to: {merged_reads_sam_fp}")
+
     logging.debug("Re-Compressing merged reads to BAM")
     merged_reads_fp = merged_reads_sam_fp.with_suffix(".bam")
     sam_to_bam(merged_reads_sam_fp, merged_reads_fp)
     logging.info(f"Re-Compressed reads saved to: {merged_reads_fp}")
 
-    # for translating and
 
     ##### Translate / Align / Normalize to JSON #####
     logging.info("=== Start translating, aligning and normalizing reads to JSON ===")

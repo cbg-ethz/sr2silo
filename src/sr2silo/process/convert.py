@@ -79,6 +79,27 @@ def sort_bam_file(
         raise Exception(f"An error occurred: {e}")
 
 
+def sort_sam_by_qname(input_sam_path: Path, output_sam_path: Path):
+    """
+    Sorts a sam file using pysam.sort command by query name.
+
+    Args:
+        input_bam_path (Path): Path to the input BAM file.
+        output_bam_path (Path): Path to the output sorted BAM file.
+    """
+    try:
+        # Convert Path objects to strings for pysam compatibility
+        input_sam_str = str(input_sam_path)
+        output_sam_str = str(output_sam_path)
+
+        # Using pysam.sort command to sort the BAM file and write to disk incrementally.
+        pysam.sort("-n", "-o", output_sam_str, input_sam_str)
+        logging.info(f"SAM file has been sorted and saved to {output_sam_str}")
+    except Exception as e:  # pragma: no cover
+        print(f"An error occurred: {e}")
+        raise Exception(f"An error occurred: {e}")
+
+
 def create_index(bam_file: Path):
     """
     Create an index for a BAM file using pysam.
@@ -537,3 +558,47 @@ def split_bam(
     bamfile.close()
 
     return list(out_dir.glob(f"{prefix}*.bam"))
+
+
+
+def is_bam_sorted_qname(bam_file):
+    """Checks if a BAM/SAM file is sorted by QNAME using pysam.
+
+    Args:
+        bam_file (str): Path to the BAM/SAM file.
+
+    Returns:
+        bool: True if the file is sorted by query name, False otherwise.
+        None if there's an issue opening the file.
+    """
+    try:
+        with pysam.AlignmentFile(bam_file, "rb") as af:
+            # Header HD should define SO as "queryname" for a QNAME sorted file.
+            so = af.header.get("HD", {}).get("SO")  # type: ignore
+            return so == "queryname"
+    except ValueError as e:
+        print(f"Error opening file {bam_file}: {e}")
+        return None
+    except Exception as e:  # pragma: no cover
+        print(f"An unexpected error occurred: {e}")
+        return None
+
+
+def had_SQ_header(sam_file):
+    """Checks if a SAM/BAM file has @SQ headers using pysam.
+
+    Args:
+        sam_file (str): Path to the SAM/BAM file.
+
+    Returns:
+        bool: True if the file contains @SQ headers, False otherwise.
+    """
+    try:
+        with pysam.AlignmentFile(sam_file, "r") as af:
+            # Check if there is an 'SQ' entry in the header
+            return "SQ" in af.header and len(af.header["SQ"]) > 0  # type: ignore
+    except Exception as e:  # pragma: no cover
+        print(f"Error reading SAM file {sam_file}: {e}")
+        return False
+
+
