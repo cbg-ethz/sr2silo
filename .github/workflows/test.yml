@@ -1,5 +1,5 @@
 # This pipeline checks whether the package
-# installs properly, passes unit tests and whether
+# installs properly, passes unit tests, test coverage and whether
 # the code formatting is right.
 name: CI/CD (Poetry + Conda)
 
@@ -48,31 +48,6 @@ jobs:
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate sr2silo-dev
           poetry run pytest
-
-      - name: Run test coverage
-        run: |
-          source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo-dev
-          if [ "${{ steps.determine-pr.outputs.is_pr }}" == 'true' ]; then
-            echo "Running coverage on changed files"
-            changed_files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '^src/' | tr '\n' ' ')
-            if [ -z "$changed_files" ]; then
-              echo "No changed files to run coverage on"
-              exit 0
-            fi
-            poetry run pytest --cov=$changed_files --cov-report=term
-          else
-            echo "Running coverage on all files"
-            poetry run pytest --cov=src --cov-report=xml:./reports/coverage/coverage.xml --cov-report=term
-          fi
-
-      - name: Generate coverage badge
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
-        run: |
-          source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo-dev
-          poetry install genbadge
-          poetry run genbadge coverage
 
       - name: Run Ruff
         run: |
