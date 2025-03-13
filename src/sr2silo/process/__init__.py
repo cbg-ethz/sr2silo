@@ -37,7 +37,6 @@ __all__ = [
     "sam_to_bam",
     "sort_and_index_bam",
     "sort_bam_file",
-
     # from sr2silo.process.interface
     "AAInsertion",
     "AAInsertionSet",
@@ -45,10 +44,8 @@ __all__ = [
     "Gene",
     "GeneSet",
     "NucInsertion",
-
     # from sr2silo.process.merge
     "paired_end_read_merger",
-
     # from sr2silo.process.translate_align
     "enrich_read_with_metadata",
     "nuc_to_aa_alignment",
