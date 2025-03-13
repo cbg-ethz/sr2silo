@@ -4,8 +4,10 @@ This module contains tests for the conversion functions in the sr2silo package.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Dict
 
+import pysam
 import pytest
 
 from sr2silo.process import bam_to_sam
@@ -13,6 +15,7 @@ from sr2silo.process.convert import (
     bam_to_fastq_handle_indels,
     pad_alignment,
     sam_to_seq_and_indels,
+    sort_bam_file,
 )
 from sr2silo.process.interface import Insertion
 
@@ -30,11 +33,62 @@ def test_bam_to_sam(bam_data: Dict):
     ), "The converted SAM data does not match the expected SAM data"
 
 
-@pytest.mark.skip(reason="Not implemented")
-def test_sort_bam_file():
-    """Test the sort_bam_file function."""
+def test_sort_bam_file(tmp_path, monkeypatch):
+    """Test the sort_bam_file function with both sorting options."""
 
-    raise NotImplementedError
+    # Create a mock for pysam.sort to track calls
+    sort_calls = []
+
+    def mock_sort(*args):
+        sort_calls.append(args)
+        # Create an empty file at the output location to simulate successful sorting
+        output_path = None
+        for i, arg in enumerate(args):
+            if arg == "-o" and i + 1 < len(args):
+                output_path = args[i + 1]
+                break
+        if output_path:
+            with open(output_path, "w") as f:
+                f.write("")
+
+    # Apply the monkeypatch
+    monkeypatch.setattr(pysam, "sort", mock_sort)
+
+    # Setup test files
+    input_bam = tmp_path / "input.bam"
+    input_bam.write_text("mock bam content")
+
+    output_coord_bam = tmp_path / "output_coord.bam"
+    output_qname_bam = tmp_path / "output_qname.bam"
+
+    # Test coordinate sorting (default)
+    sort_bam_file(input_bam, output_coord_bam)
+
+    # Test query name sorting
+    sort_bam_file(input_bam, output_qname_bam, sort_by_qname=True)
+
+    # Verify calls
+    assert len(sort_calls) == 2, "Expected two calls to pysam.sort"
+
+    # Check coordinate sort call
+    coord_sort_args = sort_calls[0]
+    assert "-o" in coord_sort_args, "Missing -o flag in coordinate sort"
+    assert (
+        str(output_coord_bam) in coord_sort_args
+    ), "Output path not in coordinate sort arguments"
+    assert "-n" not in coord_sort_args, "Should not have -n flag in coordinate sort"
+
+    # Check qname sort call
+    qname_sort_args = sort_calls[1]
+    assert "-o" in qname_sort_args, "Missing -o flag in qname sort"
+    assert (
+        str(output_qname_bam) in qname_sort_args
+    ), "Output path not in qname sort arguments"
+    assert "-n" in qname_sort_args, "Missing -n flag in qname sort"
+
+    # Test output files exist
+    assert output_coord_bam.exists(), "Coordinate sorted BAM file not created"
+    assert output_qname_bam.exists(), "Query name sorted BAM file not created"
 
 
 @pytest.mark.skip(reason="Not implemented")
@@ -119,7 +173,6 @@ def test_sam_to_seq_and_indels():
 
 def test_get_gene_set_from_ref():
     """Test the get_gene_set_from_ref function using the real AA reference file."""
-    from pathlib import Path
 
     from sr2silo.process.convert import get_gene_set_from_ref
 
