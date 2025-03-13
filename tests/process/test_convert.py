@@ -204,10 +204,12 @@ def test_sort_bam_file_and_check_sorting(tmp_path):
     # We can't directly check the headers with pysam here since we need a real BAM file
     # Just print the results for manual verification
     print(
-        f"Coordinate sorted BAM has queryname sorting: {is_sorted_qname(output_coord_bam)}"
+        "Coordinate sorted BAM has queryname sorting: "
+        f"{is_sorted_qname(output_coord_bam)}"
     )
     print(
-        f"Query name sorted BAM has queryname sorting: {is_sorted_qname(output_qname_bam)}"
+        "Query name sorted BAM has queryname sorting: "
+        f"{is_sorted_qname(output_qname_bam)}"
     )
 
 

@@ -90,6 +90,11 @@ def test_process_sample():
     with open(expected_path, "rb") as f:
         expected_content = zstd.ZstdDecompressor().decompress(f.read()).decode("utf-8")
 
-    assert (
-        generated_content == expected_content
-    ), f"The contents of the generated and expected files do not match.\n\nGenerated content:\n{generated_content}\n\nExpected content:\n{expected_content}"
+    error_message = (
+        "The contents of the generated and expected files do not match.\n\n"
+        "Generated content:\n"
+        f"{generated_content}\n\n"
+        "Expected content:\n"
+        f"{expected_content}"
+    )
+    assert generated_content == expected_content, error_message
