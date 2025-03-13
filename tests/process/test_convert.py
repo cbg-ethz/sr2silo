@@ -5,7 +5,6 @@ This module contains tests for the conversion functions in the sr2silo package.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
 
 import pytest
 
@@ -18,17 +17,30 @@ from sr2silo.process.convert import (
 from sr2silo.process.interface import Insertion
 
 
-def test_bam_to_sam(bam_data: Dict):
-    """Test the bam_to_sam function."""
+def test_bam_to_sam(bam_data: Path):
+    """Test the bam_to_sam function.
 
-    print(bam_data)
+    Note:
+    BAM -> SAM -> BAM conversion cannot be tested directly,
+    as the resulting BAM file will not be identical to the original BAM file.
+    """
 
-    sam_data = bam_to_sam(bam_data["bam_path"])
+    # Convert the BAM file to SAM
+    sam_file = bam_data.with_suffix(".sam")
+    bam_to_sam(bam_data, sam_file)
 
-    # compare the sam_data with the expected data
+    # Check that the SAM file was created
+    assert sam_file.exists(), "The SAM file was not created"
+    # check that the SAM file is not empty
+    assert sam_file.stat().st_size > 0, "The SAM file is empty"
+    # check that the SAM file is not a binary file
+    with sam_file.open("r") as f:
+        first_line = f.readline()
+        assert first_line.startswith("@")
+    # assert that the file is larger than the original BAM file
     assert (
-        sam_data == bam_data["sam_data"]
-    ), "The converted SAM data does not match the expected SAM data"
+        sam_file.stat().st_size > bam_data.stat().st_size
+    ), "The SAM file is smaller than the BAM file"
 
 
 def test_sam_to_bam(sam_data: Path):
@@ -45,6 +57,10 @@ def test_sam_to_bam(sam_data: Path):
 
     # Check that the BAM file was created
     assert bam_file.exists(), "The BAM file was not created"
+    # assert that the file is larger than the original SAM file
+    assert (
+        bam_file.stat().st_size < sam_data.stat().st_size
+    ), "The BAM file is smaller than the SAM file"
 
 
 @pytest.mark.skip(reason="Not implemented")

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import re
-import tempfile
 from pathlib import Path
 from typing import List, Tuple, Union
 
@@ -110,25 +109,19 @@ def bam_to_fasta(bam_file: Path, fasta_file: Path):
                     fq.write(f">{name}\n{seq}\n")
 
 
-def bam_to_sam(bam_file: Path) -> str:
-    """Converts a BAM file to SAM format and returns it as a string.
+def bam_to_sam(bam_file: Path, sam_file: Path) -> None:
+    """Converts a BAM file to SAM format and writes it to the specified output file.
 
     Args:
       bam_file: Path to the input BAM file.
-
-    Returns:
-      A string containing the SAM format of the input BAM file.
+      sam_file: Path to the output SAM file.
     """
-
-    with tempfile.NamedTemporaryFile(delete=True) as temp_sam:
-        with pysam.AlignmentFile(str(bam_file), "rb") as in_bam, pysam.AlignmentFile(
-            temp_sam.name, "w", template=in_bam
-        ) as out_sam:
-            for read in in_bam:
-                out_sam.write(read)
-        temp_sam.seek(0)
-        temp_sam_content = temp_sam.read().decode()
-    return temp_sam_content
+    with pysam.AlignmentFile(str(bam_file), "rb") as in_bam, pysam.AlignmentFile(
+        str(sam_file), "w", template=in_bam
+    ) as out_sam:
+        for read in in_bam:
+            out_sam.write(read)
+    logging.info(f"BAM file {bam_file} has been converted to SAM file {sam_file}")
 
 
 def sam_to_bam(sam_file: Path, bam_file: Path):

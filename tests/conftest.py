@@ -7,6 +7,7 @@ In VSCode, Code Coverage is recorded in config.xml. Delete this file to reset re
 from __future__ import annotations
 
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 
 import pysam
@@ -39,15 +40,12 @@ EXPECTED_BAM_INSERTIONS_PATH_cleartext = (
 
 
 @pytest.fixture
-def bam_data() -> dict:
-    """Return a sample BAM data path and its corresponding SAM data as a string."""
-    dict_data = dict()
-    # read in these files as test
-    dict_data["bam_path"] = INPUT_BAM_PATH
-    with open(EXPECTED_SAM_PATH) as f:
-        dict_data["sam_data"] = f.read()
+def bam_data() -> Path:
+    """Return a sample BAM file path.
 
-    return dict_data
+    Complementary to sam_data.
+    """
+    return INPUT_BAM_PATH
 
 
 @pytest.fixture
@@ -59,12 +57,21 @@ def sam_data() -> Path:
 
 
 @pytest.fixture
-def sam_with_insert_data():
+def sam_with_insert_data() -> dict:
     """Return a sample SAM data as a string with insertions."""
 
     data_expected = dict()
     data_expected["bam_data_fp"] = INPUT_BAM_INSERTIONS_PATH
-    data_expected["sam_data"] = bam_to_sam(INPUT_BAM_INSERTIONS_PATH)
+
+    # Convert the BAM file to SAM, and read in the SAM file
+    with temp_dir() as tmpdir:
+        # Convert the BAM file to SAM
+        sam_fp = tmpdir / "sam_data.sam"
+        bam_to_sam(INPUT_BAM_INSERTIONS_PATH, sam_fp)
+        # read in the SAM file
+        sam_content = sam_fp.read_text()
+        data_expected["sam_data"] = sam_content
+
     # Read in the insertions file
     insertions_content = EXPECTED_BAM_INSERTIONS_PATH_inserts.read_text()
     data_expected["insertions"] = insertions_content
@@ -77,6 +84,7 @@ def sam_with_insert_data():
 
 
 @pytest.fixture
+@contextmanager
 def temp_dir():
     """Return a temporary directory as a Path object."""
     with tempfile.TemporaryDirectory() as tmpdirname:
