@@ -131,6 +131,28 @@ def bam_to_sam(bam_file: Path) -> str:
     return temp_sam_content
 
 
+def sam_to_bam(sam_file: Path, bam_file: Path):
+    """
+    Convert a SAM file to a BAM file.
+
+    Args:
+        sam_file (Path): Path to the input SAM file.
+        bam_file (Path): Path to the output BAM file.
+    """
+    # check for proper format
+    if not sam_file.suffix.endswith(".sam"):
+        raise ValueError("Input file is not a SAM file")
+    if not bam_file.suffix.endswith(".bam"):
+        raise ValueError("Output file is not a BAM file")
+
+    with pysam.AlignmentFile(str(sam_file), "r") as sam:
+        with pysam.AlignmentFile(str(bam_file), "wb", header=sam.header) as bam:
+            for read in sam:
+                bam.write(read)
+
+    logging.info(f"SAM file {sam_file} has been converted to BAM file {bam_file}")
+
+
 def bam_to_fastq_handle_indels(
     bam_file: Path,
     out_fastq_fp: Path,

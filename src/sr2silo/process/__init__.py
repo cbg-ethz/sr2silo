@@ -9,6 +9,7 @@ from sr2silo.process.convert import (
     bam_to_sam,
     get_gene_set_from_ref,
     pad_alignment,
+    sam_to_bam,
     sort_and_index_bam,
 )
 from sr2silo.process.interface import (
@@ -43,4 +44,5 @@ __all__ = [
     "enrich_read_with_metadata",
     "parse_translate_align_in_batches",
     "paired_end_read_merger",
+    "sam_to_bam",
 ]

@@ -51,9 +51,11 @@ def bam_data() -> dict:
 
 
 @pytest.fixture
-def sam_data():
-    """Return a sample SAM data as a string."""
-    return bam_to_sam(INPUT_BAM_PATH)
+def sam_data() -> Path:
+    """Return a sample SAM file path.
+    This is the expected SAM data for
+    the test data in the INPUT_BAM_PATH."""
+    return EXPECTED_SAM_PATH
 
 
 @pytest.fixture

@@ -4,11 +4,12 @@ This module contains tests for the conversion functions in the sr2silo package.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Dict
 
 import pytest
 
-from sr2silo.process import bam_to_sam
+from sr2silo.process import bam_to_sam, sam_to_bam
 from sr2silo.process.convert import (
     bam_to_fastq_handle_indels,
     pad_alignment,
@@ -28,6 +29,22 @@ def test_bam_to_sam(bam_data: Dict):
     assert (
         sam_data == bam_data["sam_data"]
     ), "The converted SAM data does not match the expected SAM data"
+
+
+def test_sam_to_bam(sam_data: Path):
+    """Test the sam_to_bam function.
+
+    Note:
+    BAM -> SAM -> BAM conversion cannot be tested directly,
+    as the resulting BAM file will not be identical to the original BAM file.
+    """
+
+    # Convert the SAM file to BAM
+    bam_file = sam_data.with_suffix(".bam")
+    sam_to_bam(sam_data, bam_file)
+
+    # Check that the BAM file was created
+    assert bam_file.exists(), "The BAM file was not created"
 
 
 @pytest.mark.skip(reason="Not implemented")
