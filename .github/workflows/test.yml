@@ -40,6 +40,9 @@ jobs:
           conda activate sr2silo-dev
           poetry install --with dev
 
+      - name: Determine if PR
+        id: determine-pr
+        run: echo "is_pr=${{ github.event_name == 'pull_request' }}" >> $GITHUB_OUTPUT
       - name: Run unit tests
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
