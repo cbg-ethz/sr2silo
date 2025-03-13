@@ -47,8 +47,7 @@ def get_sequence_from_fasta(fasta_fp: Path) -> str:
 
 def sort_bam_file(input_bam_path: Path, output_bam_path: Path):
     """
-    Sorts a BAM file using pysam.sort to avoid loading all alignments into memory.
-
+    Sorts a BAM file using pysam.sort by their alignment positions.
     Args:
         input_bam_path (Path): Path to the input BAM file.
         output_bam_path (Path): Path to the output sorted BAM file.
