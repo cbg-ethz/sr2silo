@@ -40,35 +40,11 @@ jobs:
           conda activate sr2silo-dev
           poetry install --with dev
 
-      - name: Determine if PR
-        id: determine-pr
-        run: echo "is_pr=${{ github.event_name == 'pull_request' }}" >> $GITHUB_OUTPUT
-
       - name: Run unit tests
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate sr2silo-dev
           poetry run pytest
-
-      - name: Run test coverage
-        run: |
-          source $(conda info --base)/etc/profile.d/conda.sh
-          conda activate sr2silo-dev
-          if [ "${{ steps.determine-pr.outputs.is_pr == 'true' }}" ]; then
-            echo "Running coverage on changed files"
-            changed_files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '^src/' | tr '\n' ' ')
-            if [ -z "$changed_files" ]; then
-              echo "No changed files to run coverage on"
-              exit 0
-            fi
-            cov_args=""
-            for file in $changed_files; do
-              cov_args="$cov_args --cov=$file"
-            done
-            poetry run pytest $cov_args --cov-report=term
-          else
-            echo "Running coverage on all files"
-            poetry run pytest --cov=src --cov-report=term
 
       - name: Run Ruff
         run: |
