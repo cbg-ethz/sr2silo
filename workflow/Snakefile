@@ -5,11 +5,14 @@
 import yaml
 
 
-configfile: "workflow/config.yaml"
+#CONFIG="workflow/config.yaml"
+CONFIG="workflow/config_euler.yaml"
 
+
+configfile: CONFIG
 
 # Load configuration
-with open("workflow/config.yaml", "r") as file:
+with open(CONFIG, "r") as file:
     config = yaml.safe_load(file)
 
 
