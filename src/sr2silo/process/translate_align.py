@@ -8,7 +8,7 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Dict, List
+from typing import Callable, Dict, List
 
 import zstandard as zstd
 from memory_profiler import profile
@@ -433,6 +433,51 @@ def enrich_read_with_metadata(
     return aligned_reads
 
 
+def make_metadata_enricher(metadata_fp: Path) -> Callable[[AlignedRead], AlignedRead]:
+    """Curries a version of enrich_read_with_metadata for a single read.
+
+    Reads metadata from a JSON file and returns a function that enriches
+    an AlignedRead with the loaded metadata.
+    """
+    try:
+        with open(metadata_fp, "r") as file:
+            metadata = json.load(file)
+    except FileNotFoundError:
+        logging.error("Error: File not found")
+        raise FileNotFoundError
+    except json.JSONDecodeError as e:
+        logging.error("Error: Invalid JSON format")
+        raise json.JSONDecodeError(e.msg, e.doc, e.pos)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {e}")
+        raise e
+
+    if not metadata:
+        logging.error("No metadata found in the file")
+        raise ValueError("No metadata found in the file")
+
+    def enrich_single_read(read: AlignedRead) -> AlignedRead:
+        """Enrich a single read with metadata."""
+        read.metadata = metadata
+        return read
+
+    return enrich_single_read
+
+
+@profile
+def process_bam_files(bam_splits_fps, nuc_reference_fp, aa_reference_fp, metadata_fp):
+    """Generator to process BAM files and yield JSON strings."""
+
+    enrich_single_read = make_metadata_enricher(metadata_fp)
+
+    for bam_split_fp in bam_splits_fps:
+        for read in parse_translate_align(
+            nuc_reference_fp, aa_reference_fp, bam_split_fp
+        ).values():
+            enriched_read = enrich_single_read(read)
+            yield enriched_read.to_silo_json()
+
+
 @profile
 def parse_translate_align_in_batches(
     nuc_reference_fp: Path,
@@ -440,8 +485,8 @@ def parse_translate_align_in_batches(
     nuc_alignment_fp: Path,
     metadata_fp: Path,
     output_fp: Path,
-    chunk_size: int = 500000,
-    write_chunk_size: int = 100000,
+    chunk_size: int = 100000,
+    write_chunk_size: int = 20,
 ) -> Path:
     """Parse nucleotides, translate and align amino acids in batches.
 
@@ -459,7 +504,7 @@ def parse_translate_align_in_batches(
 
     Resources:
         A chunk_size of 100000 reads is a good starting point for most cases.
-        This will take about 3.5 GB ram for Covid Genomes and 1-2 minutes to process.
+        This will take about 3.7 GB ram for Covid Genomes and 1-2 minutes to process.
 
     Constraints:
         No sorting constraints are enforced on the input files.
@@ -493,31 +538,23 @@ def parse_translate_align_in_batches(
             # process each batch and write to a ndjson file
             with tqdm(total=len(bam_splits_fps), desc="Processing batches") as pbar:
                 cctx = zstd.ZstdCompressor()
-                with open(output_fp, "wb") as f:
+                with open(output_fp, "wb") as f, cctx.stream_writer(f) as compressor:
                     buffer = []
-                    for i, bam_split_fp in enumerate(bam_splits_fps):
-                        logging.info(f"Processing batch {i+1}")
-                        aligned_reads = parse_translate_align(
-                            nuc_reference_fp=nuc_reference_fp,
-                            aa_reference_fp=aa_reference_fp,
-                            nuc_alignment_fp=bam_split_fp,
-                        )
-                        aligned_reads = enrich_read_with_metadata(
-                            aligned_reads, metadata_fp
-                        )
+                    for json_str in process_bam_files(
+                        bam_splits_fps, nuc_reference_fp, aa_reference_fp, metadata_fp
+                    ):
+                        buffer.append(json_str)
+                        if len(buffer) >= write_chunk_size:
+                            data = ("\n".join(buffer) + "\n").encode("utf-8")
+                            compressor.write(data)
+                            buffer = []
+                            pbar.update(write_chunk_size)  # Update progress per batch
 
-                        for read in aligned_reads.values():
-                            buffer.append(read.to_silo_json())
-                            if len(buffer) >= write_chunk_size:
-                                data = ("\n".join(buffer) + "\n").encode("utf-8")
-                                compressed_data = cctx.compress(data)
-                                f.write(compressed_data)
-                                buffer = []
-                        pbar.update(1)
-                    # Write any remaining lines
-                    if buffer:
-                        data = ("\n".join(buffer) + "\n").encode("utf-8")
-                        compressed_data = cctx.compress(data)
-                        f.write(compressed_data)
+                            pbar.update(1)
+                        # Write any remaining lines
+                        if buffer:
+                            data = ("\n".join(buffer) + "\n").encode("utf-8")
+                            compressor.write(data)
+                            pbar.update(len(buffer))
 
     return output_fp
