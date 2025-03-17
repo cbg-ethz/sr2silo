@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import zstandard as zstd
+from memory_profiler import profile
 from tqdm import tqdm
 
 import sr2silo.process.convert as convert
@@ -92,6 +93,7 @@ def translate_nextclade(
             command = ["mv", f"{temp_dir}/results", str(result_path)]
 
 
+@profile
 def nuc_to_aa_alignment(
     in_nuc_alignment_fp: Path,
     in_aa_reference_fp: Path,
@@ -210,6 +212,7 @@ def nuc_to_aa_alignment(
     return None
 
 
+@profile
 def make_read_with_nuc_seq(
     fastq_nuc_alignment_file: Path, nuc_reference_length: int, gene_set: GeneSet
 ) -> Dict[str, AlignedRead]:
@@ -273,6 +276,7 @@ def make_read_with_nuc_seq(
     return aligned_reads
 
 
+@profile
 def enrich_read_with_nuc_ins(
     aligned_reads: dict[str, AlignedRead], fasta_nuc_insertions_file: Path
 ) -> Dict[str, AlignedRead]:
@@ -293,6 +297,7 @@ def enrich_read_with_nuc_ins(
     return aligned_reads
 
 
+@profile
 def enrich_read_with_aa_seq(
     aligned_reads: Dict[str, AlignedRead],
     fasta_aa_alignment_file: Path,
@@ -340,6 +345,7 @@ def enrich_read_with_aa_seq(
     return aligned_reads
 
 
+@profile
 def parse_translate_align(
     nuc_reference_fp: Path, aa_reference_fp: Path, nuc_alignment_fp: Path
 ) -> Dict[str, AlignedRead]:
@@ -398,6 +404,7 @@ def parse_translate_align(
     return aligned_reads
 
 
+@profile
 def enrich_read_with_metadata(
     aligned_reads: Dict[str, AlignedRead],
     metadata_fp: Path,
@@ -426,6 +433,7 @@ def enrich_read_with_metadata(
     return aligned_reads
 
 
+@profile
 def parse_translate_align_in_batches(
     nuc_reference_fp: Path,
     aa_reference_fp: Path,
