@@ -550,11 +550,10 @@ def parse_translate_align_in_batches(
                             buffer = []
                             pbar.update(write_chunk_size)  # Update progress per batch
 
-                            pbar.update(1)
-                        # Write any remaining lines
-                        if buffer:
-                            data = ("\n".join(buffer) + "\n").encode("utf-8")
-                            compressor.write(data)
-                            pbar.update(len(buffer))
+                    # Write any remaining lines
+                    if buffer:
+                        data = ("\n".join(buffer) + "\n").encode("utf-8")
+                        compressor.write(data)
+                        pbar.update(len(buffer))
 
     return output_fp
