@@ -4,7 +4,7 @@ sbatch \
     --ntasks=1 \
     --cpus-per-task=24 \
     --mem-per-cpu=8G \
-    --temp=50G \
+    --tmp=50G \
     --time=2:00:00 \
     -o /cluster/home/koehng/logs/sr2silo.out \
     -e /cluster/home/koehng/logs/sr2silo.err \
