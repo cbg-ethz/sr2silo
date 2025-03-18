@@ -84,7 +84,12 @@ def test_process_sample():
             "rb",
         ) as f:
             decompressor = zstd.ZstdDecompressor()
-            generated_content = decompressor.decompress(f.read()).decode("utf-8")
+            try:
+                generated_content = decompressor.decompress(f.read()).decode("utf-8")
+            except zstd.ZstdError:
+                f.seek(0)
+                with decompressor.stream_reader(f) as reader:
+                    generated_content = reader.read().decode("utf-8")
 
         with open(expected_path, "rb") as f:
             expected_content = (
