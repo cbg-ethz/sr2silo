@@ -404,37 +404,8 @@ def parse_translate_align(
     return aligned_reads
 
 
-@profile
-def enrich_read_with_metadata(
-    aligned_reads: Dict[str, AlignedRead],
-    metadata_fp: Path,
-) -> Dict[str, AlignedRead]:
-    """Enrich the AlignedReads with metadata from a TSV file."""
-
-    try:
-        with open(metadata_fp, "r") as file:
-            metadata = json.load(file)
-    except FileNotFoundError:
-        logging.error("Error: File not found")
-        raise FileNotFoundError
-    except json.JSONDecodeError as e:
-        logging.error("Error: Invalid JSON format")
-        raise json.JSONDecodeError(e.msg, e.doc, e.pos)
-    except Exception as e:
-        logging.error(f"An unexpected error occurred: {e}")
-        raise e
-
-    if metadata:
-        for read_id, read in aligned_reads.items():
-            read.metadata = metadata
-    else:
-        logging.error("No metadata found in the file")
-        raise ValueError("No metadata found in the file")
-    return aligned_reads
-
-
-def make_metadata_enricher(metadata_fp: Path) -> Callable[[AlignedRead], AlignedRead]:
-    """Curries a version of enrich_read_with_metadata for a single read.
+def curry_read_with_metadata(metadata_fp: Path) -> Callable[[AlignedRead], AlignedRead]:
+    """Returns a function that enriches an AlignedRead with metadata.
 
     Reads metadata from a JSON file and returns a function that enriches
     an AlignedRead with the loaded metadata.
@@ -468,7 +439,7 @@ def make_metadata_enricher(metadata_fp: Path) -> Callable[[AlignedRead], Aligned
 def process_bam_files(bam_splits_fps, nuc_reference_fp, aa_reference_fp, metadata_fp):
     """Generator to process BAM files and yield JSON strings."""
 
-    enrich_single_read = make_metadata_enricher(metadata_fp)
+    enrich_single_read = curry_read_with_metadata(metadata_fp)
 
     for bam_split_fp in bam_splits_fps:
         for read in parse_translate_align(
