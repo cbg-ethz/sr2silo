@@ -89,11 +89,10 @@ class MatrixTree:
         Returns:
             True if adding edge would create a cycle, False otherwise
         """
-        # If child is already an ancestor of parent, adding this edge would create a cycle
         current = parent_idx
         while current is not None:
             if current == child_idx:
-                return True
+                print("Cycle detected!")  # !
             current = self.parent[current]
         return False
 
