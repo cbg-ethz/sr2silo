@@ -133,6 +133,18 @@ def nuc_to_aa_alignment(
         logging.info("FASTA conversion for AA alignment")
         convert.bam_to_fasta(in_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
 
+        # check if temp_dir is specieifed in the environment
+        if "TMPDIR" in os.environ:
+            temp_dir_path = Path(os.environ["TMPDIR"])
+            logging.info(f"Recognize temporary directory set in Env: {temp_dir_path}")
+            logging.info(
+                "This will be used for amino acid translation and alignment - by diamond."
+            )
+        else:
+            logging.info(
+                f"Temporary directory not set in Env. Using output dir default: {temp_dir_path}"
+            )
+
         # temporary file file for amino acid reference DB
         db_ref_fp = temp_dir_path / Path(in_aa_reference_fp.stem + ".temp.db")
         try:
@@ -192,6 +204,8 @@ def nuc_to_aa_alignment(
                     "1",
                     "--block-size",
                     "0.5",
+                    "--tmpdir",
+                    str(temp_dir_path),
                 ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,

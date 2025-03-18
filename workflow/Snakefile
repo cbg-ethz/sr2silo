@@ -3,6 +3,8 @@
 """
 
 import yaml
+import os
+from pathlib import Path
 
 
 configfile: "workflow/config.yaml"
@@ -11,6 +13,13 @@ configfile: "workflow/config.yaml"
 # Load configuration
 with open("workflow/config.yaml", "r") as file:
     config = yaml.safe_load(file)
+
+
+# Check for TMPDIR environment variable
+temp_dir = None
+if "TMPDIR" in os.environ:
+    temp_dir = Path(os.environ["TMPDIR"])
+    print(f"Using TMPDIR environment variable: {temp_dir}")
 
 
 def get_batch_id(sample_id):
@@ -46,11 +55,13 @@ rule process_sample:
         primers_file=config["PRIMERS_FILE"],
         nuc_reference=config["NUC_REFERENCE"],
         aa_reference=config["NUC_REFERENCE"],
+        temp_dir=temp_dir,
     log:
         "logs/sr2silo/process_sample/sampleId_{sample_id}_batchId_{batch_id}.log",  # Clearer wildcard separation
     shell:
         """
         echo "Processing sample {params.sample_id} started" >> {log}
+        {{"TMPDIR=" + str(params.temp_dir) if params.temp_dir else ""}} \
         sr2silo import-to-loculus \
             --input-file {input.sample_fp} \
             --sample-id {params.sample_id} \
