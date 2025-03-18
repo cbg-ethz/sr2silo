@@ -1,19 +1,21 @@
 """Tests for the FloydWarshall class."""
 
+from __future__ import annotations
+
 import numpy as np
 import pytest
 
-from sr2silo.tree import MatrixTree, FloydWarshall
+from sr2silo.tree import FloydWarshall, MatrixTree
 
 
 @pytest.fixture
 def sample_tree():
     """Create a sample tree for testing."""
-    tree = MatrixTree(5, ['A', 'B', 'C', 'D', 'E'])
-    tree.add_edge('A', 'B', 2.0)
-    tree.add_edge('A', 'C', 3.0)
-    tree.add_edge('B', 'D', 1.0)
-    tree.add_edge('C', 'E', 2.0)
+    tree = MatrixTree(5, ["A", "B", "C", "D", "E"])
+    tree.add_edge("A", "B", 2.0)
+    tree.add_edge("A", "C", 3.0)
+    tree.add_edge("B", "D", 1.0)
+    tree.add_edge("C", "E", 2.0)
     return tree
 
 
@@ -60,8 +62,8 @@ def test_get_shortest_distance(computed_floyd_warshall):
     assert fw.get_shortest_distance(0, 3) == 3.0  # A->D
 
     # Test using labels
-    assert fw.get_shortest_distance('A', 'D') == 3.0
-    assert fw.get_shortest_distance('B', 'E') == 7.0
+    assert fw.get_shortest_distance("A", "D") == 3.0
+    assert fw.get_shortest_distance("B", "E") == 7.0
 
 
 def test_get_shortest_path(computed_floyd_warshall):
@@ -69,26 +71,26 @@ def test_get_shortest_path(computed_floyd_warshall):
     fw = computed_floyd_warshall
 
     # Path from A to D should be [A, B, D]
-    path = fw.get_shortest_path('A', 'D')
-    assert [fw.tree.labels[idx] for idx in path] == ['A', 'B', 'D']
+    path = fw.get_shortest_path("A", "D")
+    assert [fw.tree.labels[idx] for idx in path] == ["A", "B", "D"]
 
     # Path from B to E should be [B, A, C, E]
-    path = fw.get_shortest_path('B', 'E')
-    assert [fw.tree.labels[idx] for idx in path] == ['B', 'A', 'C', 'E']
+    path = fw.get_shortest_path("B", "E")
+    assert [fw.tree.labels[idx] for idx in path] == ["B", "A", "C", "E"]
 
 
 def test_print_shortest_path(computed_floyd_warshall, capsys):
     """Test printing shortest path."""
     fw = computed_floyd_warshall
 
-    fw.print_shortest_path('A', 'E')
+    fw.print_shortest_path("A", "E")
     captured = capsys.readouterr()
 
     # Check if output contains the expected elements
-    assert 'A' in captured.out
-    assert 'C' in captured.out
-    assert 'E' in captured.out
-    assert '5.0' in captured.out  # Total distance
+    assert "A" in captured.out
+    assert "C" in captured.out
+    assert "E" in captured.out
+    assert "5.0" in captured.out  # Total distance
 
 
 def test_print_distance_matrix(computed_floyd_warshall, capsys):
@@ -99,13 +101,13 @@ def test_print_distance_matrix(computed_floyd_warshall, capsys):
     captured = capsys.readouterr()
 
     # Check if output contains the expected elements
-    for label in ['A', 'B', 'C', 'D', 'E']:
+    for label in ["A", "B", "C", "D", "E"]:
         assert label in captured.out
 
     # Check if some distances are shown
-    assert '2.0' in captured.out
-    assert '3.0' in captured.out
-    assert '5.0' in captured.out
+    assert "2.0" in captured.out
+    assert "3.0" in captured.out
+    assert "5.0" in captured.out
 
 
 def test_print_all_paths(computed_floyd_warshall, capsys):
@@ -116,9 +118,10 @@ def test_print_all_paths(computed_floyd_warshall, capsys):
     captured = capsys.readouterr()
 
     # Check that outputs for all node pairs are included
-    for source in ['A', 'B', 'C', 'D', 'E']:
-        for dest in ['A', 'B', 'C', 'D', 'E']:
+    for source in ["A", "B", "C", "D", "E"]:
+        for dest in ["A", "B", "C", "D", "E"]:
             if source != dest:
-                assert f"from {source} to {dest}" in captured.out or \
-                       f"No path exists between {source} and {dest}" in captured.out
-
+                assert (
+                    f"from {source} to {dest}" in captured.out
+                    or f"No path exists between {source} and {dest}" in captured.out
+                )

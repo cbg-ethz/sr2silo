@@ -1,7 +1,8 @@
 """Tests for the MatrixTree class."""
 
+from __future__ import annotations
+
 import numpy as np
-import pytest
 
 from sr2silo.tree import MatrixTree
 
@@ -11,21 +12,21 @@ def test_matrix_tree_initialization():
     # Test with default labels
     tree = MatrixTree(5)
     assert tree.num_nodes == 5
-    assert tree.labels == ['0', '1', '2', '3', '4']
+    assert tree.labels == ["0", "1", "2", "3", "4"]
     assert np.array_equal(np.diag(tree.adjacency_matrix), np.zeros(5))
 
     # Test with custom labels
-    custom_labels = ['A', 'B', 'C', 'D', 'E']
+    custom_labels = ["A", "B", "C", "D", "E"]
     tree = MatrixTree(5, labels=custom_labels)
     assert tree.labels == custom_labels
 
 
 def test_add_edge():
     """Test adding edges to the tree."""
-    tree = MatrixTree(4, ['A', 'B', 'C', 'D'])
+    tree = MatrixTree(4, ["A", "B", "C", "D"])
 
     # Add edges and verify they're added correctly
-    assert tree.add_edge('A', 'B', 2.0) == True
+    assert tree.add_edge("A", "B", 2.0) == True
     assert tree.adjacency_matrix[0, 1] == 2.0
     assert tree.adjacency_matrix[1, 0] == 2.0  # Undirected graph
 
@@ -40,25 +41,25 @@ def test_add_edge():
 
 def test_prevent_cycles():
     """Test that adding edges that create cycles is prevented."""
-    tree = MatrixTree(3, ['A', 'B', 'C'])
+    tree = MatrixTree(3, ["A", "B", "C"])
 
     # Create a path A -> B -> C
-    tree.add_edge('A', 'B')
-    tree.add_edge('B', 'C')
+    tree.add_edge("A", "B")
+    tree.add_edge("B", "C")
 
     # Attempting to create C -> A should fail (would create cycle)
-    assert tree.add_edge('C', 'A') == False
+    assert tree.add_edge("C", "A") == False
 
 
 def test_get_neighbors():
     """Test retrieving neighbors of a node."""
-    tree = MatrixTree(4, ['A', 'B', 'C', 'D'])
-    tree.add_edge('A', 'B', 1.5)
-    tree.add_edge('A', 'C', 2.0)
-    tree.add_edge('B', 'D', 0.5)
+    tree = MatrixTree(4, ["A", "B", "C", "D"])
+    tree.add_edge("A", "B", 1.5)
+    tree.add_edge("A", "C", 2.0)
+    tree.add_edge("B", "D", 0.5)
 
     # Get neighbors by label
-    neighbors = tree.get_neighbors('A')
+    neighbors = tree.get_neighbors("A")
     assert len(neighbors) == 2
     assert (1, 1.5) in neighbors  # B with weight 1.5
     assert (2, 2.0) in neighbors  # C with weight 2.0
@@ -72,35 +73,34 @@ def test_get_neighbors():
 
 def test_print_tree(capsys):
     """Test tree printing functionality."""
-    tree = MatrixTree(3, ['A', 'B', 'C'])
-    tree.add_edge('A', 'B', 2.0)
-    tree.add_edge('A', 'C', 3.0)
+    tree = MatrixTree(3, ["A", "B", "C"])
+    tree.add_edge("A", "B", 2.0)
+    tree.add_edge("A", "C", 3.0)
 
     tree.print_tree()
     captured = capsys.readouterr()
 
     # Check if output contains node labels
-    assert 'A' in captured.out
-    assert 'B' in captured.out
-    assert 'C' in captured.out
+    assert "A" in captured.out
+    assert "B" in captured.out
+    assert "C" in captured.out
 
     # Check if weights are displayed
-    assert '(2.0)' in captured.out
-    assert '(3.0)' in captured.out
+    assert "(2.0)" in captured.out
+    assert "(3.0)" in captured.out
 
 
 def test_string_representation():
     """Test string representation of the tree."""
-    tree = MatrixTree(3, ['A', 'B', 'C'])
-    tree.add_edge('A', 'B', 1.0)
+    tree = MatrixTree(3, ["A", "B", "C"])
+    tree.add_edge("A", "B", 1.0)
 
     str_rep = str(tree)
 
     # Check if the representation contains the expected elements
-    assert 'MatrixTree' in str_rep
-    assert 'A' in str_rep
-    assert 'B' in str_rep
-    assert 'C' in str_rep
-    assert '1.0' in str_rep
-    assert '∞' in str_rep  # Should contain infinity symbol for disconnected nodes
-
+    assert "MatrixTree" in str_rep
+    assert "A" in str_rep
+    assert "B" in str_rep
+    assert "C" in str_rep
+    assert "1.0" in str_rep
+    assert "∞" in str_rep  # Should contain infinity symbol for disconnected nodes

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import numpy as np
 from typing import Dict, List, Optional, Set, Tuple, Union
+
+import numpy as np
 
 
 class MatrixTree:
@@ -24,7 +25,7 @@ class MatrixTree:
         """
         # Initialize adjacency matrix with infinity (representing no direct connection)
         # numpy.inf represents infinity in floating point
-        self.adjacency_matrix = np.full((num_nodes, num_nodes), float('inf'))
+        self.adjacency_matrix = np.full((num_nodes, num_nodes), float("inf"))
 
         # Set diagonal to 0 (distance from node to itself is 0)
         np.fill_diagonal(self.adjacency_matrix, 0)
@@ -41,7 +42,9 @@ class MatrixTree:
         self.parent: Dict[int, Optional[int]] = {i: None for i in range(num_nodes)}
         self.children: Dict[int, Set[int]] = {i: set() for i in range(num_nodes)}
 
-    def add_edge(self, parent: Union[int, str], child: Union[int, str], weight: float = 1.0) -> bool:
+    def add_edge(
+        self, parent: Union[int, str], child: Union[int, str], weight: float = 1.0
+    ) -> bool:
         """
         Add an edge between parent and child nodes with the given weight.
 
@@ -118,12 +121,14 @@ class MatrixTree:
 
         neighbors = []
         for j in range(self.num_nodes):
-            if self.adjacency_matrix[node_idx, j] not in [0, float('inf')]:
+            if self.adjacency_matrix[node_idx, j] not in [0, float("inf")]:
                 neighbors.append((j, self.adjacency_matrix[node_idx, j]))
 
         return neighbors
 
-    def print_tree(self, root: Optional[Union[int, str]] = None, indent: str = "") -> None:
+    def print_tree(
+        self, root: Optional[Union[int, str]] = None, indent: str = ""
+    ) -> None:
         """
         Print the tree structure starting from the specified root.
 
@@ -166,11 +171,10 @@ class MatrixTree:
             row = f"{self.labels[i]:^4}"
             for j in range(self.num_nodes):
                 val = self.adjacency_matrix[i, j]
-                if val == float('inf'):
+                if val == float("inf"):
                     row += " ∞   "
                 else:
                     row += f"{val:^5.1f}"
             result += row + "\n"
 
         return result
-

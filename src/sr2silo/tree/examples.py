@@ -1,13 +1,17 @@
 """Examples demonstrating the tree representation and traversal."""
 
-from sr2silo.tree import MatrixTree, FloydWarshall
+from __future__ import annotations
+
+from sr2silo.tree import FloydWarshall, MatrixTree
 
 
 def example_family_tree():
     """Create and analyze a family tree example."""
     # Create a family tree
     print("Creating a family tree...")
-    tree = MatrixTree(7, ["Grandparent", "Parent1", "Parent2", "Child1", "Child2", "Child3", "Child4"])
+    tree = MatrixTree(
+        7, ["Grandparent", "Parent1", "Parent2", "Child1", "Child2", "Child3", "Child4"]
+    )
 
     # Add edges (relationships)
     tree.add_edge("Grandparent", "Parent1", 1.0)
@@ -68,6 +72,5 @@ def example_weighted_tree():
 
 if __name__ == "__main__":
     example_family_tree()
-    print("\n" + "="*50 + "\n")
+    print("\n" + "=" * 50 + "\n")
     example_weighted_tree()
-
