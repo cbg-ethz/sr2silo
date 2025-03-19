@@ -6,8 +6,8 @@ import yaml
 import os
 from pathlib import Path
 
-
-configfile: "workflow/config.yaml"
+configfile: "workflow/config_euler.yaml"
+# configfile: "workflow/config.yaml"
 
 
 # Load configuration
