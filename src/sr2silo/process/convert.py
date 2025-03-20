@@ -179,7 +179,7 @@ def sam_to_bam(sam_file: Path, bam_file: Path):
 
     logging.info(f"SAM file {sam_file} has been converted to BAM file {bam_file}")
 
-
+# TODO: double check if this yields one based coordinates or not?
 def bam_to_fastq_handle_indels(
     bam_file: Path,
     out_fastq_fp: Path,

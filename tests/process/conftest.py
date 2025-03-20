@@ -61,3 +61,18 @@ def aligned_reads() -> Dict[str, AlignedRead]:
     aligned_reads = enrich_read_with_metadata(aligned_reads, metadata_fp)
 
     return aligned_reads
+
+@pytest.fixture
+def micro_bam_fp() -> Path:
+    """Path to the micro BAM file."""
+    return Path("tests/data/bam/micro/micro.bam")
+
+@pytest.fixture
+def micro_bam_sam_fp() -> Path:
+    """Path to the micro BAM file."""
+    return Path("tests/data/bam/micro/micro.sam")
+
+@pytest.fixture
+def micro_reference_fp() -> Path:
+    """Path to the micro reference file."""
+    return Path("tests/data/bam/micro/micro_ref.fasta")

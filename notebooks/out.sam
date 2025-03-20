@@ -1,0 +1,9 @@
+@HD	VN:1.6	SO:coordinate
+@SQ	SN:ref	LN:45
+@PG	ID:samtools	PN:samtools	VN:1.21	CL:samtools view -h -o out.sam test.bam
+r001	99	ref	8	30	8M2I4M1D3M	=	38	39	TTAGATAAAGGATACTG	!!!!!!!!!!!!!!!!!
+r002	0	ref	10	30	3S6M1I4S	=	1	0	AAAAGATAAGGATA	!!!!!!!!!!!!!!
+r003	0	ref	10	30	5S6M	=	1	0	GCCTAAGCTAA	!!!!!!!!!!!
+r004	2064	ref	17	30	6M14N5M	=	1	0	ATAGCTTCAGC	!!!!!!!!!!!
+r003	2064	ref	30	17	6H5M	=	1	0	TAGGC	!!!!!	SA:Z:Z:ref,9,+,5S6M,30,1
+r001	147	ref	38	30	9M	=	8	-39	CAGCGGCAT	!!!!!!!!!	NM:Z:i:1

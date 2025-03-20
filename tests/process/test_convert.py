@@ -355,6 +355,22 @@ def test_bam_to_fastq_handle_indels(dummy_alignment, tmp_path):
     )
 
 
+def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path = Path("tests/data/bam/micro/")):
+    """Test bam_to_fastq_handle_indels with a micro BAM file."""
+    # Create temporary files for FASTQ and insertions
+    fastq_file = tmp_path / "output.fastq"
+    insertions_file = tmp_path / "insertions.txt"
+
+    # Use the micro BAM file for testing
+    bam_to_fastq_handle_indels(micro_bam_fp, fastq_file, insertions_file)
+
+    # Check the output files
+    assert fastq_file.exists(), "FASTQ file was not created"
+    assert insertions_file.exists(), "Insertions file was not created"
+
+
+
+
 def test_get_gene_set_from_ref_malformed_no_sequence(tmp_path):
     """Test get_gene_set_from_ref with a FASTA file that has header(s) but no
     sequence lines."""
