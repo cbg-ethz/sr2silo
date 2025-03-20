@@ -20,7 +20,7 @@ When running sr2silo, especially the `--import to loculus` command, you should b
 
 When running on a personal computer, standard temporary directories are usually sufficient as long as you have free disk space. However, in a cluster environment:
 
-1. Set the environment variable `TMPDIR` to a location with at least 50 GB of free space:
+1. Set the environment variable `TMPDIR` to a location with at least 50 GB of free space per run:
 
 ```bash
 export TMPDIR=/path/to/temp/directory

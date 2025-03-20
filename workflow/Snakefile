@@ -7,14 +7,11 @@ import os
 from pathlib import Path
 
 
-#CONFIG="workflow/config.yaml"
-CONFIG="workflow/config_euler.yaml"
-
-configfile: CONFIG
+configfile: "workflow/config.yaml"
 
 
 # Load configuration
-with open(CONFIG, "r") as file:
+with open("workflow/config.yaml", "r") as file:
     config = yaml.safe_load(file)
 
 
@@ -63,6 +60,8 @@ rule process_sample:
         "logs/sr2silo/process_sample/sampleId_{sample_id}_batchId_{batch_id}.log",  # Clearer wildcard separation
     shell:
         """
+        echo "Processing sample {params.sample_id} started" >> {log}
+        {{"TMPDIR=" + str(params.temp_dir) if params.temp_dir else ""}} \
         sr2silo import-to-loculus \
             --input-file {input.sample_fp} \
             --sample-id {params.sample_id} \
@@ -72,4 +71,5 @@ rule process_sample:
             --output-fp {output.result_fp} \
             --reference {params.nuc_reference} \
             --no-upload 2>&1 | tee -a {log}
+        echo "Processing sample {params.sample_id} completed" >> {log}
         """
