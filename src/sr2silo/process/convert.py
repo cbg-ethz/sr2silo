@@ -205,6 +205,7 @@ def bam_to_fastq_handle_indels(
     ) as fastq, open(out_insertions_fp, "w") as insertions:
         for read in bam.fetch():
             if not read.is_unmapped:
+                logging.debug(f"Processing read: {read.query_name}")
                 query_sequence = read.query_sequence if read.query_sequence else ""
                 query_qualities = read.query_qualities if read.query_qualities else ""
                 new_sequence = []
@@ -219,6 +220,12 @@ def bam_to_fastq_handle_indels(
                     continue
 
                 for cigar in read.cigartuples:
+
+                    logging.debug(
+                        f"Processing CIGAR operation: {cigar}, query_pos: {query_pos}, ref_pos: {ref_pos}"
+                    )
+
+                    # Handle the CIGAR operations
                     if cigar[0] == 0:  # Match or mismatch
                         new_sequence.extend(
                             query_sequence[query_pos : query_pos + cigar[1]]
@@ -257,6 +264,10 @@ def bam_to_fastq_handle_indels(
                         # Padding is a silent deletion from padded reference
                         # No action needed for this case.
                         pass
+
+                    logging.debug(
+                        f"After CIGAR operation: new_sequence: {new_sequence}, new_qualities: {new_qualities}"
+                    )
 
                 # Write the modified read to the FASTQ file
                 fastq.write(f"@{read.query_name}\n")
