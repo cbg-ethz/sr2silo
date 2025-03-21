@@ -180,7 +180,6 @@ def sam_to_bam(sam_file: Path, bam_file: Path):
     logging.info(f"SAM file {sam_file} has been converted to BAM file {bam_file}")
 
 
-# TODO: double check if this yields one based coordinates or not?
 def bam_to_fastq_handle_indels(
     bam_file: Path,
     out_fastq_fp: Path,
@@ -193,6 +192,8 @@ def bam_to_fastq_handle_indels(
     special character for deletions, skipped regions, and soft clipping.
     Save the insertions to a separate file.
     Include alignment positions in the FASTQ file.
+
+    Coordinates are 1-based.
 
     :param bam_file: Path to the input BAM file
     :param out_fastq_fp: Path to the output FASTQ file
