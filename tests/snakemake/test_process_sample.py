@@ -18,7 +18,6 @@ def test_process_sample():
     """Test the process_sample rule."""
 
     with TemporaryDirectory() as tmpdir:
-
         workdir = Path(tmpdir) / "workdir"
         data_path = Path("tests/snakemake/process_sample/data")
         expected_path = Path(
@@ -37,12 +36,6 @@ def test_process_sample():
 
         # make dir for results
         os.makedirs(workdir / "results", exist_ok=True)
-
-        # dbg
-        print(
-            "results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst",
-            file=sys.stderr,
-        )
 
         # Run the test job.
         try:
