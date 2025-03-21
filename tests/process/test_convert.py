@@ -355,7 +355,7 @@ def test_bam_to_fastq_handle_indels(dummy_alignment, tmp_path):
     )
 
 
-def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path=Path("micro_test")):
+def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path):
     """Test bam_to_fastq_handle_indels with a micro BAM file."""
     # Create temporary files for FASTQ and insertions
     fastq_file = tmp_path / "output.fastq"
