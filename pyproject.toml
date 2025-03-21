@@ -20,7 +20,7 @@ click = "^8.1.8"
 pydantic = "^2.10.6"
 zstandard = "^0.23.0"
 typer = "^0.15.1"
-biopython = "^1.85"
+biopython = "^1.83"
 pysam = "^0.23.0"
 
 
