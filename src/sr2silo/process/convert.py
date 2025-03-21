@@ -190,17 +190,15 @@ def bam_to_fastq_handle_indels(
 ):
     """
     Convert a BAM file to a FASTQ file, removing insertions and adding a
-    special character for deletions and skipped regions.
+    special character for deletions, skipped regions, and soft clipping.
     Save the insertions to a separate file.
     Include alignment positions in the FASTQ file.
-
-    Used to look at the cleartext nucleotide sequence of the reads.
 
     :param bam_file: Path to the input BAM file
     :param out_fastq_fp: Path to the output FASTQ file
     :param out_insertions_fp: Path to the output file containing insertions
     :param deletion_char: Special character to use for deletions/skipped regions
-    :param: skipped_char: Special character to use for skipped regions
+    :param skipped_char: Special character to use for skipped regions
     """
     with pysam.AlignmentFile(str(bam_file), "rb") as bam, open(
         out_fastq_fp, "w"
@@ -248,6 +246,9 @@ def bam_to_fastq_handle_indels(
                         new_sequence.extend([skipped_char] * cigar[1])
                         new_qualities.extend([0] * cigar[1])
                         ref_pos += cigar[1]
+                    elif cigar[0] == 4:  # Soft clipping
+                        # Skip soft clipped bases (they are not aligned)
+                        query_pos += cigar[1]
 
                 # Write the modified read to the FASTQ file
                 fastq.write(f"@{read.query_name}\n")
