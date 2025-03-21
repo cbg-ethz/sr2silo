@@ -210,3 +210,68 @@ def test_enrich_read_with_aa_seq_multiple(
         f"Expected padded sequence {expected_padded_str}, "
         f"got {aa_seq_dict.get(gene_name_str)}"
     )
+
+
+def test_curry_read_with_metadata(tmp_path):
+    """Test the curry_read_with_metadata function."""
+    # Create a temporary metadata JSON file
+    metadata = {
+        "read_id": "test_read",
+        "sample_id": "sample123",
+        "batch_id": "batch456",
+        "sampling_date": "2023-01-01",
+        "sequencing_date": "2023-01-15",
+        "location_name": "Test Location",
+        "read_length": "150",
+        "primer_protocol": "v1",
+        "location_code": "TL",
+        "flow_cell_serial_number": "FC123",
+        "sequencing_well_position": "A1",
+        "primer_protocol_name": "Test Protocol",
+        "nextclade_reference": "ref123",
+    }
+
+    metadata_file = tmp_path / "test_metadata.json"
+    with open(metadata_file, "w") as f:
+        import json
+
+        json.dump(metadata, f)
+
+    # Get the enrich function using curry_read_with_metadata
+    enrich_read = translate_align.curry_read_with_metadata(metadata_file)
+
+    # Create a dummy AlignedRead
+    dummy_read = AlignedRead(
+        read_id="read1",
+        unaligned_nucleotide_sequences="ACGT",
+        aligned_nucleotide_sequences="ACGT",
+        nucleotide_insertions=[],
+        amino_acid_insertions=AAInsertionSet([]),
+        aligned_amino_acid_sequences=AASequenceSet([]),
+    )
+
+    # Enrich the read with metadata
+    enriched_read = enrich_read(dummy_read)
+
+    # Verify metadata was attached correctly
+    assert enriched_read.metadata == metadata
+
+    # Test error cases
+    with pytest.raises(FileNotFoundError):
+        translate_align.curry_read_with_metadata(tmp_path / "nonexistent_file.json")
+
+    # Test invalid JSON
+    invalid_json_file = tmp_path / "invalid.json"
+    with open(invalid_json_file, "w") as f:
+        f.write("This is not valid JSON")
+
+    with pytest.raises(json.JSONDecodeError):
+        translate_align.curry_read_with_metadata(invalid_json_file)
+
+    # Test empty metadata
+    empty_metadata_file = tmp_path / "empty.json"
+    with open(empty_metadata_file, "w") as f:
+        json.dump({}, f)
+
+    with pytest.raises(ValueError, match="No metadata found in the file"):
+        translate_align.curry_read_with_metadata(empty_metadata_file)

@@ -31,8 +31,6 @@ def aligned_reads() -> Dict[str, AlignedRead]:
         nuc_ref_fp, aa_ref_fp, nuc_alignment_fp
     )
 
-    from sr2silo.process import enrich_read_with_metadata
-
     # make mock metadata with all empty strings, but readId
     # print emoptry ReadMetadata scehma to json
     metadata = {
@@ -58,7 +56,12 @@ def aligned_reads() -> Dict[str, AlignedRead]:
         json.dump(metadata, f, indent=4)
         metadata_fp = Path(f.name)
 
-    aligned_reads = enrich_read_with_metadata(aligned_reads, metadata_fp)
+    enrich_read_with_metadata = translate_align.curry_read_with_metadata(metadata_fp)
+
+    aligned_reads = {
+        read_id: enrich_read_with_metadata(read)
+        for read_id, read in aligned_reads.items()
+    }
 
     return aligned_reads
 

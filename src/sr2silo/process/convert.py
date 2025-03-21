@@ -435,10 +435,7 @@ def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
     else:
         # copy the input BAM file to the output BAM file
         output_bam_fp.write_bytes(input_bam_fp.read_bytes())
-        logging.info(
-            "Input BAM file is already sorted and indexed, \
-                      copying to output"
-        )
+        logging.info("Input BAM file is already sorted and indexed, copying to output")
 
 
 def _sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:

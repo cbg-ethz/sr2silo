@@ -23,7 +23,7 @@ from sr2silo.process.interface import (
 )
 from sr2silo.process.merge import paired_end_read_merger
 from sr2silo.process.translate_align import (
-    enrich_read_with_metadata,
+    curry_read_with_metadata,
     nuc_to_aa_alignment,
     parse_translate_align,
     parse_translate_align_in_batches,
@@ -47,8 +47,8 @@ __all__ = [
     # from sr2silo.process.merge
     "paired_end_read_merger",
     # from sr2silo.process.translate_align
-    "enrich_read_with_metadata",
     "nuc_to_aa_alignment",
     "parse_translate_align",
     "parse_translate_align_in_batches",
+    "curry_read_with_metadata",
 ]

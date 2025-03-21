@@ -8,7 +8,7 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Dict, List
+from typing import Callable, Dict, List
 
 import zstandard as zstd
 from tqdm import tqdm
@@ -131,6 +131,17 @@ def nuc_to_aa_alignment(
         logging.info("FASTA conversion for AA alignment")
         convert.bam_to_fasta(in_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
 
+        # check if temp_dir is specified in the environment
+        if "TMPDIR" in os.environ:
+            temp_dir_path = Path(os.environ["TMPDIR"])
+            logging.info("Recognize temporary directory set in Env: %s", temp_dir_path)
+            logging.info("Used for amino acid translation and alignment - by diamond.")
+        else:
+            logging.info("Temporary directory not set in Env.")
+            logging.info("Using output dir default: %s", temp_dir_path)
+
+        logging.info(f"Using temporary directory for diamond: {temp_dir_path}")
+
         # temporary file file for amino acid reference DB
         db_ref_fp = temp_dir_path / Path(in_aa_reference_fp.stem + ".temp.db")
         try:
@@ -190,6 +201,8 @@ def nuc_to_aa_alignment(
                     "1",
                     "--block-size",
                     "0.5",
+                    "--tmpdir",
+                    str(temp_dir_path),
                 ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -398,12 +411,12 @@ def parse_translate_align(
     return aligned_reads
 
 
-def enrich_read_with_metadata(
-    aligned_reads: Dict[str, AlignedRead],
-    metadata_fp: Path,
-) -> Dict[str, AlignedRead]:
-    """Enrich the AlignedReads with metadata from a TSV file."""
+def curry_read_with_metadata(metadata_fp: Path) -> Callable[[AlignedRead], AlignedRead]:
+    """Returns a function that enriches an AlignedRead with metadata.
 
+    Reads metadata from a JSON file and returns a function that enriches
+    an AlignedRead with the loaded metadata.
+    """
     try:
         with open(metadata_fp, "r") as file:
             metadata = json.load(file)
@@ -417,13 +430,29 @@ def enrich_read_with_metadata(
         logging.error(f"An unexpected error occurred: {e}")
         raise e
 
-    if metadata:
-        for read_id, read in aligned_reads.items():
-            read.metadata = metadata
-    else:
+    if not metadata:
         logging.error("No metadata found in the file")
         raise ValueError("No metadata found in the file")
-    return aligned_reads
+
+    def enrich_single_read(read: AlignedRead) -> AlignedRead:
+        """Enrich a single read with metadata."""
+        read.metadata = metadata
+        return read
+
+    return enrich_single_read
+
+
+def process_bam_files(bam_splits_fps, nuc_reference_fp, aa_reference_fp, metadata_fp):
+    """Generator to process BAM files and yield JSON strings."""
+
+    enrich_single_read = curry_read_with_metadata(metadata_fp)
+
+    for bam_split_fp in bam_splits_fps:
+        for read in parse_translate_align(
+            nuc_reference_fp, aa_reference_fp, bam_split_fp
+        ).values():
+            enriched_read = enrich_single_read(read)
+            yield enriched_read.to_silo_json()
 
 
 def parse_translate_align_in_batches(
@@ -432,8 +461,8 @@ def parse_translate_align_in_batches(
     nuc_alignment_fp: Path,
     metadata_fp: Path,
     output_fp: Path,
-    chunk_size: int = 500000,
-    write_chunk_size: int = 100000,
+    chunk_size: int = 100000,
+    write_chunk_size: int = 20,
 ) -> Path:
     """Parse nucleotides, translate and align amino acids in batches.
 
@@ -451,7 +480,7 @@ def parse_translate_align_in_batches(
 
     Resources:
         A chunk_size of 100000 reads is a good starting point for most cases.
-        This will take about 3.5 GB ram for Covid Genomes and 1-2 minutes to process.
+        This will take about 3.7 GB ram for Covid Genomes and 1-2 minutes to process.
 
     Constraints:
         No sorting constraints are enforced on the input files.
@@ -485,31 +514,22 @@ def parse_translate_align_in_batches(
             # process each batch and write to a ndjson file
             with tqdm(total=len(bam_splits_fps), desc="Processing batches") as pbar:
                 cctx = zstd.ZstdCompressor()
-                with open(output_fp, "wb") as f:
+                with open(output_fp, "wb") as f, cctx.stream_writer(f) as compressor:
                     buffer = []
-                    for i, bam_split_fp in enumerate(bam_splits_fps):
-                        logging.info(f"Processing batch {i+1}")
-                        aligned_reads = parse_translate_align(
-                            nuc_reference_fp=nuc_reference_fp,
-                            aa_reference_fp=aa_reference_fp,
-                            nuc_alignment_fp=bam_split_fp,
-                        )
-                        aligned_reads = enrich_read_with_metadata(
-                            aligned_reads, metadata_fp
-                        )
+                    for json_str in process_bam_files(
+                        bam_splits_fps, nuc_reference_fp, aa_reference_fp, metadata_fp
+                    ):
+                        buffer.append(json_str)
+                        if len(buffer) >= write_chunk_size:
+                            data = ("\n".join(buffer) + "\n").encode("utf-8")
+                            compressor.write(data)
+                            buffer = []
+                            pbar.update(write_chunk_size)  # Update progress per batch
 
-                        for read in aligned_reads.values():
-                            buffer.append(read.to_silo_json())
-                            if len(buffer) >= write_chunk_size:
-                                data = ("\n".join(buffer) + "\n").encode("utf-8")
-                                compressed_data = cctx.compress(data)
-                                f.write(compressed_data)
-                                buffer = []
-                        pbar.update(1)
                     # Write any remaining lines
                     if buffer:
                         data = ("\n".join(buffer) + "\n").encode("utf-8")
-                        compressed_data = cctx.compress(data)
-                        f.write(compressed_data)
+                        compressor.write(data)
+                        pbar.update(len(buffer))
 
     return output_fp

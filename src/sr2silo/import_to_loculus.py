@@ -9,6 +9,7 @@ import os
 import tempfile
 from pathlib import Path
 
+
 from sr2silo.config import (
     get_keycloak_token_url,
     get_mock_urls,
@@ -100,9 +101,9 @@ def submit_to_silo(result_dir: Path, s3_link: str) -> bool:
 
     if is_ci_environment():
         logging.info(
-            "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
+            "CI environment active; using mock URLs but executing submission mechanics."
         )
-        # Get mock URLs for CI environment
+        # Get mock URLs for CI environment, then continue with LAPIS submission
         KEYCLOAK_TOKEN_URL, SUBMISSION_URL = get_mock_urls()
     else:
         # Get URLs from environment or use defaults
