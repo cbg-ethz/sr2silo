@@ -131,7 +131,7 @@ def nuc_to_aa_alignment(
         logging.info("FASTA conversion for AA alignment")
         convert.bam_to_fasta(in_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
 
-        # check if temp_dir is specieifed in the environment
+        # check if temp_dir is specified in the environment
         if "TMPDIR" in os.environ:
             temp_dir_path = Path(os.environ["TMPDIR"])
             logging.info("Recognize temporary directory set in Env: %s", temp_dir_path)
