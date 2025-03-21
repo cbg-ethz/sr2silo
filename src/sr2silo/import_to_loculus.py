@@ -9,7 +9,6 @@ import os
 import tempfile
 from pathlib import Path
 
-from memory_profiler import profile
 
 from sr2silo.config import (
     get_keycloak_token_url,
@@ -132,7 +131,6 @@ def submit_to_silo(result_dir: Path, s3_link: str) -> bool:
         return False
 
 
-@profile
 def nuc_align_to_silo_njson(
     input_file: Path,
     sample_id: str,

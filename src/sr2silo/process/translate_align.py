@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Callable, Dict, List
 
 import zstandard as zstd
-from memory_profiler import profile
 from tqdm import tqdm
 
 import sr2silo.process.convert as convert
@@ -93,7 +92,6 @@ def translate_nextclade(
             command = ["mv", f"{temp_dir}/results", str(result_path)]
 
 
-@profile
 def nuc_to_aa_alignment(
     in_nuc_alignment_fp: Path,
     in_aa_reference_fp: Path,
@@ -132,6 +130,20 @@ def nuc_to_aa_alignment(
         logging.info("Converting BAM to FASTQ for AA alignment")
         logging.info("FASTA conversion for AA alignment")
         convert.bam_to_fasta(in_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
+
+        # check if temp_dir is specieifed in the environment
+        if "TMPDIR" in os.environ:
+            temp_dir_path = Path(os.environ["TMPDIR"])
+            logging.info(f"Recognize temporary directory set in Env: {temp_dir_path}")
+            logging.info(
+                "This will be used for amino acid translation and alignment - by diamond."
+            )
+        else:
+            logging.info(
+                f"Temporary directory not set in Env. Using output dir default: {temp_dir_path}"
+            )
+
+        logging.info(f"Using temporary directory for diamond: {temp_dir_path}")
 
         # temporary file file for amino acid reference DB
         db_ref_fp = temp_dir_path / Path(in_aa_reference_fp.stem + ".temp.db")
@@ -192,6 +204,8 @@ def nuc_to_aa_alignment(
                     "1",
                     "--block-size",
                     "0.5",
+                    "--tmpdir",
+                    str(temp_dir_path),
                 ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -212,7 +226,6 @@ def nuc_to_aa_alignment(
     return None
 
 
-@profile
 def make_read_with_nuc_seq(
     fastq_nuc_alignment_file: Path, nuc_reference_length: int, gene_set: GeneSet
 ) -> Dict[str, AlignedRead]:
@@ -276,7 +289,6 @@ def make_read_with_nuc_seq(
     return aligned_reads
 
 
-@profile
 def enrich_read_with_nuc_ins(
     aligned_reads: dict[str, AlignedRead], fasta_nuc_insertions_file: Path
 ) -> Dict[str, AlignedRead]:
@@ -297,7 +309,6 @@ def enrich_read_with_nuc_ins(
     return aligned_reads
 
 
-@profile
 def enrich_read_with_aa_seq(
     aligned_reads: Dict[str, AlignedRead],
     fasta_aa_alignment_file: Path,
@@ -345,7 +356,6 @@ def enrich_read_with_aa_seq(
     return aligned_reads
 
 
-@profile
 def parse_translate_align(
     nuc_reference_fp: Path, aa_reference_fp: Path, nuc_alignment_fp: Path
 ) -> Dict[str, AlignedRead]:
@@ -435,7 +445,6 @@ def curry_read_with_metadata(metadata_fp: Path) -> Callable[[AlignedRead], Align
     return enrich_single_read
 
 
-@profile
 def process_bam_files(bam_splits_fps, nuc_reference_fp, aa_reference_fp, metadata_fp):
     """Generator to process BAM files and yield JSON strings."""
 
@@ -449,7 +458,6 @@ def process_bam_files(bam_splits_fps, nuc_reference_fp, aa_reference_fp, metadat
             yield enriched_read.to_silo_json()
 
 
-@profile
 def parse_translate_align_in_batches(
     nuc_reference_fp: Path,
     aa_reference_fp: Path,

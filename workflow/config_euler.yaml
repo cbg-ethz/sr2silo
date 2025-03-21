@@ -1,4 +1,4 @@
-BASE_SAMPLE_DIR: "tests/data/samples"
+BASE_SAMPLE_DIR: "/cluster/project/pangolin/gordon_samples/samples"
 SAMPLE_BATCH_IDS:
   A1_05_2024_10_08: "20241024_2411515907"
   A2_17_2024_10_13: "20241024_2411515907"
@@ -27,4 +27,4 @@ SAMPLE_BATCH_IDS:
 TIMELINE_FILE: "/cluster/project/pangolin/work-vp-test/variants/timeline.tsv"
 PRIMERS_FILE: "/cluster/project/pangolin/work-new-variants/references/primers.yaml"
 NUC_REFERENCE: "sars-cov-2"
-RESULTS_DIR: "results"
+RESULTS_DIR: "/cluster/project/pangolin/gordon_samples/temp_test"
