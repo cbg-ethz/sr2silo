@@ -28,6 +28,7 @@ class LapisClient:
         if self.is_ci_environment is True:
             logging.info("CI environment detected. Using dummy token.")
             self.token = "dummy_token"
+            return None
 
         response = requests.post(
             self.token_url,

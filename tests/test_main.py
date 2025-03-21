@@ -1,4 +1,12 @@
+"""Tests for the main CLI application of sr2silo.
+These tests cover the command-line interface and its
+functionality, ensuring that the application behaves
+as expected when invoked with various commands and options.
+"""
+
 from __future__ import annotations
+
+import os
 
 from typer.testing import CliRunner
 
@@ -74,7 +82,12 @@ def test_import_to_loculus_with_real_files(real_sample_files_import_to_loculus):
 def test_import_to_loculus_with_real_files_and_upload(
     real_sample_files_import_to_loculus,
 ):
-    """Test import-to-loculus with real sample files and upload flag."""
+    """Test import-to-loculus with real sample files and upload flag in a CI
+    environment.
+    """
+    env = os.environ.copy()
+    env["CI"] = "true"
+
     result = runner.invoke(
         app,
         [
@@ -95,6 +108,7 @@ def test_import_to_loculus_with_real_files_and_upload(
             real_sample_files_import_to_loculus["reference"],
             "--upload",
         ],
+        env=env,
     )
 
     assert result.exit_code == 0

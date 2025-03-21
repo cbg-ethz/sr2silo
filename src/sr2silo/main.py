@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from typing import Annotated
 
@@ -117,6 +118,14 @@ def import_to_loculus(
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
     logging.info(f"Upload to S3 and submit to SILO: {upload}")
+
+    # check if $TMPDIR is set, if not use /tmp
+    if "TMPDIR" in os.environ:
+        temp_dir = Path(os.environ["TMPDIR"])
+        logging.info(f"Recognize temporary directory set in Env: {temp_dir}")
+        logging.info(
+            "This will be used for amino acid translation and alignment - by diamond."
+        )
 
     ci_env = is_ci_environment()
     logging.info(f"Running in CI environment: {ci_env}")
