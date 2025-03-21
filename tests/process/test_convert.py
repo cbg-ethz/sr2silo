@@ -355,7 +355,7 @@ def test_bam_to_fastq_handle_indels(dummy_alignment, tmp_path):
     )
 
 
-def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path = Path("micro_test")):
+def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path=Path("micro_test")):
     """Test bam_to_fastq_handle_indels with a micro BAM file."""
     # Create temporary files for FASTQ and insertions
     fastq_file = tmp_path / "output.fastq"
@@ -363,7 +363,6 @@ def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path = Path("micro_t
 
     # Use the micro BAM file for testing
     bam_to_fastq_handle_indels(micro_bam_fp, fastq_file, insertions_file)
-
 
     # get expected FASTQ content
     expected = Path("tests/data/bam/micro")
@@ -375,7 +374,7 @@ def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path = Path("micro_t
     print(f"Generated FASTQ content:\n{fastq_content}")
 
     assert (
-         fastq_content == expected_fastq_content
+        fastq_content == expected_fastq_content
     ), f"FASTQ output mismatch:\nExpected:\n{expected_fastq_content}\nGot:\n{fastq_content}"
 
     # get expected insertions content
@@ -387,7 +386,6 @@ def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path = Path("micro_t
     assert (
         insertion_content == expected_insertions_content
     ), f"Insertion output mismatch:\nExpected:\n{expected_insertions_content}\nGot:\n{insertion_content}"
-
 
 
 def test_get_gene_set_from_ref_malformed_no_sequence(tmp_path):
