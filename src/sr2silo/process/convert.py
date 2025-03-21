@@ -253,6 +253,10 @@ def bam_to_fastq_handle_indels(
                         # Hard clipped bases are not present in the read sequence,
                         # so no update to query_pos is required.
                         pass
+                    elif cigar[0] == 6:  # Padding
+                        # Padding is a silent deletion from padded reference
+                        # No action needed for this case.
+                        pass
 
                 # Write the modified read to the FASTQ file
                 fastq.write(f"@{read.query_name}\n")
