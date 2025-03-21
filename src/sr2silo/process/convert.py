@@ -249,6 +249,10 @@ def bam_to_fastq_handle_indels(
                     elif cigar[0] == 4:  # Soft clipping
                         # Skip soft clipped bases (they are not aligned)
                         query_pos += cigar[1]
+                    elif cigar[0] == 5:  # Hard clipping
+                        # Hard clipped bases are not present in the read sequence,
+                        # so no update to query_pos is required.
+                        pass
 
                 # Write the modified read to the FASTQ file
                 fastq.write(f"@{read.query_name}\n")
