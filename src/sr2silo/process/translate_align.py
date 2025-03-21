@@ -134,14 +134,11 @@ def nuc_to_aa_alignment(
         # check if temp_dir is specieifed in the environment
         if "TMPDIR" in os.environ:
             temp_dir_path = Path(os.environ["TMPDIR"])
-            logging.info(f"Recognize temporary directory set in Env: {temp_dir_path}")
-            logging.info(
-                "This will be used for amino acid translation and alignment - by diamond."
-            )
+            logging.info("Recognize temporary directory set in Env: %s", temp_dir_path)
+            logging.info("Used for amino acid translation and alignment - by diamond.")
         else:
-            logging.info(
-                f"Temporary directory not set in Env. Using output dir default: {temp_dir_path}"
-            )
+            logging.info("Temporary directory not set in Env.")
+            logging.info("Using output dir default: %s", temp_dir_path)
 
         logging.info(f"Using temporary directory for diamond: {temp_dir_path}")
 
