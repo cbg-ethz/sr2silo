@@ -355,7 +355,7 @@ def test_bam_to_fastq_handle_indels(dummy_alignment, tmp_path):
     )
 
 
-def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path = Path("tests/data/bam/micro/")):
+def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path = Path("micro_test")):
     """Test bam_to_fastq_handle_indels with a micro BAM file."""
     # Create temporary files for FASTQ and insertions
     fastq_file = tmp_path / "output.fastq"
@@ -364,10 +364,29 @@ def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path = Path("tests/d
     # Use the micro BAM file for testing
     bam_to_fastq_handle_indels(micro_bam_fp, fastq_file, insertions_file)
 
-    # Check the output files
-    assert fastq_file.exists(), "FASTQ file was not created"
-    assert insertions_file.exists(), "Insertions file was not created"
 
+    # get expected FASTQ content
+    expected = Path("tests/data/bam/micro")
+    expected_fastq_fp = expected / "expected_clear_nucs.fastq"
+    expected_fastq_content = expected_fastq_fp.read_text()
+    fastq_content = fastq_file.read_text()
+
+    print(f"Expected FASTQ content:\n{expected_fastq_content}")
+    print(f"Generated FASTQ content:\n{fastq_content}")
+
+    assert (
+         fastq_content == expected_fastq_content
+    ), f"FASTQ output mismatch:\nExpected:\n{expected_fastq_content}\nGot:\n{fastq_content}"
+
+    # get expected insertions content
+    expected_insertions_fp = expected / "expected_nuc_insertions.txt"
+    expected_insertions_content = expected_insertions_fp.read_text()
+    insertion_content = insertions_file.read_text()
+    print(f"Expected insertions content:\n{expected_insertions_content}")
+    print(f"Generated insertions content:\n{insertion_content}")
+    assert (
+        insertion_content == expected_insertions_content
+    ), f"Insertion output mismatch:\nExpected:\n{expected_insertions_content}\nGot:\n{insertion_content}"
 
 
 
