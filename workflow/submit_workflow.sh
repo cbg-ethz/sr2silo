@@ -9,3 +9,4 @@ sbatch \
     -o /cluster/home/koehng/logs/sr2silo.out \
     -e /cluster/home/koehng/logs/sr2silo.err \
     snakemake -c 4
+
