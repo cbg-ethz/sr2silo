@@ -65,15 +65,18 @@ def aligned_reads() -> Dict[str, AlignedRead]:
 
     return aligned_reads
 
+
 @pytest.fixture
 def micro_bam_fp() -> Path:
     """Path to the micro BAM file."""
     return Path("tests/data/bam/micro/micro.bam")
 
+
 @pytest.fixture
 def micro_bam_sam_fp() -> Path:
     """Path to the micro BAM file."""
     return Path("tests/data/bam/micro/micro.sam")
+
 
 @pytest.fixture
 def micro_reference_fp() -> Path:
