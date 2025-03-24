@@ -9,6 +9,7 @@ import os
 import tempfile
 from pathlib import Path
 
+
 from sr2silo.config import (
     get_keycloak_token_url,
     get_mock_urls,
@@ -100,9 +101,9 @@ def submit_to_silo(result_dir: Path, s3_link: str) -> bool:
 
     if is_ci_environment():
         logging.info(
-            "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
+            "CI environment active; using mock URLs but executing submission mechanics."
         )
-        # Get mock URLs for CI environment
+        # Get mock URLs for CI environment, then continue with LAPIS submission
         KEYCLOAK_TOKEN_URL, SUBMISSION_URL = get_mock_urls()
     else:
         # Get URLs from environment or use defaults
@@ -194,6 +195,7 @@ def nuc_align_to_silo_njson(
     logging.info(f"Metadata saved to: {metadata_file}")
 
     #####  Merge & Pair reads #####
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir)
         logging.info("=== Merging and pairing reads using temporary directory ===")
@@ -210,6 +212,7 @@ def nuc_align_to_silo_njson(
         logging.debug(f"Decompressed reads saved to: {input_sam_fp}")
 
         logging.debug("Starting to merge paired-end reads")
+
         merged_reads_sam_tmp_fp = (
             tmp_dir / f"{input_sam_fp.stem}_merged{input_sam_fp.suffix}"
         )
@@ -229,9 +232,11 @@ def nuc_align_to_silo_njson(
             f"Merged reads file moved to results directory: {merged_reads_sam_fp}"
         )
 
+
     logging.debug("Re-Compressing merged reads to BAM")
     merged_reads_fp = merged_reads_sam_fp.with_suffix(".bam")
     sam_to_bam(merged_reads_sam_fp, merged_reads_fp)
+
     logging.info(f"Re-Compressed reads saved to: {merged_reads_fp}")
 
     ##### Translate / Align / Normalize to JSON #####

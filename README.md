@@ -63,6 +63,16 @@ sr2silo outputs per read a JSON (mock output):
 
 The total output is handled in an `.ndjson.zst`.
 
+### Resource Requirements
+
+When running sr2silo, particularly the `import-to-loculus` command, be aware of memory and storage requirements:
+
+- Standard configuration uses 8GB RAM and one CPU core
+- Processing batches of 100k reads requires ~3GB RAM plus ~3GB for Diamond
+- Temporary storage needs (especially on clusters) can reach 30-50GB
+
+For detailed information about resource requirements, especially for cluster environments, please refer to the [Resource Requirements documentation](docs/usage/resource_requirements.md).
+
 ### Wrangling Short-Read Genomic Alignments for SILO Database
 
 Originally this was started for wargeling short-read genomic alignments for from wastewater-sampling, into a format for easy import into [Loculus](https://github.com/loculus-project/loculus) and its sequence database SILO.

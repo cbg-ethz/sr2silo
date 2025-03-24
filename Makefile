@@ -40,11 +40,10 @@ activate-dev-env:
 activate-workflow-env:
 	@echo "Activate the workflow environment with: conda activate sr2silo-workflow"
 
-.PHONY: install-poetry
-install-poetry:
-	@echo "Installing Poetry in the sr2silo environment..."
-	@conda run -n sr2silo pip install poetry
-	@conda run -n sr2silo poetry install
+.PHONY: install
+install:
+	@echo "Installing the package in the sr2silo environment..."
+	@conda run -n sr2silo pip install -e .
 
 .PHONY: install-poetry-dev
 install-poetry-dev:
@@ -52,8 +51,13 @@ install-poetry-dev:
 	@conda run -n sr2silo-dev pip install poetry
 	@conda run -n sr2silo-dev poetry install --with dev
 
+.PHONY: install-workflow
+install-workflow:
+	@echo "Installing the package in the sr2silo-workflow environment..."
+	@conda run -n sr2silo-workflow pip install -e .
+
 .PHONY: setup
-setup: create-env activate-env install-poetry
+setup: create-env activate-env install
 	@echo "Environment setup complete."
 
 .PHONY: setup-dev
@@ -61,7 +65,7 @@ setup-dev: create-dev-env activate-dev-env install-poetry-dev
 	@echo "Development environment setup complete."
 
 .PHONY: setup-workflow
-setup-workflow: create-workflow-env activate-workflow-env
+setup-workflow: create-workflow-env activate-workflow-env install-workflow
 	@echo "Workflow environment setup complete."
 
 .PHONY: setup-all
