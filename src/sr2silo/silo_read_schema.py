@@ -58,7 +58,7 @@ class NucleotideInsertions(BaseModel):
     @field_validator("main")
     @classmethod
     def validate_nuc_insertions_format(cls, v: List[str]) -> List[str]:
-        """Validate that nucleotide insertions have the format 'position : sequence'."""
+        """Validate that nucleotide insertions have the format 'position:sequence'."""
         pattern = r"^\d+:[ACGT]+$"
         for insertion in v:
             if not re.match(pattern, insertion):
