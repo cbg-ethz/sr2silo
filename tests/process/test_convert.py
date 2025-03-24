@@ -8,12 +8,12 @@ from pathlib import Path
 
 import pysam
 
-import pytest
-
 from sr2silo.process import bam_to_sam
 from sr2silo.process.convert import (
     bam_to_fasta_query,
     bam_to_fastq_handle_indels,
+    create_index,
+    is_bam_indexed,
     is_sorted_qname,
     pad_alignment,
     sam_to_seq_and_indels,
@@ -64,7 +64,6 @@ def test_sort_bam_file(tmp_path, monkeypatch):
         if output_path:
             with open(output_path, "w") as f:
                 f.write("")
-
 
     # Apply the monkeypatch
     monkeypatch.setattr(pysam, "sort", mock_sort)
@@ -184,7 +183,6 @@ def test_sort_bam_file_and_check_sorting(tmp_path):
     # First, create a header
     header = {"HD": {"VN": "1.0", "SO": "unknown"}, "SQ": [{"LN": 100, "SN": "chr1"}]}
 
-
     # Create the input BAM file
     input_bam = tmp_path / "input.bam"
     with pysam.AlignmentFile(str(input_bam), "wb", header=header) as outf:  # noqa
@@ -216,7 +214,6 @@ def test_sort_bam_file_and_check_sorting(tmp_path):
         "Query name sorted BAM has queryname sorting: "
         f"{is_sorted_qname(output_qname_bam)}"
     )
-
 
     # Create the input BAM file
     input_bam = tmp_path / "input.bam"

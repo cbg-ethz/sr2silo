@@ -37,7 +37,6 @@ def test_process_sample():
         # make dir for results
         os.makedirs(workdir / "results", exist_ok=True)
 
-
         # Run the test job.
         try:
             sp.check_output(
