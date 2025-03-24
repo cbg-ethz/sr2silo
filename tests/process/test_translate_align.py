@@ -75,13 +75,16 @@ def test_parse_translate_align(aligned_reads):
                 f"Expected {exp_attr} but got {act_attr}"
             )
 
-    def test_parse_translate_align_synth():
-        """Test the parse_translate_align function with synthetic data."""
+def test_parse_translate_align_synth(micro_bam_fp, micro_reference_fp, micro_aa_reference_fp):
+    """Test the parse_translate_align function with synthetic data."""
 
-        raise NotImplementedError(
-            "This test is not implemented yet. "
-            "Please implement it to ensure the function works correctly."
-        )
+    aligned_reads = translate_align.parse_translate_align(
+        nuc_reference_fp = micro_reference_fp,
+        aa_reference_fp = micro_aa_reference_fp,
+        nuc_alignment_fp = micro_bam_fp,
+    )
+
+
 
 
 @pytest.mark.skip(reason="Not implemented")
