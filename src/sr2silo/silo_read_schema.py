@@ -8,9 +8,10 @@ to the SILO database, ensuring all records conform to the expected format.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel, RootModel, field_validator, model_validator
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -54,6 +55,19 @@ class NucleotideInsertions(BaseModel):
 
     main: List[str]
 
+    @field_validator("main")
+    @classmethod
+    def validate_nuc_insertions_format(cls, v: List[str]) -> List[str]:
+        """Validate that nucleotide insertions have the format 'position : sequence'."""
+        pattern = r"^\d+:[ACGT]+$"
+        for insertion in v:
+            if not re.match(pattern, insertion):
+                raise ValueError(
+                    f"Nucleotide insertion '{insertion}' is not in the expected format. "
+                    f"Expected format: 'position : sequence' (e.g., '123:ACGT')"
+                )
+        return v
+
 
 class AminoAcidSequences(RootModel):
     """SILO-specific pydantic schema for AminoAcidSequences JSON format."""
@@ -65,6 +79,19 @@ class AminoAcidInsertions(RootModel):
     """SILO-specific pydantic schema for AminoAcidInsertions JSON format."""
 
     root: Dict[str, List[str]]
+
+    @model_validator(mode="after")
+    def validate_aa_insertions_format(self) -> "AminoAcidInsertions":
+        """Validate that amino acid insertions have the format 'position:sequence'."""
+        pattern = r"^\d+:[A-Z]+$"
+        for gene, insertions in self.root.items():
+            for insertion in insertions:
+                if not re.match(pattern, insertion):
+                    raise ValueError(
+                        f"Amino acid insertion '{insertion}' for gene '{gene}' is not in the expected format. "
+                        f"Expected format: 'position:sequence' (e.g., '123:AST')"
+                    )
+        return self
 
 
 class AlignedReadSchema(BaseModel):

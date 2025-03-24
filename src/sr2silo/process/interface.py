@@ -200,7 +200,7 @@ class AlignedRead:
         nucleotide_insertions = []
         if json_data["nucleotideInsertions"]["main"]:
             nucleotide_insertions = [
-                NucInsertion(int(ins.split(":")[0]), ins.split(" : ")[1])
+                NucInsertion(int(ins.split(":")[0]), ins.split(":")[1])
                 for ins in json_data["nucleotideInsertions"]["main"]
             ]
         amino_acid_insertions = AAInsertionSet.from_dict(
