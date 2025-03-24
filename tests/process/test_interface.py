@@ -23,7 +23,7 @@ def test_nuc_insertion():
     insertion = NucInsertion(10, "ACTG")
     assert insertion.position == 10
     assert insertion.sequence == "ACTG"
-    assert str(insertion) == "10 : ACTG"
+    assert str(insertion) == "10:ACTG"
 
 
 def test_aa_insertion():
@@ -31,7 +31,7 @@ def test_aa_insertion():
     insertion = AAInsertion(5, "MKT")
     assert insertion.position == 5
     assert insertion.sequence == "MKT"
-    assert str(insertion) == "5 : MKT"
+    assert str(insertion) == "5:MKT"
 
 
 def test_aligned_read():
@@ -87,7 +87,7 @@ def test_aa_insertion_set():
     gene_name = GeneName("gene1")
     aa_insertion_set = AAInsertionSet([gene_name])
     aa_insertion_set.set_insertions_for_gene(gene_name, [AAInsertion(5, "MKT")])
-    assert aa_insertion_set.to_dict() == {"gene1": ["5 : MKT"]}
+    assert aa_insertion_set.to_dict() == {"gene1": ["5:MKT"]}
 
 
 def test_aa_sequence_set():
@@ -188,7 +188,7 @@ def test_get_amino_acid_insertions():
     )
     retrieved = read.get_amino_acid_insertions().to_dict()
     assert "gene1" in retrieved
-    assert retrieved["gene1"] == ["7 : ABC"]
+    assert retrieved["gene1"] == ["7:ABC"]
 
 
 def test_get_metadata_without_setting():
@@ -230,11 +230,11 @@ def test_str_methods():
 
     # Test NucInsertion.__str__
     nuc = NucInsertion(30, "GGCC")
-    assert str(nuc) == "30 : GGCC"
+    assert str(nuc) == "30:GGCC"
 
     # Test AAInsertion.__str__
     aa = AAInsertion(10, "MLK")
-    assert str(aa) == "10 : MLK"
+    assert str(aa) == "10:MLK"
 
     # Test AAInsertionSet.__str__ equals its to_dict string
     aa_ins_set = AAInsertionSet([GeneName("gene1")])
