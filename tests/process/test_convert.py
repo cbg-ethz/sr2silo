@@ -399,9 +399,11 @@ def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path):
     print(f"Expected FASTQ content:\n{expected_fastq_content}")
     print(f"Generated FASTQ content:\n{fastq_content}")
 
-    assert (
-        fastq_content == expected_fastq_content
-    ), f"FASTQ output mismatch:\nExpected:\n{expected_fastq_content}\nGot:\n{fastq_content}"
+    assert fastq_content == expected_fastq_content, (
+        "FASTQ output mismatch:\nExpected:\n"
+        f"{expected_fastq_content}\nGot:\n"
+        f"{fastq_content}"
+    )
 
     # get expected insertions content
     expected_insertions_fp = expected / "expected_nuc_insertions.txt"
@@ -409,9 +411,11 @@ def test_bam_to_fastq_handle_indels_micro(micro_bam_fp, tmp_path):
     insertion_content = insertions_file.read_text()
     print(f"Expected insertions content:\n{expected_insertions_content}")
     print(f"Generated insertions content:\n{insertion_content}")
-    assert (
-        insertion_content == expected_insertions_content
-    ), f"Insertion output mismatch:\nExpected:\n{expected_insertions_content}\nGot:\n{insertion_content}"
+    assert insertion_content == expected_insertions_content, (
+        f"Insertion output mismatch:\n"
+        f"Expected:\n{expected_insertions_content}\n"
+        f"Got:\n{insertion_content}"
+    )
 
 
 def test_get_gene_set_from_ref_malformed_no_sequence(tmp_path):
