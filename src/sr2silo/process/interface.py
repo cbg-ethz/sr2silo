@@ -139,7 +139,7 @@ class AlignedRead:
     def to_dict(self) -> Dict[str, Any]:
         """Return a dictionary / json representation of the object."""
         formatted_nuc_ins = [
-            f"{ins.position} : {ins.sequence}" for ins in self.nucleotide_insertions
+            f"{ins.position}:{ins.sequence}" for ins in self.nucleotide_insertions
         ]
         json_representation = {
             "readId": self.read_id,
