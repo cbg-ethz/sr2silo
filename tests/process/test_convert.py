@@ -7,12 +7,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import pysam
-import pytest
 
 from sr2silo.process import bam_to_sam
 from sr2silo.process.convert import (
     bam_to_fasta_query,
     bam_to_fastq_handle_indels,
+    create_index,
+    is_bam_indexed,
     is_sorted_qname,
     pad_alignment,
     sam_to_seq_and_indels,
@@ -214,20 +215,31 @@ def test_sort_bam_file_and_check_sorting(tmp_path):
     )
 
 
-@pytest.mark.skip(reason="Not implemented")
-def test_create_index():
-    """Test the index_bam_file function."""
+def test_create_index(bam_data: Path, tmp_path):
+    """Test the create_index function."""
+    import shutil
 
-    raise NotImplementedError
+    # Create a copy of the BAM file in the temporary directory
+    tmp_bam_out = tmp_path / "output.bam"
+    shutil.copy(bam_data, tmp_bam_out)
+
+    # Create index for the BAM file
+    create_index(tmp_bam_out)
+
+    # Check that the index file was created
+    index_file = tmp_bam_out.with_suffix(".bam.bai")
+    assert index_file.exists(), "The index file was not created"
+
+    # Check if it is indexed
+    assert is_bam_indexed(tmp_bam_out), "The BAM file is not indexed"
 
 
 def test_bam_to_fasta_query(micro_bam_fp, tmp_path):
     """Test the bam_to_fasta_query function."""
 
-    tep_dir = Path("test_dir")
     expected_fasta = Path("tests/data/bam/micro/fasta_query.fasta")
-    tep_dir.mkdir(parents=True, exist_ok=True)
-    fastq_file = tep_dir / "output.fasta"
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    fastq_file = tmp_path / "output.fasta"
 
     bam_to_fasta_query(micro_bam_fp, fastq_file)
 
