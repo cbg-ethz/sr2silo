@@ -11,6 +11,7 @@ import pytest
 
 from sr2silo.process import bam_to_sam
 from sr2silo.process.convert import (
+    bam_to_fasta_query,
     bam_to_fastq_handle_indels,
     is_sorted_qname,
     pad_alignment,
@@ -220,11 +221,24 @@ def test_create_index():
     raise NotImplementedError
 
 
-@pytest.mark.skip(reason="Not implemented")
-def test_bam_to_fasta():
-    """Test the bam_to_fasta function."""
+def test_bam_to_fasta_query(micro_bam_fp, tmp_path):
+    """Test the bam_to_fasta_query function."""
 
-    raise NotImplementedError
+    tep_dir = Path("test_dir")
+    expected_fasta = Path("tests/data/bam/micro/fasta_query.fasta")
+    tep_dir.mkdir(parents=True, exist_ok=True)
+    fastq_file = tep_dir / "output.fasta"
+
+    bam_to_fasta_query(micro_bam_fp, fastq_file)
+
+    # check that the output file matched the expected file
+    with open(fastq_file, "r") as f:
+        output_content = f.read()
+    with open(expected_fasta, "r") as f:
+        expected_content = f.read()
+    assert (
+        output_content == expected_content
+    ), f"Expected:\n{expected_content}\nGot:\n{output_content}"
 
 
 def test_pad_alignment():

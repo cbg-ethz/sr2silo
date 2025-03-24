@@ -120,9 +120,13 @@ def create_index(bam_file: Path):
         print(f"An error occurred: {e}")
 
 
-def bam_to_fasta(bam_file: Path, fasta_file: Path):
+def bam_to_fasta_query(bam_file: Path, fasta_file: Path):
     """
-    Convert a BAM file to a FASTA file. Bluntly resolved the sam to fasta.
+    Convert a BAM file to a FASTA file. Bluntly resolved the sam to fasta,
+    removing soft clippings, keeping insertions and deletions, ignoring skipped
+    regions and paddings.
+
+    Outputs the sequence as it is read from the molecule.
 
     Args:
         bam_file: Path to the input BAM file.
@@ -139,7 +143,32 @@ def bam_to_fasta(bam_file: Path, fasta_file: Path):
             for read in bam.fetch():
                 if not read.is_unmapped:
                     name = read.query_name
-                    seq = read.query_sequence
+                    full_seq = read.query_sequence
+
+                    # Remove soft clipping
+                    if full_seq is None:
+                        continue
+
+                    # Get CIGAR string to identify soft clippings
+                    cigar_tuples = read.cigartuples
+                    if cigar_tuples is None:
+                        continue
+
+                    # Calculate sequence without soft clippings
+                    start = 0
+                    end = len(full_seq)
+
+                    # Check for soft clipping at start (CIGAR op 4 = S)
+                    if cigar_tuples[0][0] == 4:
+                        start = cigar_tuples[0][1]
+
+                    # Check for soft clipping at end
+                    if cigar_tuples[-1][0] == 4:
+                        end -= cigar_tuples[-1][1]
+
+                    # Extract sequence without soft clippings
+                    seq = full_seq[start:end]
+
                     fq.write(f">{name}\n{seq}\n")
 
 
