@@ -63,8 +63,9 @@ class NucleotideInsertions(BaseModel):
         for insertion in v:
             if not re.match(pattern, insertion):
                 raise ValueError(
-                    f"Nucleotide insertion '{insertion}' is not in the expected format. "
-                    f"Expected format: 'position : sequence' (e.g., '123:ACGT')"
+                    f"Nucleotide insertion '{insertion}' is not in the expected "
+                    "format. Expected format: 'position : sequence' "
+                    "(e.g., '123:ACGT')"
                 )
         return v
 
@@ -88,8 +89,9 @@ class AminoAcidInsertions(RootModel):
             for insertion in insertions:
                 if not re.match(pattern, insertion):
                     raise ValueError(
-                        f"Amino acid insertion '{insertion}' for gene '{gene}' is not in the expected format. "
-                        f"Expected format: 'position:sequence' (e.g., '123:AST')"
+                        f"Amino acid insertion '{insertion}' for gene '{gene}'"
+                        "is not in the expected format."
+                        "Expected format: 'position:sequence' (e.g., '123:AST')"
                     )
         return self
 
