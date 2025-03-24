@@ -41,6 +41,8 @@ def test_translate():
     assert True
 
 
+# Nota bene: The output tested against is not validated, yet a failure in test
+# notes a change of output here.
 def test_parse_translate_align(aligned_reads):
     """Test the parse_translate_align function.
 

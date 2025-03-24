@@ -129,7 +129,7 @@ def nuc_to_aa_alignment(
 
         logging.info("Converting BAM to FASTQ for AA alignment")
         logging.info("FASTA conversion for AA alignment")
-        convert.bam_to_fasta(in_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
+        convert.bam_to_fasta_query(in_nuc_alignment_fp, fasta_nuc_for_aa_alignment)
 
         # check if temp_dir is specified in the environment
         if "TMPDIR" in os.environ:
