@@ -92,6 +92,6 @@ def micro_reference_fp() -> Path:
 
 @pytest.fixture
 def micro_aa_reference_fp() -> Path:
-    """Path to the micro amino acid reference file. First reading from from
+    """Path to the micro amino acid reference file. First reading from
     the 5'3 end of the genome."""
     return Path("tests/data/bam/micro/micro_aa_ref.fasta")

@@ -75,16 +75,28 @@ def test_parse_translate_align(aligned_reads):
                 f"Expected {exp_attr} but got {act_attr}"
             )
 
-def test_parse_translate_align_synth(micro_bam_fp, micro_reference_fp, micro_aa_reference_fp):
+
+def test_parse_translate_align_synth(
+    micro_bam_fp, micro_reference_fp, micro_aa_reference_fp
+):
     """Test the parse_translate_align function with synthetic data."""
 
     aligned_reads = translate_align.parse_translate_align(
-        nuc_reference_fp = micro_reference_fp,
-        aa_reference_fp = micro_aa_reference_fp,
-        nuc_alignment_fp = micro_bam_fp,
+        nuc_reference_fp=micro_reference_fp,
+        aa_reference_fp=micro_aa_reference_fp,
+        nuc_alignment_fp=micro_bam_fp,
     )
 
+    tmp_path = Path("synth")
+    tmp_path.mkdir(parents=True, exist_ok=True)
 
+    output_ndjson = tmp_path / "aligned_reads.ndjson"
+    with open(output_ndjson, "w") as outfile:
+        for read in aligned_reads.keys():
+            json_str = aligned_reads[read].to_silo_json()
+            outfile.write(f"{json_str}\n")
+
+    raise NotImplementedError("This test is not implemented yet. ")
 
 
 @pytest.mark.skip(reason="Not implemented")
