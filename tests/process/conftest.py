@@ -63,6 +63,12 @@ def aligned_reads() -> Dict[str, AlignedRead]:
         for read_id, read in aligned_reads.items()
     }
 
+    # # Update expected data write to ndjson
+    # ndjson_fp = Path("tests/data/process/aligned_reads.ndjson")
+    # with open(ndjson_fp, "w") as f:
+    #     for read_id, read in aligned_reads.items():
+    #         f.write(f"{read.to_silo_json()}\n")
+
     return aligned_reads
 
 
