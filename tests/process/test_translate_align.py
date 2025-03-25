@@ -42,7 +42,7 @@ def make_reference_nextclade(reference_fasta_fp: Path) -> None:
     sr2silo_reference = "".join(
         [line for line in sr2silo_reference if not line.startswith(">")]
     )
-    # write to file with one header > and the seqeunce in one line
+    # write to file with one header > and the sequence in one line
     with open(reference_fasta_fp, "w") as f:
         f.write(">reference\n")
         f.write(sr2silo_reference)
@@ -265,7 +265,7 @@ def test_validate_nextclade_reference():
     sr2silo_reference = "".join(
         [line for line in sr2silo_reference if not line.startswith(">")]
     )
-    # write to file with one header > and the seqeunce in one line
+    # write to file with one header > and the sequence in one line
     with open("reference.fasta", "w") as f:
         f.write(">reference\n")
         f.write(reference_fasta_str)
@@ -277,12 +277,12 @@ def test_validate_nextclade_reference():
     ), "The reference.fasta file is not the same as the reference.fasta file in sr2silo"
 
 
-def test_parse_translate_align_orth_nextclade(bam_and_fasta_raw_data):
+def test_parse_translate_align_orth_nextclade(mock_fasta_query):
     """Test the translate_align() orthogonally using nextclade."""
 
     # get the test data
-    fasta_raw_data = bam_and_fasta_raw_data[1]
-    bam_path = bam_and_fasta_raw_data[0]
+    fasta_raw_data = mock_fasta_query[1]
+    bam_path = mock_fasta_query[0]
 
     # with tempfile.TemporaryDirectory() as tmpdirname:
 

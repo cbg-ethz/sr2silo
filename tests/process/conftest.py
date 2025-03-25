@@ -12,7 +12,6 @@ from typing import Dict
 import pytest
 
 import sr2silo.process.translate_align as translate_align
-from sr2silo.process import enrich_read_with_metadata
 from sr2silo.process.interface import AlignedRead
 
 

@@ -14,7 +14,7 @@ from typing import List
 import pysam
 import pytest
 
-from sr2silo.process import bam_to_fasta, bam_to_sam
+from sr2silo.process import bam_to_fasta_query, bam_to_sam
 
 # Define test data paths
 TEST_DATA_DIR = Path(__file__).parent / "data"
@@ -89,8 +89,9 @@ def sam_with_insert_data() -> dict:
 
 
 @pytest.fixture
-def bam_and_fasta_raw_data() -> List[Path]:  # noqa: F821
-    """Return a raw nuclitide read file reconstructed from the BAM file.
+def mock_fasta_query() -> List[Path]:  # noqa: F821
+    """Return a query nuclitide reads file reconstructed from the BAM file,
+    for amino acid translation and alignment.
 
        That is putting insertions back into the reads.
 
@@ -98,7 +99,7 @@ def bam_and_fasta_raw_data() -> List[Path]:  # noqa: F821
         List[Path, Path]: Bam Path, Fasta Path
 
     """
-    bam_to_fasta(NUC_ALIGNMENT_BAM, NUC_ALIGNMENT_BAM.with_suffix(".fasta"))
+    bam_to_fasta_query(NUC_ALIGNMENT_BAM, NUC_ALIGNMENT_BAM.with_suffix(".fasta"))
 
     return [NUC_ALIGNMENT_BAM, NUC_ALIGNMENT_BAM.with_suffix(".fasta")]
 
