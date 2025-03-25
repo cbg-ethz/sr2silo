@@ -57,6 +57,35 @@ def aligned_reads() -> Dict[str, AlignedRead]:
         json.dump(metadata, f, indent=4)
         metadata_fp = Path(f.name)
 
-    aligned_reads = enrich_read_with_metadata(aligned_reads, metadata_fp)
+    enrich_read_with_metadata = translate_align.curry_read_with_metadata(metadata_fp)
+
+    aligned_reads = {
+        read_id: enrich_read_with_metadata(read)
+        for read_id, read in aligned_reads.items()
+    }
+
+    # # Update expected data write to ndjson
+    # ndjson_fp = Path("tests/data/process/aligned_reads.ndjson")
+    # with open(ndjson_fp, "w") as f:
+    #     for read_id, read in aligned_reads.items():
+    #         f.write(f"{read.to_silo_json()}\n")
 
     return aligned_reads
+
+
+@pytest.fixture
+def micro_bam_fp() -> Path:
+    """Path to the micro BAM file."""
+    return Path("tests/data/bam/micro/micro.bam")
+
+
+@pytest.fixture
+def micro_bam_sam_fp() -> Path:
+    """Path to the micro BAM file."""
+    return Path("tests/data/bam/micro/micro.sam")
+
+
+@pytest.fixture
+def micro_reference_fp() -> Path:
+    """Path to the micro reference file."""
+    return Path("tests/data/bam/micro/micro_ref.fasta")

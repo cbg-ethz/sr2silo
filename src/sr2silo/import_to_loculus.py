@@ -6,7 +6,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import tempfile
 from pathlib import Path
+
 
 from sr2silo.config import (
     get_keycloak_token_url,
@@ -14,13 +16,19 @@ from sr2silo.config import (
     get_submission_url,
     is_ci_environment,
 )
-from sr2silo.process import parse_translate_align_in_batches
+from sr2silo.process import (
+    bam_to_sam,
+    paired_end_read_merger,
+    parse_translate_align_in_batches,
+    sam_to_bam,
+    sort_bam_file,
+)
 from sr2silo.silo import LapisClient, Submission
 from sr2silo.storage import upload_file_to_s3
 from sr2silo.vpipe import Sample
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 
@@ -93,9 +101,9 @@ def submit_to_silo(result_dir: Path, s3_link: str) -> bool:
 
     if is_ci_environment():
         logging.info(
-            "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
+            "CI environment active; using mock URLs but executing submission mechanics."
         )
-        # Get mock URLs for CI environment
+        # Get mock URLs for CI environment, then continue with LAPIS submission
         KEYCLOAK_TOKEN_URL, SUBMISSION_URL = get_mock_urls()
     else:
         # Get URLs from environment or use defaults
@@ -187,18 +195,52 @@ def nuc_align_to_silo_njson(
     logging.info(f"Metadata saved to: {metadata_file}")
 
     #####  Merge & Pair reads #####
-    logging.info("Merging and pairing reads: Not implemented yet")
+    merged_reads_sam_fp = result_dir / f"{input_file.stem}_merged.sam"
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir = Path(tmp_dir)
+        logging.info("=== Merging and pairing reads using temporary directory ===")
+
+        logging.debug("Sort by QNAME for matching")
+        input_bam_sorted_by_qname_fp = (
+            tmp_dir / f"{input_file.stem}.sorted_by_qname{input_file.suffix}"
+        )
+        sort_bam_file(input_file, input_bam_sorted_by_qname_fp, sort_by_qname=True)
+
+        logging.debug("Decompressing input file to SAM")
+        input_sam_fp = tmp_dir / f"{input_file.stem}.sam"
+        bam_to_sam(input_bam_sorted_by_qname_fp, input_sam_fp)
+        logging.debug(f"Decompressed reads saved to: {input_sam_fp}")
+
+        logging.debug("Starting to merge paired-end reads")
+        paired_end_read_merger(
+            nuc_align_sam_fp=input_sam_fp,
+            ref_genome_fasta_fp=nuc_reference_fp,
+            output_merged_sam_fp=merged_reads_sam_fp,
+        )
+        logging.debug(f"Merged reads saved to temporary file: {merged_reads_sam_fp}")
+
+    logging.debug("Re-Compressing merged reads to BAM")
+    merged_reads_fp = merged_reads_sam_fp.with_suffix(".bam")
+    sam_to_bam(merged_reads_sam_fp, merged_reads_fp)
+    merged_reads_sam_fp.unlink()
+    logging.info(f"Re-Compressed reads saved to: {merged_reads_fp}")
 
     ##### Translate / Align / Normalize to JSON #####
-    logging.info("Start translating, aligning and normalizing reads to JSON")
+    logging.info("=== Start translating, aligning and normalizing reads to JSON ===")
     aligned_reads_fp = output_fp
-    aligned_reads_fp = parse_translate_align_in_batches(
-        nuc_reference_fp=nuc_reference_fp,
-        aa_reference_fp=aa_reference_fp,
-        nuc_alignment_fp=input_file,
-        metadata_fp=metadata_file,
-        output_fp=aligned_reads_fp,
-    )
+    try:
+        aligned_reads_fp = parse_translate_align_in_batches(
+            nuc_reference_fp=nuc_reference_fp,
+            aa_reference_fp=aa_reference_fp,
+            nuc_alignment_fp=merged_reads_fp,
+            metadata_fp=metadata_file,
+            output_fp=aligned_reads_fp,
+        )
+    finally:
+        if merged_reads_fp.exists():
+            merged_reads_fp.unlink()
+            logging.info(f"Temporary file {merged_reads_fp} removed.")
     logging.info(f"Processed reads saved to: {aligned_reads_fp}")
     if upload:
         s3_link = upload_to_s3(aligned_reads_fp, sample_id)

@@ -12,7 +12,6 @@
 
 [![Project Status: POC – This project is currently under active development.](https://www.repostatus.org/badges/latest/concept.svg)](https://www.repostatus.org/#concept)
 [![CI/CD](https://github.com/gordonkoehn/UsefulGnom/actions/workflows/test.yml/badge.svg)](https://github.com/gordonkoehn/UsefulGnom/actions/workflows/test.yml)
-[![Code Coverage](https://codecov.io/gh/cbg-ethz/sr2silo/branch/main/graph/badge.svg)](https://codecov.io/gh/cbg-ethz/sr2silo)
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Pytest](https://img.shields.io/badge/tested%20with-pytest-0A9EDC.svg)](https://docs.pytest.org/en/stable/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/charliermarsh/ruff)
@@ -63,6 +62,16 @@ sr2silo outputs per read a JSON (mock output):
 ```
 
 The total output is handled in an `.ndjson.zst`.
+
+### Resource Requirements
+
+When running sr2silo, particularly the `import-to-loculus` command, be aware of memory and storage requirements:
+
+- Standard configuration uses 8GB RAM and one CPU core
+- Processing batches of 100k reads requires ~3GB RAM plus ~3GB for Diamond
+- Temporary storage needs (especially on clusters) can reach 30-50GB
+
+For detailed information about resource requirements, especially for cluster environments, please refer to the [Resource Requirements documentation](docs/usage/resource_requirements.md).
 
 ### Wrangling Short-Read Genomic Alignments for SILO Database
 
