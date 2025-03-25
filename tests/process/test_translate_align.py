@@ -51,7 +51,7 @@ def make_reference_nextclade(reference_fasta_fp: Path) -> None:
 def get_reference_nextclade(reference_fasta_fp: Path) -> None:
     """This function gets the reference file out of nextclade,"""
 
-    nextclade_reference = "nextstrain/sars-cov-2/XBB"
+    nextclade_reference = "sars-cov-2"
 
     temp_dir = tempfile.mkdtemp()
     logging.debug(f"temp_dir: {temp_dir}")
@@ -106,7 +106,7 @@ def translate_align_nextclade_ref(
             "dataset",
             "get",
             "--name",
-            "nextstrain/sars-cov-2/XBB",
+            "sars-cov-2",
             "--output-dir",
             temp_dir,
         ]
@@ -232,7 +232,7 @@ def test_translate_align_nextclade(temp_dir):
 
 def test_validate_nextclade_reference():
 
-    nextclade_reference = "nextstrain/sars-cov-2/XBB"
+    nextclade_reference = "sars-cov-2"
 
     temp_dir = tempfile.mkdtemp()
     logging.debug(f"temp_dir: {temp_dir}")
@@ -295,7 +295,7 @@ def test_parse_translate_align_orth_nextclade(mock_fasta_query):
     # nuc_reference_genomes_fp = output_dir / "nuc_reference_genomes.fasta"
     # make_reference_nextclade(nuc_reference_genomes_fp)
 
-    translate_align_nextclade([fasta_raw_data], output_dir, "nextstrain/sars-cov-2/XBB")
+    translate_align_nextclade([fasta_raw_data], output_dir, "sars-cov-2")
 
     ### Parse the Nextclade file to AlignedReads
     ## Read in Insertions from nextclade.ndjson, "insertions" for NucInsertions and "aaInsertions" for AAInsertions
@@ -409,7 +409,7 @@ def test_parse_translate_align_orth_nextclade(mock_fasta_query):
     # for a given read_id check that the aligned sequences are the same
     for read_id in aligned_reads.keys():
         for field in [
-            # "aligned_nucleotide_sequences", # skip ad V-Pipe does the alignment
+            "aligned_nucleotide_sequences",  # skip ad V-Pipe does the alignment
             # "aligned_amino_acid_sequences",
             "amino_acid_insertions",
         ]:
