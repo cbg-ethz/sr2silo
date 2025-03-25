@@ -81,6 +81,8 @@ def test_parse_translate_align_synth(
 ):
     """Test the parse_translate_align function with synthetic data."""
 
+    micro_bam_fp = Path("tests/data/bam/micro/test7.bam")
+
     aligned_reads = translate_align.parse_translate_align(
         nuc_reference_fp=micro_reference_fp,
         aa_reference_fp=micro_aa_reference_fp,
