@@ -79,6 +79,26 @@ def sort_bam_file(
         raise Exception(f"An error occurred: {e}")
 
 
+def sort_sam_by_qname(input_sam_path: Path, output_sam_path: Path):
+    """
+    Sorts a sam file using pysam.sort command by query name.
+    Args:
+        input_bam_path (Path): Path to the input BAM file.
+        output_bam_path (Path): Path to the output sorted BAM file.
+    """
+    try:
+        # Convert Path objects to strings for pysam compatibility
+        input_sam_str = str(input_sam_path)
+        output_sam_str = str(output_sam_path)
+
+        # Using pysam.sort command to sort the BAM file and write to disk incrementally.
+        pysam.sort("-n", "-o", output_sam_str, input_sam_str)
+        logging.info(f"SAM file has been sorted and saved to {output_sam_str}")
+    except Exception as e:  # pragma: no cover
+        print(f"An error occurred: {e}")
+        raise Exception(f"An error occurred: {e}")
+
+
 def create_index(bam_file: Path):
     """
     Create an index for a BAM file using pysam.

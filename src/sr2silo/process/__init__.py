@@ -13,6 +13,7 @@ from sr2silo.process.convert import (
     sam_to_bam,
     sort_and_index_bam,
     sort_bam_file,
+    sort_sam_by_qname,
 )
 from sr2silo.process.interface import (
     AAInsertion,
@@ -39,6 +40,7 @@ __all__ = [
     "sam_to_bam",
     "sort_and_index_bam",
     "sort_bam_file",
+    "sort_sam_by_qname",
     # from sr2silo.process.interface
     "AAInsertion",
     "AAInsertionSet",
