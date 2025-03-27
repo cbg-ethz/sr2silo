@@ -25,7 +25,7 @@ class Insertion:
 
     def __str__(self) -> str:
         """toString method."""
-        return f"{self.position} : {self.sequence}"
+        return f"{self.position}:{self.sequence}"
 
 
 class NucInsertion(Insertion):
@@ -139,7 +139,7 @@ class AlignedRead:
     def to_dict(self) -> Dict[str, Any]:
         """Return a dictionary / json representation of the object."""
         formatted_nuc_ins = [
-            f"{ins.position} : {ins.sequence}" for ins in self.nucleotide_insertions
+            f"{ins.position}:{ins.sequence}" for ins in self.nucleotide_insertions
         ]
         json_representation = {
             "readId": self.read_id,
@@ -200,7 +200,7 @@ class AlignedRead:
         nucleotide_insertions = []
         if json_data["nucleotideInsertions"]["main"]:
             nucleotide_insertions = [
-                NucInsertion(int(ins.split(" : ")[0]), ins.split(" : ")[1])
+                NucInsertion(int(ins.split(":")[0]), ins.split(":")[1])
                 for ins in json_data["nucleotideInsertions"]["main"]
             ]
         amino_acid_insertions = AAInsertionSet.from_dict(
@@ -320,7 +320,7 @@ class AAInsertionSet:
     def to_dict(self) -> dict:
         """Return a dictionary with gene names as keys."""
         return {
-            str(gene): [f"{ins.position} : {ins.sequence}" for ins in ins_per_gene]
+            str(gene): [f"{ins.position}:{ins.sequence}" for ins in ins_per_gene]
             for gene, ins_per_gene in self.aa_insertions.items()
         }
 
@@ -333,7 +333,7 @@ class AAInsertionSet:
         aa_insertions = AAInsertionSet([])
         for gene_name, ins_list in data.items():
             aa_insertions.aa_insertions[gene_name] = [
-                AAInsertion(int(ins.split(" : ")[0]), ins.split(" : ")[1])
+                AAInsertion(int(ins.split(":")[0]), ins.split(":")[1])
                 for ins in ins_list
             ]
         return aa_insertions

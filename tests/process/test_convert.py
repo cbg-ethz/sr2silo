@@ -432,10 +432,6 @@ def test_get_gene_set_from_ref_malformed_no_sequence(tmp_path):
         gene_set.get_gene_name_list() == []
     ), "Expected empty gene set for header without sequence"
 
-    def test_get_gene_set_from_ref_malformed_blank_lines(tmp_path):
-        """Test get_gene_set_from_ref with a FASTA file that has multiple headers
-        and blank sequence lines."""
-
     # Create file with headers with blank sequence lines
     content = """>GeneA
     >GeneB
