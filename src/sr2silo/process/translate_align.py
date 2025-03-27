@@ -420,6 +420,10 @@ def parse_translate_align_in_batches(
         No sorting constraints are enforced on the input files.
         The output file is compressed with zstd.
 
+    Constraints:
+        No sorting constraints are enforced on the input files.
+        The output file is compressed with zstd.
+
     Logs:
         All logs of INFO and below are suppressed.
 

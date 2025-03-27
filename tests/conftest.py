@@ -52,7 +52,6 @@ def bam_data() -> Path:
     return INPUT_BAM_PATH
 
 
-@pytest.fixture
 def sam_data() -> Path:
     """Return a sample SAM file path.
     This is the expected SAM data for
@@ -66,6 +65,15 @@ def sam_with_insert_data() -> dict:
 
     data_expected = dict()
     data_expected["bam_data_fp"] = INPUT_BAM_INSERTIONS_PATH
+
+    # Convert the BAM file to SAM, and read in the SAM file
+    with temp_dir() as tmpdir:
+        # Convert the BAM file to SAM
+        sam_fp = tmpdir / "sam_data.sam"
+        bam_to_sam(INPUT_BAM_INSERTIONS_PATH, sam_fp)
+        # read in the SAM file
+        sam_content = sam_fp.read_text()
+        data_expected["sam_data"] = sam_content
 
     # Convert the BAM file to SAM, and read in the SAM file
     with temp_dir() as tmpdir:

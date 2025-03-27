@@ -9,7 +9,6 @@ import os
 import tempfile
 from pathlib import Path
 
-
 from sr2silo.config import (
     get_keycloak_token_url,
     get_mock_urls,
@@ -227,6 +226,7 @@ def nuc_align_to_silo_njson(
     logging.info(f"Re-Compressed reads saved to: {merged_reads_fp}")
 
     ##### Translate / Align / Normalize to JSON #####
+    logging.info("=== Start translating, aligning and normalizing reads to JSON ===")
     logging.info("=== Start translating, aligning and normalizing reads to JSON ===")
     aligned_reads_fp = output_fp
     try:

@@ -216,7 +216,7 @@ def test_sort_bam_file_and_check_sorting(tmp_path):
     )
 
 
-def test_create_index(bam_data: Path, tmp_path):
+def test_create_index(bam_data, tmp_path):
     """Test the create_index function."""
     import shutil
 

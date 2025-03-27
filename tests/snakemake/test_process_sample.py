@@ -20,7 +20,7 @@ def test_process_sample():
     """Test the process_sample rule."""
 
     with TemporaryDirectory() as tmpdir:
-        workdir = Path(tmpdir) / "workdir"
+        workdir = tmpdir / Path("workdir")
         data_path = Path("tests/snakemake/process_sample/data")
         expected_path = Path(
             "tests/snakemake/process_sample/expected/results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst"
@@ -94,4 +94,5 @@ def test_process_sample():
             "Expected content:\n"
             f"{expected_content}"
         )
+
         assert generated_content == expected_content, error_message

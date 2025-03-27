@@ -9,12 +9,7 @@ from typing import List, Tuple, Union
 
 import pysam
 
-from sr2silo.process.interface import (
-    Gene,
-    GeneName,
-    GeneSet,
-    Insertion,
-)
+from sr2silo.process.interface import Gene, GeneName, GeneSet, Insertion
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -180,6 +175,7 @@ def bam_to_sam(bam_file: Path, sam_file: Path) -> None:
 
     Args:
       bam_file: Path to the input BAM file.
+      sam_file: Path to the output SAM file.
       sam_file: Path to the output SAM file.
     """
     with pysam.AlignmentFile(str(bam_file), "rb") as in_bam, pysam.AlignmentFile(

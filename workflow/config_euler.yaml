@@ -28,4 +28,3 @@ TIMELINE_FILE: "/cluster/project/pangolin/work-vp-test/variants/timeline.tsv"
 PRIMERS_FILE: "/cluster/project/pangolin/work-new-variants/references/primers.yaml"
 NUC_REFERENCE: "sars-cov-2"
 RESULTS_DIR: "/cluster/project/pangolin/gordon_samples/temp_test"
-
