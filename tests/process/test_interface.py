@@ -250,3 +250,87 @@ def test_str_methods():
     gene = Gene(GeneName("geneX"), 750)
     expected = "{gene_name: geneX, gene_length: 750}"
     assert str(gene) == expected
+
+
+def test_insertion_equality():
+    """Test the __eq__ method for Insertion class."""
+    # Test base Insertion class equality
+    ins1 = NucInsertion(10, "ACTG")
+    ins2 = NucInsertion(10, "ACTG")
+    ins3 = NucInsertion(10, "ACTA")
+    ins4 = NucInsertion(11, "ACTG")
+
+    # Same position and sequence should be equal
+    assert ins1 == ins2
+
+    # Different sequence should not be equal
+    assert ins1 != ins3
+
+    # Different position should not be equal
+    assert ins1 != ins4
+
+    # Comparing with a non-Insertion object should return False
+    assert ins1 != "not_an_insertion"
+
+    # Test with AAInsertion
+    aa_ins1 = AAInsertion(5, "MET")
+    aa_ins2 = AAInsertion(5, "MET")
+    aa_ins3 = AAInsertion(5, "ALA")
+
+    assert aa_ins1 == aa_ins2
+    assert aa_ins1 != aa_ins3
+
+    # Test cross-subclass comparison (should be False even with same position/sequence)
+    mixed_ins = AAInsertion(10, "ACTG")
+    assert ins1 != mixed_ins
+
+
+def test_aa_insertion_set_equality():
+    """Test the __eq__ method for AAInsertionSet class."""
+    # Create two identical sets
+    gene_name1 = GeneName("gene1")
+    gene_name2 = GeneName("gene2")
+
+    aa_set1 = AAInsertionSet([gene_name1, gene_name2])
+    aa_set1.set_insertions_for_gene(
+        gene_name1, [AAInsertion(5, "MKT"), AAInsertion(10, "LVD")]
+    )
+    aa_set1.set_insertions_for_gene(gene_name2, [AAInsertion(15, "RST")])
+
+    aa_set2 = AAInsertionSet([gene_name1, gene_name2])
+    aa_set2.set_insertions_for_gene(
+        gene_name1, [AAInsertion(5, "MKT"), AAInsertion(10, "LVD")]
+    )
+    aa_set2.set_insertions_for_gene(gene_name2, [AAInsertion(15, "RST")])
+
+    # Sets with identical content should be equal
+    assert aa_set1 == aa_set2
+
+    # Sets with different insertion order should still be equal
+    aa_set3 = AAInsertionSet([gene_name1, gene_name2])
+    aa_set3.set_insertions_for_gene(
+        gene_name1, [AAInsertion(10, "LVD"), AAInsertion(5, "MKT")]
+    )
+    aa_set3.set_insertions_for_gene(gene_name2, [AAInsertion(15, "RST")])
+
+    assert aa_set1 == aa_set3
+
+    # Sets with different content should not be equal
+    aa_set4 = AAInsertionSet([gene_name1, gene_name2])
+    aa_set4.set_insertions_for_gene(
+        gene_name1, [AAInsertion(5, "MKT"), AAInsertion(10, "LVX")]
+    )
+    aa_set4.set_insertions_for_gene(gene_name2, [AAInsertion(15, "RST")])
+
+    assert aa_set1 != aa_set4
+
+    # Sets with different keys should not be equal
+    aa_set5 = AAInsertionSet([gene_name1])
+    aa_set5.set_insertions_for_gene(
+        gene_name1, [AAInsertion(5, "MKT"), AAInsertion(10, "LVD")]
+    )
+
+    assert aa_set1 != aa_set5
+
+    # Comparing with a non-AAInsertionSet object should return False
+    assert aa_set1 != "not_an_aa_insertion_set"

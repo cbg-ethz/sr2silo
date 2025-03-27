@@ -82,7 +82,6 @@ def sort_bam_file(
 def sort_sam_by_qname(input_sam_path: Path, output_sam_path: Path):
     """
     Sorts a sam file using pysam.sort command by query name.
-
     Args:
         input_bam_path (Path): Path to the input BAM file.
         output_bam_path (Path): Path to the output sorted BAM file.
@@ -137,6 +136,10 @@ def bam_to_fasta_query(bam_file: Path, fasta_file: Path):
         raise ValueError("Input file is not a BAM file")
     if not fasta_file.suffix.endswith(".fasta"):
         raise ValueError("Output file is not a FASTA file")
+
+    # check if index exists, make index if not
+    if not bam_file.with_suffix(".bai").exists():
+        sort_and_index_bam(bam_file, bam_file)
 
     with pysam.AlignmentFile(str(bam_file), "rb") as bam:
         with open(fasta_file, "w") as fq:
@@ -480,9 +483,16 @@ def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
         logging.info("Sorting and indexing the input BAM file")
         _sort_and_index_bam(input_bam_fp, output_bam_fp)
     else:
-        # copy the input BAM file to the output BAM file
+        # copy the input BAM file to the output, along with the index
         output_bam_fp.write_bytes(input_bam_fp.read_bytes())
-        logging.info("Input BAM file is already sorted and indexed, copying to output")
+        # note then ending is .bam.bai
+        output_bam_fp.with_suffix(".bam.bai").write_bytes(
+            input_bam_fp.with_suffix(".bam.bai").read_bytes()
+        )
+        logging.info(
+            "Input BAM file is already sorted and indexed, \
+                      copying to output"
+        )
 
 
 def _sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
@@ -530,7 +540,7 @@ def is_bam_sorted(bam_file):
 def is_bam_indexed(bam_file):
     """Checks if a BAM file has an index (.bai) file.
 
-    Args:bam_file.suffix.endswith
+    Args:
         bam_file (str): Path to the BAM file.
 
     Returns:
@@ -539,7 +549,7 @@ def is_bam_indexed(bam_file):
     """
     try:
         bam = pysam.AlignmentFile(bam_file, "rb")
-        has_index = bam.has_index()  # Directly check for index
+        has_index = bam.has_index()
         bam.close()
         return has_index
 

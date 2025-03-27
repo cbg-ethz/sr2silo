@@ -180,7 +180,7 @@ def nuc_align_to_silo_njson(
     sample_to_process = Sample(sample_id, batch_id)
     sample_to_process.enrich_metadata(timeline_file, primers_file)
     metadata = sample_to_process.get_metadata()
-    # add nextclade reference to metadata
+    # add reference name to metadata
     resource_fp = Path("./resources") / reference
     nuc_reference_fp = resource_fp / "nuc_reference_genomes.fasta"
     aa_reference_fp = resource_fp / "aa_reference_genomes.fasta"

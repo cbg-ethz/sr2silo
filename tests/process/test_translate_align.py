@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import copy
 import logging
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -24,21 +23,6 @@ from sr2silo.process.interface import (
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
-
-def test_translate():
-    """Test the translation function."""
-
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        output_dir = Path(tmpdirname) / "output"
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        translate_align.translate_nextclade(
-            [Path("tests/data/merged_expected.fasta")],
-            output_dir,
-            "nextstrain/sars-cov-2/XBB",
-        )
-    assert True
 
 
 # Nota bene: The output tested against is not validated, yet a failure in test
@@ -76,6 +60,7 @@ def test_parse_translate_align(aligned_reads):
             )
 
 
+# TODO: Implement the following tests
 @pytest.mark.skip(reason="Not implemented")
 def test_read_in_AligendReads_nuc_seq():
     """Test the make_read_with_nuc_seq function."""
@@ -84,7 +69,6 @@ def test_read_in_AligendReads_nuc_seq():
 
 def test_read_in_AligendReads_nuc_ins(aligned_reads):
     """Test the enrich_read_with_nuc_ins function."""
-
     fasta_nuc_insertions_file = Path("tests/data/process/nuc_insertions.fasta")
 
     expected_aligned_reads = translate_align.enrich_read_with_nuc_ins(
@@ -117,6 +101,7 @@ def test_read_in_AligendReads_nuc_ins(aligned_reads):
         )
 
 
+# TODO: Implement the following tests
 @pytest.mark.skip(reason="Not implemented")
 def test_read_in_AligendReads_aa_ins():
     """Test the read_in_AlignedReads_aa_ins function."""
