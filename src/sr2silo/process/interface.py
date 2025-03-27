@@ -29,11 +29,18 @@ class Insertion:
 
     def __eq__(self, other) -> bool:
         """Compare two Insertion objects by their values.
-
         This compares position and sequence values,
         ensuring a value-based comparison rather than identity-based.
+
+        Also ensures that the objects are of the exact same class,
+        not just derived from the same base class.
         """
         if not isinstance(other, Insertion):
+            return False
+        # Check if the objects are of the same specific class (not just Insertion)
+        if not isinstance(other, self.__class__) or not isinstance(
+            self, other.__class__
+        ):
             return False
         return self.position == other.position and self.sequence == other.sequence
 

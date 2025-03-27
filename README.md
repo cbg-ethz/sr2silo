@@ -117,11 +117,11 @@ This creates the core conda environment with essential dependencies and installs
 
 #### Development Environment
 
-For development work, including running tests with nextclade:
+For development work:
 ```bash
 make setup-dev
 ```
-This command sets up the development environment with all necessary dependencies, including those for orthogonal tests (e.g. nextclade), managed via Poetry.
+This command sets up the development environment with Poetry.
 #### Workflow Environment
 
 For working with the snakemake workflow:

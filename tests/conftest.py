@@ -90,7 +90,7 @@ def sam_with_insert_data() -> dict:
 
 @pytest.fixture
 def mock_fasta_query() -> List[Path]:  # noqa: F821
-    """Return a query nuclitide reads file reconstructed from the BAM file,
+    """Return a query nucleotide reads file reconstructed from the BAM file,
     for amino acid translation and alignment.
 
        That is putting insertions back into the reads.
