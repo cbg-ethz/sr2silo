@@ -6,8 +6,8 @@ In VSCode, Code Coverage is recorded in config.xml. Delete this file to reset re
 
 from __future__ import annotations
 
+import contextlib
 import tempfile
-from contextlib import contextmanager
 from pathlib import Path
 
 import pysam
@@ -21,7 +21,7 @@ TEST_DATA_DIR = Path(__file__).parent / "data"
 INPUT_BAM_PATH = TEST_DATA_DIR / "REF_aln_trim_subsample.bam"
 EXPECTED_SAM_PATH = TEST_DATA_DIR / "REF_aln_trim_subsample_expected.sam"
 
-
+# TODO - centralize the test data.
 LARGE_TEST_DATA_DIR = (
     TEST_DATA_DIR
     / "samples_large"
@@ -37,6 +37,10 @@ EXPECTED_BAM_INSERTIONS_PATH_inserts = (
 EXPECTED_BAM_INSERTIONS_PATH_cleartext = (
     LARGE_TEST_DATA_DIR / "REF_aln_trim_subsample.fasta"
 )
+
+# The following file is a BAM file that contains reads that have insertions
+# for effective testing
+NUC_ALIGNMENT_BAM = TEST_DATA_DIR / "bam" / "combined.bam"
 
 
 @pytest.fixture
@@ -84,9 +88,12 @@ def sam_with_insert_data() -> dict:
 
 
 @pytest.fixture
-@contextmanager
+@contextlib.contextmanager
 def temp_dir():
-    """Return a temporary directory as a Path object."""
+    """Return a temporary directory as a Path object.
+
+    This fixture is designed to be used as a context manager.
+    """
     with tempfile.TemporaryDirectory() as tmpdirname:
         yield Path(tmpdirname)
 

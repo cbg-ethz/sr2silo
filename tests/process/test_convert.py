@@ -18,6 +18,7 @@ from sr2silo.process.convert import (
     pad_alignment,
     sam_to_seq_and_indels,
     sort_bam_file,
+    sort_sam_by_qname,
 )
 from sr2silo.process.interface import Insertion
 
@@ -432,10 +433,6 @@ def test_get_gene_set_from_ref_malformed_no_sequence(tmp_path):
         gene_set.get_gene_name_list() == []
     ), "Expected empty gene set for header without sequence"
 
-    def test_get_gene_set_from_ref_malformed_blank_lines(tmp_path):
-        """Test get_gene_set_from_ref with a FASTA file that has multiple headers
-        and blank sequence lines."""
-
     # Create file with headers with blank sequence lines
     content = """>GeneA
     >GeneB
@@ -456,3 +453,45 @@ def test_get_gene_set_from_ref_malformed_no_sequence(tmp_path):
     assert (
         "GeneC" not in gene_names
     ), "Expected GeneC to be skipped due to missing sequence"
+
+
+def test_sort_sam_by_qname(tmp_path, monkeypatch):
+    """Test the sort_sam_by_qname function."""
+    # Create a mock for pysam.sort to track calls
+    sort_calls = []
+
+    def mock_sort(*args):
+        sort_calls.append(args)
+        # Create an empty file at the output location to simulate successful sorting
+        output_path = None
+        for i, arg in enumerate(args):
+            if arg == "-o" and i + 1 < len(args):
+                output_path = args[i + 1]
+                break
+        if output_path:
+            with open(output_path, "w") as f:
+                f.write("")
+
+    # Apply the monkeypatch
+    monkeypatch.setattr(pysam, "sort", mock_sort)
+
+    # Setup test files
+    input_sam = tmp_path / "input.sam"
+    input_sam.write_text("mock sam content")
+    output_sam = tmp_path / "output.sam"
+
+    # Test sort_sam_by_qname function
+    sort_sam_by_qname(input_sam, output_sam)
+
+    # Verify calls
+    assert len(sort_calls) == 1, "Expected one call to pysam.sort"
+
+    # Check sort call arguments
+    sort_args = sort_calls[0]
+    assert "-n" in sort_args, "Missing -n flag for query name sorting"
+    assert "-o" in sort_args, "Missing -o flag in sort command"
+    assert str(output_sam) in sort_args, "Output path not in sort arguments"
+    assert str(input_sam) in sort_args, "Input path not in sort arguments"
+
+    # Test output file exists
+    assert output_sam.exists(), "Sorted SAM file not created"
