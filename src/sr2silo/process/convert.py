@@ -495,7 +495,6 @@ def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
         logging.info("Input BAM file is already sorted and indexed, copying to output")
 
 
-
 def _sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
     """
     Function to sort and index the input BAM file.
