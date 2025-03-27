@@ -60,6 +60,41 @@ def test_parse_translate_align(aligned_reads):
             )
 
 
+
+def test_parse_translate_align_synth(
+    micro_bam_fp, micro_reference_fp, micro_aa_reference_fp
+):
+    """Test the parse_translate_align function with synthetic data."""
+
+    micro_sam_fp = Path("tests/data/two_insertions_reads.sam")
+    aa_ref = Path("resources/sars-cov-2/aa_reference_genomes.fasta")
+    nuc_ref = Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
+
+    # Convert the SAM to BAM
+    with tempfile.TemporaryDirectory() as tmpdirname:
+
+        # Convert the SAM file to BAM
+        bam_fp = Path(tmpdirname) / "synth.bam"
+        convert.sam_to_bam(micro_sam_fp, bam_fp)
+
+        aligned_reads = translate_align.parse_translate_align(
+            nuc_reference_fp=nuc_ref,
+            aa_reference_fp=aa_ref,
+            nuc_alignment_fp=bam_fp,
+        )
+
+    tmp_path = Path("synth")
+    tmp_path.mkdir(parents=True, exist_ok=True)
+
+    output_ndjson = tmp_path / "aligned_reads.ndjson"
+    with open(output_ndjson, "w") as outfile:
+        for read in aligned_reads.keys():
+            json_str = aligned_reads[read].to_silo_json()
+            outfile.write(f"{json_str}\n")
+
+    raise NotImplementedError("This test is not implemented yet. ")
+
+
 # TODO: Implement the following tests
 @pytest.mark.skip(reason="Not implemented")
 def test_read_in_AligendReads_nuc_seq():
