@@ -6,15 +6,14 @@ In VSCode, Code Coverage is recorded in config.xml. Delete this file to reset re
 
 from __future__ import annotations
 
+import contextlib
 import tempfile
-from contextlib import contextmanager
 from pathlib import Path
-from typing import List
 
 import pysam
 import pytest
 
-from sr2silo.process import bam_to_fasta_query, bam_to_sam
+from sr2silo.process import bam_to_sam
 
 # Define test data paths
 TEST_DATA_DIR = Path(__file__).parent / "data"
@@ -89,8 +88,12 @@ def sam_with_insert_data() -> dict:
 
 
 @pytest.fixture
+@contextlib.contextmanager
 def temp_dir():
-    """Return a temporary directory as a Path object."""
+    """Return a temporary directory as a Path object.
+
+    This fixture is designed to be used as a context manager.
+    """
     with tempfile.TemporaryDirectory() as tmpdirname:
         yield Path(tmpdirname)
 
