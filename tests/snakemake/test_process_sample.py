@@ -14,6 +14,8 @@ import zstandard as zstd
 sys.path.insert(0, os.path.dirname(__file__))
 
 
+# Nota bene: The output tested against is not validated, yet a failure in test
+# notes a change of output here.
 def test_process_sample():
     """Test the process_sample rule."""
 
@@ -77,17 +79,13 @@ def test_process_sample():
             "rb",
         ) as f:
             decompressor = zstd.ZstdDecompressor()
-            try:
-                generated_content = decompressor.decompress(f.read()).decode("utf-8")
-            except zstd.ZstdError:
-                f.seek(0)
-                with decompressor.stream_reader(f) as reader:
-                    generated_content = reader.read().decode("utf-8")
+            with decompressor.stream_reader(f) as reader:
+                generated_content = reader.read().decode("utf-8")
 
         with open(expected_path, "rb") as f:
-            expected_content = (
-                zstd.ZstdDecompressor().decompress(f.read()).decode("utf-8")
-            )
+            decompressor_expected = zstd.ZstdDecompressor()
+            with decompressor_expected.stream_reader(f) as reader:
+                expected_content = reader.read().decode("utf-8")
 
         error_message = (
             "The contents of the generated and expected files do not match.\n\n"
