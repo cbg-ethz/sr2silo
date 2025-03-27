@@ -66,13 +66,22 @@ def test_parse_translate_align_synth(
 ):
     """Test the parse_translate_align function with synthetic data."""
 
-    micro_bam_fp = Path("tests/data/bam/micro/test7.bam")
+    micro_sam_fp = Path("tests/data/two_insertions_reads.sam")
+    aa_ref = Path("resources/sars-cov-2/aa_reference_genomes.fasta")
+    nuc_ref = Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
 
-    aligned_reads = translate_align.parse_translate_align(
-        nuc_reference_fp=micro_reference_fp,
-        aa_reference_fp=micro_aa_reference_fp,
-        nuc_alignment_fp=micro_bam_fp,
-    )
+    # Convert the SAM to BAM
+    with tempfile.TemporaryDirectory() as tmpdirname:
+
+        # Convert the SAM file to BAM
+        bam_fp = Path(tmpdirname) / "synth.bam"
+        convert.sam_to_bam(micro_sam_fp, bam_fp)
+
+        aligned_reads = translate_align.parse_translate_align(
+            nuc_reference_fp=nuc_ref,
+            aa_reference_fp=aa_ref,
+            nuc_alignment_fp=bam_fp,
+        )
 
     tmp_path = Path("synth")
     tmp_path.mkdir(parents=True, exist_ok=True)
