@@ -45,7 +45,6 @@ class Insertion:
         return self.position == other.position and self.sequence == other.sequence
 
 
-
 class NucInsertion(Insertion):
     """A nuclotide insertion."""
 
