@@ -7,6 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict
 
+
 import pysam
 
 from sr2silo.process import bam_to_sam
@@ -18,8 +19,7 @@ from sr2silo.process.convert import (
     is_sorted_qname,
     pad_alignment,
     sam_to_seq_and_indels,
-    sort_bam_file,
-    sort_bam_file,
+    sort_bam_file
 )
 from sr2silo.process.interface import Insertion
 

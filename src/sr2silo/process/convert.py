@@ -56,7 +56,6 @@ def sort_bam_file(
         input_bam_path (Path): Path to the input BAM file.
         output_bam_path (Path): Path to the output sorted BAM file.
         sort_by_qname (bool, optional): If True, sorts by query name. Defaults to False.
-        sort_by_qname (bool, optional): If True, sorts by query name. Defaults to False.
     """
     try:
         # Convert Path objects to strings for pysam compatibility
@@ -75,6 +74,7 @@ def sort_bam_file(
             logging.info(
                 f"BAM file has been sorted by coordinate and saved to {output_bam_str}"
             )
+
         # Build sort arguments based on sorting option.
         if sort_by_qname:
             # Using the -n flag to sort by query name.
@@ -507,6 +507,7 @@ def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
             "Input BAM file is already sorted and indexed, \
                       copying to output"
         )
+
 
 def _sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
     """

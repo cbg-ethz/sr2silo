@@ -9,6 +9,7 @@ import os
 import tempfile
 from pathlib import Path
 
+
 from sr2silo.config import (
     get_keycloak_token_url,
     get_mock_urls,

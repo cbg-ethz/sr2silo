@@ -89,22 +89,6 @@ def sam_with_insert_data() -> dict:
 
 
 @pytest.fixture
-def mock_fasta_query() -> List[Path]:  # noqa: F821
-    """Return a query nucleotide reads file reconstructed from the BAM file,
-    for amino acid translation and alignment.
-
-       That is putting insertions back into the reads.
-
-    Returns:
-        List[Path, Path]: Bam Path, Fasta Path
-
-    """
-    bam_to_fasta_query(NUC_ALIGNMENT_BAM, NUC_ALIGNMENT_BAM.with_suffix(".fasta"))
-
-    return [NUC_ALIGNMENT_BAM, NUC_ALIGNMENT_BAM.with_suffix(".fasta")]
-
-
-@pytest.fixture
 def temp_dir():
     """Return a temporary directory as a Path object."""
     with tempfile.TemporaryDirectory() as tmpdirname:
