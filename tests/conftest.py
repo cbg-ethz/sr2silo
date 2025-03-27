@@ -6,8 +6,8 @@ In VSCode, Code Coverage is recorded in config.xml. Delete this file to reset re
 
 from __future__ import annotations
 
+import contextlib
 import tempfile
-from contextlib import contextmanager
 from pathlib import Path
 
 import pysam
@@ -21,7 +21,7 @@ TEST_DATA_DIR = Path(__file__).parent / "data"
 INPUT_BAM_PATH = TEST_DATA_DIR / "REF_aln_trim_subsample.bam"
 EXPECTED_SAM_PATH = TEST_DATA_DIR / "REF_aln_trim_subsample_expected.sam"
 
-
+# TODO - centralize the test data.
 LARGE_TEST_DATA_DIR = (
     TEST_DATA_DIR
     / "samples_large"
@@ -38,6 +38,10 @@ EXPECTED_BAM_INSERTIONS_PATH_cleartext = (
     LARGE_TEST_DATA_DIR / "REF_aln_trim_subsample.fasta"
 )
 
+# The following file is a BAM file that contains reads that have insertions
+# for effective testing
+NUC_ALIGNMENT_BAM = TEST_DATA_DIR / "bam" / "combined.bam"
+
 
 @pytest.fixture
 def bam_data() -> Path:
@@ -48,7 +52,6 @@ def bam_data() -> Path:
     return INPUT_BAM_PATH
 
 
-@pytest.fixture
 def sam_data() -> Path:
     """Return a sample SAM file path.
     This is the expected SAM data for
@@ -72,6 +75,15 @@ def sam_with_insert_data() -> dict:
         sam_content = sam_fp.read_text()
         data_expected["sam_data"] = sam_content
 
+    # Convert the BAM file to SAM, and read in the SAM file
+    with temp_dir() as tmpdir:
+        # Convert the BAM file to SAM
+        sam_fp = tmpdir / "sam_data.sam"
+        bam_to_sam(INPUT_BAM_INSERTIONS_PATH, sam_fp)
+        # read in the SAM file
+        sam_content = sam_fp.read_text()
+        data_expected["sam_data"] = sam_content
+
     # Read in the insertions file
     insertions_content = EXPECTED_BAM_INSERTIONS_PATH_inserts.read_text()
     data_expected["insertions"] = insertions_content
@@ -84,9 +96,12 @@ def sam_with_insert_data() -> dict:
 
 
 @pytest.fixture
-@contextmanager
+@contextlib.contextmanager
 def temp_dir():
-    """Return a temporary directory as a Path object."""
+    """Return a temporary directory as a Path object.
+
+    This fixture is designed to be used as a context manager.
+    """
     with tempfile.TemporaryDirectory() as tmpdirname:
         yield Path(tmpdirname)
 

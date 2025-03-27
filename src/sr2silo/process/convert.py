@@ -9,12 +9,7 @@ from typing import List, Tuple, Union
 
 import pysam
 
-from sr2silo.process.interface import (
-    Gene,
-    GeneName,
-    GeneSet,
-    Insertion,
-)
+from sr2silo.process.interface import Gene, GeneName, GeneSet, Insertion
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -82,7 +77,6 @@ def sort_bam_file(
 def sort_sam_by_qname(input_sam_path: Path, output_sam_path: Path):
     """
     Sorts a sam file using pysam.sort command by query name.
-
     Args:
         input_bam_path (Path): Path to the input BAM file.
         output_bam_path (Path): Path to the output sorted BAM file.
@@ -120,9 +114,13 @@ def create_index(bam_file: Path):
         print(f"An error occurred: {e}")
 
 
-def bam_to_fasta(bam_file: Path, fasta_file: Path):
+def bam_to_fasta_query(bam_file: Path, fasta_file: Path):
     """
-    Convert a BAM file to a FASTA file. Bluntly resolved the sam to fasta.
+    Convert a BAM file to a FASTA file. Bluntly resolved the sam to fasta,
+    removing soft clippings, keeping insertions and deletions, ignoring skipped
+    regions and paddings.
+
+    Outputs the sequence as it is read from the molecule.
 
     Args:
         bam_file: Path to the input BAM file.
@@ -134,12 +132,41 @@ def bam_to_fasta(bam_file: Path, fasta_file: Path):
     if not fasta_file.suffix.endswith(".fasta"):
         raise ValueError("Output file is not a FASTA file")
 
+    # check if index exists, make index if not
+    if not bam_file.with_suffix(".bai").exists():
+        sort_and_index_bam(bam_file, bam_file)
+
     with pysam.AlignmentFile(str(bam_file), "rb") as bam:
         with open(fasta_file, "w") as fq:
             for read in bam.fetch():
                 if not read.is_unmapped:
                     name = read.query_name
-                    seq = read.query_sequence
+                    full_seq = read.query_sequence
+
+                    # Remove soft clipping
+                    if full_seq is None:
+                        continue
+
+                    # Get CIGAR string to identify soft clippings
+                    cigar_tuples = read.cigartuples
+                    if cigar_tuples is None:
+                        continue
+
+                    # Calculate sequence without soft clippings
+                    start = 0
+                    end = len(full_seq)
+
+                    # Check for soft clipping at start (CIGAR op 4 = S)
+                    if cigar_tuples[0][0] == 4:
+                        start = cigar_tuples[0][1]
+
+                    # Check for soft clipping at end
+                    if cigar_tuples[-1][0] == 4:
+                        end -= cigar_tuples[-1][1]
+
+                    # Extract sequence without soft clippings
+                    seq = full_seq[start:end]
+
                     fq.write(f">{name}\n{seq}\n")
 
 
@@ -148,6 +175,7 @@ def bam_to_sam(bam_file: Path, sam_file: Path) -> None:
 
     Args:
       bam_file: Path to the input BAM file.
+      sam_file: Path to the output SAM file.
       sam_file: Path to the output SAM file.
     """
     with pysam.AlignmentFile(str(bam_file), "rb") as in_bam, pysam.AlignmentFile(
@@ -185,25 +213,28 @@ def bam_to_fastq_handle_indels(
     out_fastq_fp: Path,
     out_insertions_fp: Path,
     deletion_char: str = "-",
+    skipped_char: str = "N",
 ):
     """
     Convert a BAM file to a FASTQ file, removing insertions and adding a
-    special character for deletions.
+    special character for deletions, skipped regions, and soft clipping.
     Save the insertions to a separate file.
     Include alignment positions in the FASTQ file.
 
-    Used to look at the cleartext nucleotide sequence of the reads.
+    Coordinates are 1-based.
 
     :param bam_file: Path to the input BAM file
-    :param fastq_file: Path to the output FASTQ file
-    :param insertions_file: Path to the output file containing insertions
-    :param deletion_char: Special character to use for deletions
+    :param out_fastq_fp: Path to the output FASTQ file
+    :param out_insertions_fp: Path to the output file containing insertions
+    :param deletion_char: Special character to use for deletions/skipped regions
+    :param skipped_char: Special character to use for skipped regions
     """
     with pysam.AlignmentFile(str(bam_file), "rb") as bam, open(
         out_fastq_fp, "w"
     ) as fastq, open(out_insertions_fp, "w") as insertions:
         for read in bam.fetch():
             if not read.is_unmapped:
+                logging.debug(f"Processing read: {read.query_name}")
                 query_sequence = read.query_sequence if read.query_sequence else ""
                 query_qualities = read.query_qualities if read.query_qualities else ""
                 new_sequence = []
@@ -218,6 +249,8 @@ def bam_to_fastq_handle_indels(
                     continue
 
                 for cigar in read.cigartuples:
+
+                    # Handle the CIGAR operations
                     if cigar[0] == 0:  # Match or mismatch
                         new_sequence.extend(
                             query_sequence[query_pos : query_pos + cigar[1]]
@@ -239,10 +272,23 @@ def bam_to_fastq_handle_indels(
                         query_pos += cigar[1]
                     elif cigar[0] == 2:  # Deletion
                         new_sequence.extend([deletion_char] * cigar[1])
-                        new_qualities.extend(
-                            [0] * cigar[1]
-                        )  # Assigning a low-quality score for deletions
+                        new_qualities.extend([0] * cigar[1])
                         ref_pos += cigar[1]
+                    elif cigar[0] == 3:  # Skipped region from the reference
+                        new_sequence.extend([skipped_char] * cigar[1])
+                        new_qualities.extend([0] * cigar[1])
+                        ref_pos += cigar[1]
+                    elif cigar[0] == 4:  # Soft clipping
+                        # Skip soft clipped bases (they are not aligned)
+                        query_pos += cigar[1]
+                    elif cigar[0] == 5:  # Hard clipping
+                        # Hard clipped bases are not present in the read sequence,
+                        # so no update to query_pos is required.
+                        pass
+                    elif cigar[0] == 6:  # Padding
+                        # Padding is a silent deletion from padded reference
+                        # No action needed for this case.
+                        pass
 
                 # Write the modified read to the FASTQ file
                 fastq.write(f"@{read.query_name}\n")
@@ -433,8 +479,12 @@ def sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
         logging.info("Sorting and indexing the input BAM file")
         _sort_and_index_bam(input_bam_fp, output_bam_fp)
     else:
-        # copy the input BAM file to the output BAM file
+        # copy the input BAM file to the output, along with the index
         output_bam_fp.write_bytes(input_bam_fp.read_bytes())
+        # note then ending is .bam.bai
+        output_bam_fp.with_suffix(".bam.bai").write_bytes(
+            input_bam_fp.with_suffix(".bam.bai").read_bytes()
+        )
         logging.info(
             "Input BAM file is already sorted and indexed, \
                       copying to output"
@@ -486,7 +536,7 @@ def is_bam_sorted(bam_file):
 def is_bam_indexed(bam_file):
     """Checks if a BAM file has an index (.bai) file.
 
-    Args:bam_file.suffix.endswith
+    Args:
         bam_file (str): Path to the BAM file.
 
     Returns:
@@ -495,7 +545,7 @@ def is_bam_indexed(bam_file):
     """
     try:
         bam = pysam.AlignmentFile(bam_file, "rb")
-        has_index = bam.has_index()  # Directly check for index
+        has_index = bam.has_index()
         bam.close()
         return has_index
 

@@ -100,9 +100,9 @@ def submit_to_silo(result_dir: Path, s3_link: str) -> bool:
 
     if is_ci_environment():
         logging.info(
-            "Running in CI environment, mocking S3 upload, skipping LAPIS submission."
+            "CI environment active; using mock URLs but executing submission mechanics."
         )
-        # Get mock URLs for CI environment
+        # Get mock URLs for CI environment, then continue with LAPIS submission
         KEYCLOAK_TOKEN_URL, SUBMISSION_URL = get_mock_urls()
     else:
         # Get URLs from environment or use defaults
@@ -179,7 +179,7 @@ def nuc_align_to_silo_njson(
     sample_to_process = Sample(sample_id, batch_id)
     sample_to_process.enrich_metadata(timeline_file, primers_file)
     metadata = sample_to_process.get_metadata()
-    # add nextclade reference to metadata
+    # add reference name to metadata
     resource_fp = Path("./resources") / reference
     nuc_reference_fp = resource_fp / "nuc_reference_genomes.fasta"
     aa_reference_fp = resource_fp / "aa_reference_genomes.fasta"
@@ -194,6 +194,8 @@ def nuc_align_to_silo_njson(
     logging.info(f"Metadata saved to: {metadata_file}")
 
     #####  Merge & Pair reads #####
+    merged_reads_sam_fp = result_dir / f"{input_file.stem}_merged.sam"
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir)
         logging.info("=== Merging and pairing reads using temporary directory ===")
@@ -210,31 +212,21 @@ def nuc_align_to_silo_njson(
         logging.debug(f"Decompressed reads saved to: {input_sam_fp}")
 
         logging.debug("Starting to merge paired-end reads")
-        merged_reads_sam_tmp_fp = (
-            tmp_dir / f"{input_sam_fp.stem}_merged{input_sam_fp.suffix}"
-        )
         paired_end_read_merger(
             nuc_align_sam_fp=input_sam_fp,
             ref_genome_fasta_fp=nuc_reference_fp,
-            output_merged_sam_fp=merged_reads_sam_tmp_fp,
+            output_merged_sam_fp=merged_reads_sam_fp,
         )
-        logging.debug(
-            f"Merged reads saved to temporary file: {merged_reads_sam_tmp_fp}"
-        )
-
-        # Move the merged_reads_sam file to result_dir
-        merged_reads_sam_fp = result_dir / merged_reads_sam_tmp_fp.name
-        merged_reads_sam_tmp_fp.replace(merged_reads_sam_fp)
-        logging.info(
-            f"Merged reads file moved to results directory: {merged_reads_sam_fp}"
-        )
+        logging.debug(f"Merged reads saved to temporary file: {merged_reads_sam_fp}")
 
     logging.debug("Re-Compressing merged reads to BAM")
     merged_reads_fp = merged_reads_sam_fp.with_suffix(".bam")
     sam_to_bam(merged_reads_sam_fp, merged_reads_fp)
+    merged_reads_sam_fp.unlink()
     logging.info(f"Re-Compressed reads saved to: {merged_reads_fp}")
 
     ##### Translate / Align / Normalize to JSON #####
+    logging.info("=== Start translating, aligning and normalizing reads to JSON ===")
     logging.info("=== Start translating, aligning and normalizing reads to JSON ===")
     aligned_reads_fp = output_fp
     try:

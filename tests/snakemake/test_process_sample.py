@@ -14,12 +14,13 @@ import zstandard as zstd
 sys.path.insert(0, os.path.dirname(__file__))
 
 
+# Nota bene: The output tested against is not validated, yet a failure in test
+# notes a change of output here.
 def test_process_sample():
     """Test the process_sample rule."""
 
     with TemporaryDirectory() as tmpdir:
-
-        workdir = Path(tmpdir) / "workdir"
+        workdir = tmpdir / Path("workdir")
         data_path = Path("tests/snakemake/process_sample/data")
         expected_path = Path(
             "tests/snakemake/process_sample/expected/results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst"
@@ -37,12 +38,6 @@ def test_process_sample():
 
         # make dir for results
         os.makedirs(workdir / "results", exist_ok=True)
-
-        # dbg
-        print(
-            "results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst",
-            file=sys.stderr,
-        )
 
         # Run the test job.
         try:
@@ -84,12 +79,13 @@ def test_process_sample():
             "rb",
         ) as f:
             decompressor = zstd.ZstdDecompressor()
-            generated_content = decompressor.decompress(f.read()).decode("utf-8")
+            with decompressor.stream_reader(f) as reader:
+                generated_content = reader.read().decode("utf-8")
 
         with open(expected_path, "rb") as f:
-            expected_content = (
-                zstd.ZstdDecompressor().decompress(f.read()).decode("utf-8")
-            )
+            decompressor_expected = zstd.ZstdDecompressor()
+            with decompressor_expected.stream_reader(f) as reader:
+                expected_content = reader.read().decode("utf-8")
 
         error_message = (
             "The contents of the generated and expected files do not match.\n\n"
@@ -98,4 +94,5 @@ def test_process_sample():
             "Expected content:\n"
             f"{expected_content}"
         )
+
         assert generated_content == expected_content, error_message
