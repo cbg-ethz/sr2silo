@@ -103,6 +103,13 @@ def import_to_loculus(
             help="Upload and submit to SILO.",
         ),
     ] = False,
+    skip_merge: Annotated[
+        bool,
+        typer.Option(
+            "--skip-merge/--no-skip-merge",
+            help="Skip merging of paired-end reads.",
+        ),
+    ] = False,
 ) -> None:
     """
     V-PIPE to SILO conversion with amino acids, special metadata,
@@ -118,6 +125,7 @@ def import_to_loculus(
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
     logging.info(f"Upload to S3 and submit to SILO: {upload}")
+    logging.info(f"Skip read pair merging: {skip_merge}")
 
     # check if $TMPDIR is set, if not use /tmp
     if "TMPDIR" in os.environ:
@@ -139,6 +147,7 @@ def import_to_loculus(
         output_fp=output_fp,
         reference=reference,
         upload=upload,
+        skip_merge=skip_merge,
     )
 
 

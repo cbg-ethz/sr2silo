@@ -139,6 +139,7 @@ def nuc_align_to_silo_njson(
     output_fp: Path,
     reference: str = "sars-cov-2",
     upload: bool = False,
+    skip_merge: bool = False,
 ) -> None:
     """Process a given input file.
 
@@ -152,6 +153,8 @@ def nuc_align_to_silo_njson(
         reference (str): The nucleotide / amino acid reference from
                     the resources folder.
         upload (bool): Whether to upload and submit to SILO. Default is False.
+        skip_merge (bool): Whether to skip merging of paired-end reads.
+                           Default is False.
 
     Returns:
         None (writes results to the result_dir)
@@ -193,40 +196,53 @@ def nuc_align_to_silo_njson(
         json.dump(metadata, f, indent=4)
     logging.info(f"Metadata saved to: {metadata_file}")
 
-    #####  Merge & Pair reads #####
-    merged_reads_sam_fp = result_dir / f"{input_file.stem}_merged.sam"
+    if skip_merge:
+        logging.info("Read pair merging step skipped as requested.")
+        # Use the input file directly,
+        # but make sure it's converted to BAM format if needed
+        if input_file.suffix.lower() == ".sam":
+            merged_reads_fp = result_dir / f"{input_file.stem}.bam"
+            logging.debug("Converting input SAM to BAM format")
+            sam_to_bam(input_file, merged_reads_fp)
+        else:
+            # If it's already a BAM file, just use it
+            merged_reads_fp = input_file
+    else:
+        #####  Merge & Pair reads #####
+        merged_reads_sam_fp = result_dir / f"{input_file.stem}_merged.sam"
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        tmp_dir = Path(tmp_dir)
-        logging.info("=== Merging and pairing reads using temporary directory ===")
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir = Path(tmp_dir)
+            logging.info("=== Merging and pairing reads using temporary directory ===")
 
-        logging.debug("Sort by QNAME for matching")
-        input_bam_sorted_by_qname_fp = (
-            tmp_dir / f"{input_file.stem}.sorted_by_qname{input_file.suffix}"
-        )
-        sort_bam_file(input_file, input_bam_sorted_by_qname_fp, sort_by_qname=True)
+            logging.debug("Sort by QNAME for matching")
+            input_bam_sorted_by_qname_fp = (
+                tmp_dir / f"{input_file.stem}.sorted_by_qname{input_file.suffix}"
+            )
+            sort_bam_file(input_file, input_bam_sorted_by_qname_fp, sort_by_qname=True)
 
-        logging.debug("Decompressing input file to SAM")
-        input_sam_fp = tmp_dir / f"{input_file.stem}.sam"
-        bam_to_sam(input_bam_sorted_by_qname_fp, input_sam_fp)
-        logging.debug(f"Decompressed reads saved to: {input_sam_fp}")
+            logging.debug("Decompressing input file to SAM")
+            input_sam_fp = tmp_dir / f"{input_file.stem}.sam"
+            bam_to_sam(input_bam_sorted_by_qname_fp, input_sam_fp)
+            logging.debug(f"Decompressed reads saved to: {input_sam_fp}")
 
-        logging.debug("Starting to merge paired-end reads")
-        paired_end_read_merger(
-            nuc_align_sam_fp=input_sam_fp,
-            ref_genome_fasta_fp=nuc_reference_fp,
-            output_merged_sam_fp=merged_reads_sam_fp,
-        )
-        logging.debug(f"Merged reads saved to temporary file: {merged_reads_sam_fp}")
+            logging.debug("Starting to merge paired-end reads")
+            paired_end_read_merger(
+                nuc_align_sam_fp=input_sam_fp,
+                ref_genome_fasta_fp=nuc_reference_fp,
+                output_merged_sam_fp=merged_reads_sam_fp,
+            )
+            logging.debug(
+                f"Merged reads saved to temporary file: {merged_reads_sam_fp}"
+            )
 
-    logging.debug("Re-Compressing merged reads to BAM")
-    merged_reads_fp = merged_reads_sam_fp.with_suffix(".bam")
-    sam_to_bam(merged_reads_sam_fp, merged_reads_fp)
-    merged_reads_sam_fp.unlink()
-    logging.info(f"Re-Compressed reads saved to: {merged_reads_fp}")
+        logging.debug("Re-Compressing merged reads to BAM")
+        merged_reads_fp = merged_reads_sam_fp.with_suffix(".bam")
+        sam_to_bam(merged_reads_sam_fp, merged_reads_fp)
+        merged_reads_sam_fp.unlink()
+        logging.info(f"Re-Compressed reads saved to: {merged_reads_fp}")
 
     ##### Translate / Align / Normalize to JSON #####
-    logging.info("=== Start translating, aligning and normalizing reads to JSON ===")
     logging.info("=== Start translating, aligning and normalizing reads to JSON ===")
     aligned_reads_fp = output_fp
     try:
@@ -238,9 +254,15 @@ def nuc_align_to_silo_njson(
             output_fp=aligned_reads_fp,
         )
     finally:
-        if merged_reads_fp.exists():
+        # Only remove temporary files if we created them (i.e., if we merged the reads)
+        if (
+            not skip_merge
+            and merged_reads_fp.exists()
+            and merged_reads_fp != input_file
+        ):
             merged_reads_fp.unlink()
             logging.info(f"Temporary file {merged_reads_fp} removed.")
+
     logging.info(f"Processed reads saved to: {aligned_reads_fp}")
     if upload:
         s3_link = upload_to_s3(aligned_reads_fp, sample_id)
