@@ -1,5 +1,5 @@
 {% set name = "sr2silo" %}
-{% set version = "0.1.0" %}
+{% set version = "0.0.4" %}
 
 package:
   name: {{ name|lower }}
