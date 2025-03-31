@@ -1,0 +1,111 @@
+name: Update Bioconda Recipe
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update_bioconda:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout bioconda-recipes
+        uses: actions/checkout@v4
+        with:
+          repository: bioconda/bioconda-recipes
+          path: bioconda-recipes
+          token: ${{ secrets.GH_PAT }}  # You'll need to create this secret
+
+      - name: Setup Git
+        run: |
+          cd bioconda-recipes
+          git config user.name "GitHub Actions Bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create update branch
+        run: |
+          cd bioconda-recipes
+          git checkout -b update-sr2silo-${{ github.event.release.tag_name }}
+
+      - name: Update recipe
+        run: |
+          cd bioconda-recipes
+          # Create recipe directory if it doesn't exist
+          mkdir -p recipes/sr2silo
+
+          # Create or update meta.yaml
+          cat > recipes/sr2silo/meta.yaml << EOF
+          {% set name = "sr2silo" %}
+          {% set version = "${{ github.event.release.tag_name }}" %}
+          {% set version = version.lstrip('v') %}
+
+          package:
+            name: {{ name|lower }}
+            version: {{ version }}
+
+          source:
+            url: https://github.com/cbg-ethz/sr2silo/archive/v{{ version }}.tar.gz
+            # You may want to add a sha256 hash here once the file is available
+
+          build:
+            number: 0
+            noarch: python
+            script: {{ PYTHON }} -m pip install . -vv
+            entry_points:
+              - sr2silo = sr2silo.main:app
+
+          requirements:
+            host:
+              - python >=3.10
+              - pip
+              - poetry-core
+            run:
+              - python >=3.10
+              - pyyaml >=6.0.2
+              - boto3 >=1.35.72
+              - psutil >=6.1.1
+              - tqdm >=4.67.1
+              - click >=8.1.8
+              - pydantic >=2.10.6
+              - zstandard >=0.23.0
+              - typer >=0.15.1
+              - biopython >=1.83
+              - pysam >=0.23.0
+              - requests >=2.25.0
+              - moto >=5.0.22
+
+          test:
+            imports:
+              - sr2silo
+            commands:
+              - sr2silo --help
+
+          about:
+            home: https://github.com/cbg-ethz/sr2silo
+            summary: "Short-read to SILO format converter"
+            description: |
+              sr2silo is a tool for converting short read data to SILO format,
+              designed for bioinformatics applications.
+            license: MIT
+            license_file: LICENSE
+
+          extra:
+            recipe-maintainers:
+              - koehng
+          EOF
+
+      - name: Create Pull Request
+        run: |
+          cd bioconda-recipes
+          git add recipes/sr2silo/meta.yaml
+          git commit -m "Update sr2silo to ${{ github.event.release.tag_name }}"
+          git push -u origin update-sr2silo-${{ github.event.release.tag_name }}
+
+          # Create PR using GitHub CLI or API
+          gh pr create \
+            --repo bioconda/bioconda-recipes \
+            --title "Update sr2silo to ${{ github.event.release.tag_name }}" \
+            --body "Update sr2silo to version ${{ github.event.release.tag_name }}" \
+            --base master \
+            --head update-sr2silo-${{ github.event.release.tag_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}

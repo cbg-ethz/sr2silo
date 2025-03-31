@@ -113,3 +113,33 @@ def test_import_to_loculus_with_real_files_and_upload(
 
     assert result.exit_code == 0
     assert "Starting V-PIPE to SILO conversion" in result.stdout
+
+
+def test_import_to_loculus_with_skip_merge(real_sample_files_import_to_loculus):
+    """Test import-to-loculus with skip-merge option to bypass read pair merging."""
+    result = runner.invoke(
+        app,
+        [
+            "import-to-loculus",
+            "--input-file",
+            str(real_sample_files_import_to_loculus["input_file"]),
+            "--sample-id",
+            real_sample_files_import_to_loculus["sample_id"],
+            "--batch-id",
+            real_sample_files_import_to_loculus["batch_id"],
+            "--timeline-file",
+            str(real_sample_files_import_to_loculus["timeline_file"]),
+            "--primer-file",
+            str(real_sample_files_import_to_loculus["primer_file"]),
+            "--output-fp",
+            str(real_sample_files_import_to_loculus["output_file"]),
+            "--reference",
+            real_sample_files_import_to_loculus["reference"],
+            "--no-upload",
+            "--skip-merge",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Starting V-PIPE to SILO conversion" in result.stdout
+    # The "Skip read pair merging: True" message is written to the logs, not stdout,
+    # so we just verify the command was successful
