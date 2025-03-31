@@ -2,12 +2,52 @@
 
 from __future__ import annotations
 
+import importlib.metadata
 import os
+import subprocess
 
 
 def is_ci_environment() -> bool:
     """Check if running in a CI environment."""
     return bool(os.getenv("CI", "false").lower() in ("yes", "true", "t", "1"))
+
+
+def get_version(add_git_info: bool = True) -> str:
+    """Get the version information of the sr2silo package.
+
+    Args:
+        add_git_info (bool): Whether to include Git version information.
+            Will be ignored in CI environments.
+
+    Returns:
+        str: The version information (package version and Git info if available)
+    """
+    try:
+        # Get package version from metadata
+        package_version = importlib.metadata.version("sr2silo")
+    except importlib.metadata.PackageNotFoundError:
+        package_version = "unknown"
+
+    # If in CI environment or explicitly disabled, return only package version
+    if is_ci_environment() or not add_git_info:
+        return package_version
+
+    # Try to get Git version info
+    try:
+        git_version = subprocess.check_output(
+            ["git", "describe", "--tags", "--match", "v*"],
+            text=True,
+            stderr=subprocess.STDOUT,
+            timeout=2,  # Timeout after 2 seconds
+        ).strip()
+        return f"{package_version} ({git_version})"
+    except (
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+        FileNotFoundError,
+    ):
+        # Fall back to package version if Git command fails
+        return package_version
 
 
 def get_keycloak_token_url() -> str:
