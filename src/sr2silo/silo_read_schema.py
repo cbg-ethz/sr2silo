@@ -59,7 +59,7 @@ class NucleotideInsertions(BaseModel):
     @classmethod
     def validate_nuc_insertions_format(cls, v: List[str]) -> List[str]:
         """Validate that nucleotide insertions have the format 'position:sequence'."""
-        pattern = r"^\d+:[ACGT]+$"
+        pattern = r"^\d+:[ACGTN]+$"
         for insertion in v:
             if not re.match(pattern, insertion):
                 raise ValueError(
@@ -84,7 +84,7 @@ class AminoAcidInsertions(RootModel):
     @model_validator(mode="after")
     def validate_aa_insertions_format(self) -> "AminoAcidInsertions":
         """Validate that amino acid insertions have the format 'position:sequence'."""
-        pattern = r"^\d+:[A-Z]+$"
+        pattern = r"^\d+:[ARNDCEQGHILKMFPSTWYV]+$"
         for gene, insertions in self.root.items():
             for insertion in insertions:
                 if not re.match(pattern, insertion):
