@@ -25,7 +25,7 @@ theme:
       primary: teal
       accent: lime
 
-repo_name: usefulgnom
+repo_name: sr2silo
 repo_url: https://github.com/cbg-ethz/sr2silo
 
 plugins:
@@ -43,6 +43,9 @@ nav:
   - Contributing:
       - Overview: contributing.md
       - Branching Strategy: contributing/branching-strategy.md
+  - Usage:
+      - Resource Requirements: usage/resource_requirements.md
+      - Import to Loculus: usage/import_to_loculus.md
   - API: api/silo.md
 
 watch:
