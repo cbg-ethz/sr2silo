@@ -85,6 +85,13 @@ def test_invalid_nucleotide_insertions_sequence():
     assert "not in the expected format" in str(exc_info.value)
 
 
+def test_valid_nucleotide_insertions_with_ns():
+    """Test that nucleotide insertions with 'N' in the sequence are accepted."""
+    valid_insertions = {"main": ["10:NNNN"]}
+    insertions = NucleotideInsertions(**valid_insertions)
+    assert insertions.main == valid_insertions["main"]
+
+
 def test_valid_amino_acid_insertions():
     """Test that valid amino acid insertions are accepted."""
     insertions = AminoAcidInsertions(root=VALID_AA_INSERTIONS)
@@ -103,6 +110,13 @@ def test_invalid_amino_acid_insertions_sequence():
     with pytest.raises(ValidationError) as exc_info:
         AminoAcidInsertions(root=INVALID_AA_INSERTIONS_SEQUENCE)
     assert "not in the expected format" in str(exc_info.value)
+
+
+def test_valid_amino_acid_insertions_with_ns():
+    """Test that amino acid insertions with 'N' in the sequence are accepted."""
+    valid_insertions = {"S": ["10:NNN"]}
+    insertions = AminoAcidInsertions(root=valid_insertions)
+    assert insertions.root == valid_insertions
 
 
 def test_valid_aligned_read_schema():
