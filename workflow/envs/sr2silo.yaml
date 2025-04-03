@@ -1,0 +1,20 @@
+name: sr2silo-env
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - sr2silo=0.0.4
+  - python>=3.10
+  - pyyaml>=6.0.2
+  - boto3>=1.35.72
+  - psutil>=6.1.1
+  - tqdm>=4.67.1
+  - click>=8.1.8
+  - pydantic>=2.10.6
+  - zstandard>=0.23.0
+  - typer>=0.15.1
+  - biopython>=1.83
+  - pysam>=0.23.0
+  - requests>=2.25.0
+  - moto>=5.0.22
