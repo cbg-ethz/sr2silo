@@ -36,7 +36,7 @@ rule process_sample:
     """Processes the sample to ndjson, skip upload to loculus."""
     input:
         sample_fp=f"{config['BASE_SAMPLE_DIR']}"
-        + "/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam",
+        + "/{sample_id}/{batch_id}/REF_aln_trim.bam",
     output:
         result_fp=f"{config['RESULTS_DIR']}"
         + "/sampleId-{sample_id}_batchId-{batch_id}.ndjson.zst",
