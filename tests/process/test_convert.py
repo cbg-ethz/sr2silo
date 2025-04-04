@@ -276,6 +276,14 @@ def test_pad_alignment():
     result = pad_alignment(seq, ref_start, ref_length, unknown_char="-")
     assert result == expected, f"Expected {expected}, got {result}"
 
+    # Test with 'X' as unknown_char for amino acid sequences
+    aa_seq = "MKLV"
+    aa_ref_start = 3
+    aa_ref_length = 12  # Expected: "XXXMKLVXXXXX" (3 left, 5 right)
+    expected_aa = "XXXMKLVXXXXX"
+    result_aa = pad_alignment(aa_seq, aa_ref_start, aa_ref_length, unknown_char="X")
+    assert result_aa == expected_aa, f"Expected {expected_aa}, got {result_aa}"
+
 
 def test_sam_to_seq_and_indels():
     """Test the sam_to_seq_and_indels function, including Insertion conversion."""
