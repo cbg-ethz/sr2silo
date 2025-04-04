@@ -7,8 +7,8 @@ import os
 from pathlib import Path
 
 
-# CONFIG="workflow/config.yaml"
-CONFIG = "workflow/config_euler.yaml"
+CONFIG = "workflow/config.yaml"
+# CONFIG = "workflow/config_euler.yaml"
 
 
 configfile: CONFIG
