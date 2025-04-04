@@ -3,6 +3,9 @@
 
 This module contains the schema definitions used to validate read data before submission
 to the SILO database, ensuring all records conform to the expected format.
+
+The schemas follow IUPAC Codes.
+https://www.bioinformatics.org/sms2/iupac.html
 """
 
 from __future__ import annotations
@@ -84,13 +87,14 @@ class AminoAcidInsertions(RootModel):
     @model_validator(mode="after")
     def validate_aa_insertions_format(self) -> "AminoAcidInsertions":
         """Validate that amino acid insertions have the format 'position:sequence'."""
-        pattern = r"^\d+:[ARNDCEQGHILKMFPSTWYV]+$"
+        # Validate each amino acid insertion using one-letter codes only
+        pattern = r"^\d+:[A-Z*\-]+$"
         for gene, insertions in self.root.items():
             for insertion in insertions:
                 if not re.match(pattern, insertion):
                     raise ValueError(
-                        f"Amino acid insertion '{insertion}' for gene '{gene}'"
-                        "is not in the expected format."
+                        f"Amino acid insertion '{insertion}' for gene '{gene}' "
+                        "is not in the expected format. "
                         "Expected format: 'position:sequence' (e.g., '123:AST')"
                     )
         return self

@@ -169,7 +169,7 @@ def test_enrich_read_with_aa_seq_multiple(
     )
 
     # Expected padded sequence for AA alignment:
-    expected_padded = convert.pad_alignment(expected_seq, pos, 50)
+    expected_padded = convert.pad_alignment(expected_seq, pos, 50, unknown_char="X")
     # Expected AA insertions
     expected_ins_set = AAInsertionSet([gene_name])
     expected_ins_set.set_insertions_for_gene(gene_name_str, expected_insertions)
