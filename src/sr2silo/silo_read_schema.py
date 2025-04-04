@@ -4,7 +4,7 @@
 This module contains the schema definitions used to validate read data before submission
 to the SILO database, ensuring all records conform to the expected format.
 
-The shemas follow IUPAC Codes.
+The schemas follow IUPAC Codes.
 https://www.bioinformatics.org/sms2/iupac.html
 """
 
