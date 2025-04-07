@@ -55,7 +55,7 @@ sr2silo outputs per read a JSON (mock output):
     "alignedAminoAcidSequences":{
                 "E":"",
                 ...
-                "ORF1a":"...NMESLVPGFNEKTHVQLSLPVLQVRVRGFGDSVEEVLSEARQHLKDGTCGLVEVEKGVNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN...",
+                "ORF1a":"...XXXMESLVPGFNEKTHVQLSLPVLQVRVRGFGDSVEEVLSEARQHLKDGTCGLVEVEKGVXXXXXX...",
                 ...
                 "S":""}
       }
