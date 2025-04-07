@@ -49,6 +49,8 @@ rule process_sample:
         aa_reference=config["NUC_REFERENCE"],
     log:
         "logs/sr2silo/process_sample/sampleId_{sample_id}_batchId_{batch_id}.log",  # Clearer wildcard separation
+    conda:
+        "envs/sr2silo.yaml"
     shell:
         """
         sr2silo import-to-loculus \
