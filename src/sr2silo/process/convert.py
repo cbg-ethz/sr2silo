@@ -332,7 +332,8 @@ def pad_alignment(
         sequence (Union[List[str], str]): The sequence to be padded.
         reference_start (int): The starting position of the reference sequence.
         reference_length (int): The total length of the reference sequence.
-        unknown_char (str, optional): The character to use for padding. Defaults to "N".
+        unknown_char (str, optional): The character to use for padding. Defaults
+                             to "N" for Nucleotides, choose "X" for Amino Acids.
 
     Returns:
         str: The padded sequence as a single string.

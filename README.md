@@ -55,7 +55,7 @@ sr2silo outputs per read a JSON (mock output):
     "alignedAminoAcidSequences":{
                 "E":"",
                 ...
-                "ORF1a":"...NMESLVPGFNEKTHVQLSLPVLQVRVRGFGDSVEEVLSEARQHLKDGTCGLVEVEKGVNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN...",
+                "ORF1a":"...XXXMESLVPGFNEKTHVQLSLPVLQVRVRGFGDSVEEVLSEARQHLKDGTCGLVEVEKGVXXXXXX...",
                 ...
                 "S":""}
       }
@@ -104,9 +104,29 @@ In particular, it's good to install it and become familiar with its basic functi
 
 ### Installation
 
+sr2silo can be installed either from Bioconda or from source.
+
+#### Install from Bioconda
+
+The easiest way to install sr2silo is through the Bioconda channel:
+
+```bash
+# Add necessary channels if you haven't already
+conda config --add channels defaults
+conda config --add channels bioconda
+conda config --add channels conda-forge
+
+# Install sr2silo
+conda install sr2silo
+```
+
+#### Install from Source
+
+For development purposes or to install the latest version, you can install from source using Poetry:
+
 The project uses a modular environment system to separate core functionality, development requirements, and workflow dependencies. Environment files are located in the `environments/` directory:
 
-#### Core Environment Setup
+##### Core Environment Setup
 
 For basic usage of sr2silo:
 ```bash
@@ -114,14 +134,14 @@ make setup
 ```
 This creates the core conda environment with essential dependencies and installs the package using Poetry.
 
-#### Development Environment
+##### Development Environment
 
 For development work:
 ```bash
 make setup-dev
 ```
 This command sets up the development environment with Poetry.
-#### Workflow Environment
+##### Workflow Environment
 
 For working with the snakemake workflow:
 ```bash
@@ -129,7 +149,7 @@ make setup-workflow
 ```
 This creates an environment specifically configured for running the sr2silo in snakemake workflows.
 
-#### All Environments
+##### All Environments
 
 You can set up all environments at once:
 ```bash

@@ -1,0 +1,7 @@
+name: sr2silo-env
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - sr2silo=0.0.4
