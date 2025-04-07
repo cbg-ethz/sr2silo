@@ -124,6 +124,7 @@ def test_to_silo_json():
         "sample_id": "A1_10_2024_09_30",
         "sampling_date": "2024-09-30",
         "primer_protocol_name": "SARS-CoV-2 ARTIC V5.3.2",
+        "sr2silo_version": "v1.0.0",
     }
 
     for read_id, read in aligned_reads.items():
