@@ -110,13 +110,6 @@ def import_to_loculus(
             help="Skip merging of paired-end reads.",
         ),
     ] = False,
-    include_version: Annotated[
-        bool,
-        typer.Option(
-            "--include-version/--no-include-version",
-            help="Include version information in metadata.",
-        ),
-    ] = True,
 ) -> None:
     """
     V-PIPE to SILO conversion with amino acids, special metadata,
@@ -146,11 +139,9 @@ def import_to_loculus(
     logging.info(f"Running in CI environment: {ci_env}")
 
     # Get version information if needed
-    version_info = (
-        get_version(add_git_info=include_version) if include_version else None
-    )
-    if include_version:
-        logging.info(f"Using version information: {version_info}")
+    version_info = get_version(True)
+
+    logging.info(f"Running version: {version_info}")
 
     nuc_align_to_silo_njson(
         input_file=input_file,
