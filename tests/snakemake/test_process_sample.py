@@ -10,7 +10,6 @@ import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-
 sys.path.insert(0, os.path.dirname(__file__))
 
 
@@ -23,9 +22,6 @@ def test_process_sample():
     with TemporaryDirectory() as tmpdir:
         workdir = Path(tmpdir) / "workdir"  # Ensure Path object
         data_path = Path("tests/snakemake/process_sample/data")
-        expected_path = Path(
-            "tests/snakemake/process_sample/expected/results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst"
-        )
         config_path = Path("tests/snakemake/process_sample/config.yaml")
 
         # Copy data to the temporary workdir.
