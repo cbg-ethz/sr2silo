@@ -7,11 +7,12 @@ import os
 from pathlib import Path
 
 
-#CONFIG="workflow/config.yaml"
-CONFIG="workflow/config.yaml"
+CONFIG = "workflow/config.yaml"
+# CONFIG = "workflow/config_euler.yaml"
 
 
 configfile: CONFIG
+
 
 # Load configuration
 with open(CONFIG, "r") as file:
@@ -25,15 +26,10 @@ def get_batch_id(sample_id):
 
 rule all:
     input:
-        expand(
-            "{results_dir}/sampleId-{sample_id}_batchId-{batch_id}.ndjson.zst",
-            results_dir=config["RESULTS_DIR"],
-            sample_id=config["SAMPLE_BATCH_IDS"].keys(),
-            batch_id=[
-                get_batch_id(sample_id)
-                for sample_id in config["SAMPLE_BATCH_IDS"].keys()
-            ],
-        ),
+        [
+            f"{config['RESULTS_DIR']}/sampleId-{sample_id}_batchId-{get_batch_id(sample_id)}.ndjson.zst"
+            for sample_id in config["SAMPLE_BATCH_IDS"].keys()
+        ],
 
 
 rule process_sample:
@@ -53,6 +49,8 @@ rule process_sample:
         aa_reference=config["NUC_REFERENCE"],
     log:
         "logs/sr2silo/process_sample/sampleId_{sample_id}_batchId_{batch_id}.log",  # Clearer wildcard separation
+    conda:
+        "envs/sr2silo.yaml"
     shell:
         """
         sr2silo import-to-loculus \

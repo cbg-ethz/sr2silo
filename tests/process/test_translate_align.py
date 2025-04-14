@@ -41,6 +41,7 @@ def test_parse_translate_align(aligned_reads):
             if not line:
                 continue
             expected_aligned_reads.append(AlignedRead.from_str(line))
+            print(AlignedRead.from_str(line))
 
     # Convert actual_aligned_reads from dict to list for comparison.
     actual_aligned_reads = list(aligned_reads.values())
@@ -52,6 +53,11 @@ def test_parse_translate_align(aligned_reads):
         for attr in actual.to_dict().keys():
             act_attr = actual.to_dict()[attr]
             exp_attr = expected.to_dict()[attr]
+
+            # skip the checks for the sr2silo_version in the metadata
+            if attr == "metadata":
+                print("Hi")
+
             print(f"act_attr: {act_attr}")
             print(f"exp_attr: {exp_attr}")
             assert str(act_attr) == str(exp_attr), (
@@ -169,7 +175,7 @@ def test_enrich_read_with_aa_seq_multiple(
     )
 
     # Expected padded sequence for AA alignment:
-    expected_padded = convert.pad_alignment(expected_seq, pos, 50)
+    expected_padded = convert.pad_alignment(expected_seq, pos, 50, unknown_char="X")
     # Expected AA insertions
     expected_ins_set = AAInsertionSet([gene_name])
     expected_ins_set.set_insertions_for_gene(gene_name_str, expected_insertions)

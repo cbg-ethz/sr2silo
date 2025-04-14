@@ -5,8 +5,10 @@
 """sr2silo connects pairs, normalizes reads, and converts BAM to SAM files."""
 from __future__ import annotations
 
+import importlib.metadata
+
 import sr2silo.vpipe as vpipe
 
-__version__ = "0.0.2"
+__version__ = importlib.metadata.version("sr2silo")
 
 __all__ = ["vpipe"]

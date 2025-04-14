@@ -9,7 +9,7 @@ from typing import Annotated
 
 import typer
 
-from sr2silo.config import is_ci_environment
+from sr2silo.config import get_version, is_ci_environment
 from sr2silo.import_to_loculus import nuc_align_to_silo_njson
 
 app = typer.Typer(
@@ -135,16 +135,13 @@ def import_to_loculus(
             "This will be used for amino acid translation and alignment - by diamond."
         )
 
-    # check if $TMPDIR is set, if not use /tmp
-    if "TMPDIR" in os.environ:
-        temp_dir = Path(os.environ["TMPDIR"])
-        logging.info(f"Recognize temporary directory set in Env: {temp_dir}")
-        logging.info(
-            "This will be used for amino acid translation and alignment - by diamond."
-        )
-
     ci_env = is_ci_environment()
     logging.info(f"Running in CI environment: {ci_env}")
+
+    # Get version information if needed
+    version_info = get_version(True)
+
+    logging.info(f"Running version: {version_info}")
 
     nuc_align_to_silo_njson(
         input_file=input_file,
@@ -156,6 +153,7 @@ def import_to_loculus(
         reference=reference,
         upload=upload,
         skip_merge=skip_merge,
+        version_info=version_info,
     )
 
 

@@ -39,6 +39,9 @@ schema:
     - name: read_id
       type: string
       generateIndex: false
+    - name: sr2silo_version
+      type: string
+      generateIndex: true
   opennessLevel: OPEN
   instanceName: wise-sarsCoV2
   features: []

@@ -47,6 +47,7 @@ def aligned_reads() -> Dict[str, AlignedRead]:
         "sequencing_well_position": "",
         "primer_protocol_name": "",
         "nextclade_reference": "",
+        "sr2silo_version": "",
     }
 
     metadata_fp = Path("tests/data/process/metadata.json")

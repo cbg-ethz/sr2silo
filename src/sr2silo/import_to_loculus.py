@@ -140,6 +140,7 @@ def nuc_align_to_silo_njson(
     reference: str = "sars-cov-2",
     upload: bool = False,
     skip_merge: bool = False,
+    version_info: str | None = None,
 ) -> None:
     """Process a given input file.
 
@@ -155,6 +156,8 @@ def nuc_align_to_silo_njson(
         upload (bool): Whether to upload and submit to SILO. Default is False.
         skip_merge (bool): Whether to skip merging of paired-end reads.
                            Default is False.
+        version_info (str | None): Version information to include in metadata.
+                           Default is None.
 
     Returns:
         None (writes results to the result_dir)
@@ -190,6 +193,12 @@ def nuc_align_to_silo_njson(
     metadata["nextclade_reference"] = reference
     # metadata["nuc_reference"] = nuc_reference
     # metadata["aa_reference"] = aa_reference
+
+    # Add version information to metadata if provided
+    if version_info is not None:
+        metadata["sr2silo_version"] = version_info
+        logging.info(f"Added version information to metadata: {version_info}")
+
     metadata_file = result_dir / "metadata.json"
     result_dir.mkdir(parents=True, exist_ok=True)
     with metadata_file.open("w") as f:
@@ -243,7 +252,6 @@ def nuc_align_to_silo_njson(
         logging.info(f"Re-Compressed reads saved to: {merged_reads_fp}")
 
     ##### Translate / Align / Normalize to JSON #####
-    logging.info("=== Start translating, aligning and normalizing reads to JSON ===")
     logging.info("=== Start translating, aligning and normalizing reads to JSON ===")
     aligned_reads_fp = output_fp
     try:

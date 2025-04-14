@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sr2silo"
-version = "0.0.4"
+version = "0.1.1"
 description = "short-read to silo"
 authors = ["Gordon Julian Koehn <gordon.koehn@dbsse.ethz.ch>"]
 readme = "README.md"
@@ -10,7 +10,7 @@ packages = [{ include = "sr2silo", from = "src" }]
 sr2silo = "sr2silo.main:app"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 pyyaml = "^6.0.2"
 boto3 = "^1.35.72"
 moto = { extras = ["all", "ec2", "s3"], version = "^5.0.22" }
@@ -38,7 +38,6 @@ mkdocs-gen-files = "^0.4.0"
 mkdocs-literate-nav = "^0.6.0"
 setuptools = "^74.1.2"
 mkdocstrings-python = "^1.13.0"
-genbadge = {extras = ["coverage"], version = "^1.1.1"}
 
 [tool.coverage.report]
 fail_under = 75.0
@@ -80,7 +79,7 @@ exclude = '''
 '''
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
