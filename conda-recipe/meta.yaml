@@ -21,11 +21,11 @@ build:
 
 requirements:
   host:
-    - python >=3.10
+    - python >=3.11
     - pip
     - poetry-core
   run:
-    - python >=3.10
+    - python >=3.11
     - pyyaml >=6.0.2
     - boto3 >=1.35.72
     - psutil >=6.1.1
@@ -38,7 +38,6 @@ requirements:
     - pysam >=0.23.0
     - requests >=2.25.0
     - moto >=5.0.22
-    - brotli >=1.1.0
 
 test:
   imports:
