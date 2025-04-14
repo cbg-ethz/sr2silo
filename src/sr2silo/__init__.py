@@ -13,6 +13,13 @@ try:
     __version__ = importlib.metadata.version("sr2silo")
 except importlib.metadata.PackageNotFoundError:
     # Package is not installed
-    __version__ = "0.0.4"  # Fallback to match pyproject.toml
+    import tomllib  # Use tomllib for reading pyproject.toml (Python 3.11+)
+
+    try:
+        with open("pyproject.toml", "rb") as f:
+            pyproject_data = tomllib.load(f)
+            __version__ = pyproject_data["tool"]["poetry"]["version"]
+    except (FileNotFoundError, KeyError):
+        __version__ = "0.1.0"  # Fallback if pyproject.toml is missing or invalid
 
 __all__ = ["vpipe"]
