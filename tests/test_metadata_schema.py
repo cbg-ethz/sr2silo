@@ -22,6 +22,7 @@ VALID_METADATA = {
     "sequencing_well_position": "A1",
     "primer_protocol_name": "SARS-CoV-2 ARTIC V5.3.2",
     "nextclade_reference": "sars-cov-2",
+    "sr2silo_version": "v1.0.0",
 }
 
 

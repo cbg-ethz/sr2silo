@@ -39,6 +39,7 @@ class ReadMetadata(BaseModel):
     sequencing_well_position: str
     primer_protocol_name: str
     nextclade_reference: str
+    sr2silo_version: str
 
 
 class AlignedNucleotideSequences(BaseModel):
