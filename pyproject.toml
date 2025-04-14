@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sr2silo"
-version = "0.0.4"
+version = "0.0.0"  # Will be replaced by poetry-dynamic-versioning
 description = "short-read to silo"
 authors = ["Gordon Julian Koehn <gordon.koehn@dbsse.ethz.ch>"]
 readme = "README.md"
@@ -79,9 +79,22 @@ exclude = '''
 )/
 '''
 
+[tool.poetry.requires-plugins]
+poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
+
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
+latest-tag = true
+pattern = "v(?P<base>\\d+\\.\\d+\\.\\d+)"
+format-jinja = "{% if distance == 0 %}{{ base }}{% else %}{{ base }}.dev{{ distance }}+{{ commit }}{% endif %}"
+dirty = false
+
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.isort]
 profile = "black"
