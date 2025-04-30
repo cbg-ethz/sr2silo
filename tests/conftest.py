@@ -19,7 +19,6 @@ from sr2silo.process import bam_to_sam
 TEST_DATA_DIR = Path(__file__).parent / "data"
 
 
-# TODO - centralize the test data.
 LARGE_TEST_DATA_DIR = (
     TEST_DATA_DIR
     / "samples_large"
@@ -186,3 +185,9 @@ def real_sample_files_import_to_loculus(tmp_path, primers, timeline, sample):
         "batch_id": "20241024_2411515907",
         "reference": "sars-cov-2",
     }
+
+
+@pytest.fixture
+def reference_genome_covid_fp():
+    """Return the reference genome file path."""
+    return Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
