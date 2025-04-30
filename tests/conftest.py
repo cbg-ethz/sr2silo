@@ -50,6 +50,7 @@ def bam_data() -> Path:
     return TEST_DATA_DIR / "REF_aln_trim_subsample.bam"
 
 
+@pytest.fixture
 def sam_data() -> Path:
     """Return a sample SAM file path.
     This is the expected SAM data for
@@ -108,6 +109,7 @@ class DummyRead:
     """A dummy read object for testing purposes."""
 
     def __init__(self):
+        """Initialize the dummy read with some attributes."""
         self.query_name = "read1"
         self.query_sequence = "ACTG"
         self.query_qualities = [30, 31, 32, 33]

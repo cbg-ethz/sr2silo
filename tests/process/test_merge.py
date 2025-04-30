@@ -8,11 +8,10 @@ from pathlib import Path
 from sr2silo.process import paired_end_read_merger
 from sr2silo.process.convert import sort_sam_by_qname
 
-SAM_FP = Path("tests/data/REF_aln_trim_subsample_expected.sam")
 REF_GENOME_FP = Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
 
 
-def test_paired_end_read_merger():
+def test_paired_end_read_merger(sam_data):
     """Test the paired_end_read_merger function.
 
     test for:
@@ -25,13 +24,13 @@ def test_paired_end_read_merger():
 
         # Test with unsorted SAM file (should fail)
         try:
-            paired_end_read_merger(SAM_FP, REF_GENOME_FP, output_merged_sam_fp)
+            paired_end_read_merger(sam_data, REF_GENOME_FP, output_merged_sam_fp)
         except ValueError as e:
             assert "not sorted by QNAME" in str(e)
 
         # Sort the SAM file
         sorted_sam_fp = Path(tmp_dir) / "sorted.sam"
-        sort_sam_by_qname(SAM_FP, sorted_sam_fp)
+        sort_sam_by_qname(sam_data, sorted_sam_fp)
 
         # Test with sorted SAM file (should pass)
         paired_end_read_merger(sorted_sam_fp, REF_GENOME_FP, output_merged_sam_fp)
@@ -49,7 +48,7 @@ def test_paired_end_read_merger():
             read_ids.add(read_id)
 
 
-def test_paired_end_read_merger_exceptions():
+def test_paired_end_read_merger_exceptions(sam_data):
     """Test the exceptions in paired_end_read_merger function."""
 
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -66,7 +65,7 @@ def test_paired_end_read_merger_exceptions():
         # Test FileNotFoundError for ref_genome_fasta_fp
         try:
             paired_end_read_merger(
-                SAM_FP, Path("non_existent.fasta"), output_merged_sam_fp
+                sam_data, Path("non_existent.fasta"), output_merged_sam_fp
             )
         except FileNotFoundError as e:
             assert "File not found" in str(e)
