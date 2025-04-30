@@ -31,6 +31,8 @@ def test_bam_to_sam(bam_data: Path):
     as the resulting BAM file will not be identical to the original BAM file.
     """
     # Convert the BAM file to SAM
+    # Use a temporary directory to isolate the generated SAM file output,
+    # ensuring test reliability and avoiding side effects.
     with tempfile.TemporaryDirectory() as tmpdirname:
         temp_path = Path(tmpdirname)  # Convert string path to Path object
         sam_file = temp_path / bam_data.with_suffix(".sam")

@@ -162,7 +162,11 @@ def primers():
 
 @pytest.fixture
 def timeline():
-    """Return the timeline file path."""
+    """Return the timeline file path.
+
+    The timeline file companies the large test data samples in the
+    `samples_large` directory for testing purposes.
+    """
     return Path("./tests/data/samples_large/timeline_A1_05_2024_10_08.tsv")
 
 
