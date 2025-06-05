@@ -138,7 +138,6 @@ def nuc_align_to_silo_njson(
     primers_file: Path,
     output_fp: Path,
     reference: str = "sars-cov-2",
-    upload: bool = False,
     skip_merge: bool = False,
     version_info: str | None = None,
 ) -> None:
@@ -153,7 +152,6 @@ def nuc_align_to_silo_njson(
         output_fp (Path): Path to the output file.
         reference (str): The nucleotide / amino acid reference from
                     the resources folder.
-        upload (bool): Whether to upload and submit to SILO. Default is False.
         skip_merge (bool): Whether to skip merging of paired-end reads.
                            Default is False.
         version_info (str | None): Version information to include in metadata.
@@ -273,8 +271,4 @@ def nuc_align_to_silo_njson(
             logging.info(f"Temporary file {merged_reads_fp} removed.")
 
     logging.info(f"Processed reads saved to: {aligned_reads_fp}")
-    if upload:
-        s3_link = upload_to_s3(aligned_reads_fp, sample_id)
-        submit_to_silo(result_dir, s3_link)
-    else:
-        logging.info("Skipping upload and submission to S3 and SILO.")
+    logging.info("Processing completed. Use 'submit-to-loculus' command to upload and submit to SILO.")

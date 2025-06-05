@@ -39,7 +39,7 @@ def run():
 
 
 @app.command()
-def import_to_loculus(
+def process_from_vpipe(
     input_file: Annotated[
         Path,
         typer.Option(
@@ -106,7 +106,7 @@ def import_to_loculus(
 ) -> None:
     """
     V-PIPE to SILO conversion with amino acids and special metadata.
-    Processing only - use 'submit' command to upload and submit to SILO.
+    Processing only - use 'submit-to-loculus' command to upload and submit to SILO.
     """
     typer.echo("Starting V-PIPE to SILO conversion.")
 
@@ -143,14 +143,13 @@ def import_to_loculus(
         primers_file=primer_file,
         output_fp=output_fp,
         reference=reference,
-        upload=False,  # Processing only, use 'submit' command for upload
         skip_merge=skip_merge,
         version_info=version_info,
     )
 
 
 @app.command()
-def submit(
+def submit_to_loculus(
     processed_file: Annotated[
         Path,
         typer.Option(
