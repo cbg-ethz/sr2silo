@@ -10,7 +10,8 @@ from typing import Annotated
 import typer
 
 from sr2silo.config import get_version, is_ci_environment
-from sr2silo.import_to_loculus import nuc_align_to_silo_njson, submit_to_silo, upload_to_s3
+from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
+from sr2silo.submit_to_loculus import submit_to_silo, upload_to_s3
 
 app = typer.Typer(
     name="sr2silo",
@@ -198,7 +199,7 @@ def submit_to_loculus(
     # Upload to S3 and submit to SILO
     s3_link = upload_to_s3(processed_file, sample_id)
     success = submit_to_silo(result_dir, s3_link)
-    
+
     if success:
         typer.echo("Upload and submission completed successfully.")
     else:
