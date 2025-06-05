@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sr2silo.import_to_loculus import nuc_align_to_silo_njson
+from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
 
 
 @pytest.mark.parametrize("skip_merge", [True, False])
@@ -35,24 +35,24 @@ def test_skip_merge_option(
 
     # We'll patch multiple functions to isolate the test and prevent file system errors
     with patch(
-        "sr2silo.import_to_loculus.paired_end_read_merger"
+        "sr2silo.process_from_vpipe.paired_end_read_merger"
     ) as mock_merger, patch(
-        "sr2silo.import_to_loculus.parse_translate_align_in_batches",
+        "sr2silo.process_from_vpipe.parse_translate_align_in_batches",
         return_value=output_fp,
     ) as _mock_parse, patch(  # ruff: noqa: E501
-        "sr2silo.import_to_loculus.Path.mkdir", return_value=None
+        "sr2silo.process_from_vpipe.Path.mkdir", return_value=None
     ) as _mock_mkdir, patch(
-        "sr2silo.import_to_loculus.sort_bam_file"
+        "sr2silo.process_from_vpipe.sort_bam_file"
     ) as _mock_sort, patch(
-        "sr2silo.import_to_loculus.bam_to_sam"
+        "sr2silo.process_from_vpipe.bam_to_sam"
     ) as _mock_bam_to_sam, patch(
-        "sr2silo.import_to_loculus.sam_to_bam"
+        "sr2silo.process_from_vpipe.sam_to_bam"
     ) as _mock_sam_to_bam, patch(
-        "sr2silo.import_to_loculus.Path.unlink"
+        "sr2silo.process_from_vpipe.Path.unlink"
     ) as _mock_unlink, patch(
         "pathlib.Path.exists", return_value=True
     ), patch(
-        "sr2silo.import_to_loculus.Path.parent", new_callable=MagicMock
+        "sr2silo.process_from_vpipe.Path.parent", new_callable=MagicMock
     ) as mock_parent:
 
         # Set up the mock for Path.parent to return a Path that contains a
@@ -70,7 +70,6 @@ def test_skip_merge_option(
             primers_file=sample_files["primer_file"],
             output_fp=output_fp,
             reference=sample_files["reference"],
-            upload=False,
             skip_merge=skip_merge,
         )
 
@@ -105,12 +104,12 @@ def test_skip_merge_file_handling(
 
     # Set up common mocks
     with patch(
-        "sr2silo.import_to_loculus.parse_translate_align_in_batches",
+        "sr2silo.process_from_vpipe.parse_translate_align_in_batches",
         return_value=output_fp,
-    ), patch("sr2silo.import_to_loculus.Path.mkdir", return_value=None), patch(
+    ), patch("sr2silo.process_from_vpipe.Path.mkdir", return_value=None), patch(
         "pathlib.Path.exists", return_value=True
     ), patch(
-        "sr2silo.import_to_loculus.Path.parent", new_callable=MagicMock
+        "sr2silo.process_from_vpipe.Path.parent", new_callable=MagicMock
     ) as mock_parent:
 
         # Set up the mock for Path.parent to return a Path that contains a
@@ -120,7 +119,7 @@ def test_skip_merge_file_handling(
         mock_parent.return_value = mock_parent_path
 
         # Test with a BAM file
-        with patch("sr2silo.import_to_loculus.sam_to_bam") as mock_sam_to_bam:
+        with patch("sr2silo.process_from_vpipe.sam_to_bam") as mock_sam_to_bam:
             nuc_align_to_silo_njson(
                 input_file=sample_files["input_file"],  # This is a BAM file
                 sample_id=sample_files["sample_id"],
@@ -129,7 +128,6 @@ def test_skip_merge_file_handling(
                 primers_file=sample_files["primer_file"],
                 output_fp=output_fp,
                 reference=sample_files["reference"],
-                upload=False,
                 skip_merge=True,
             )
 
@@ -138,7 +136,7 @@ def test_skip_merge_file_handling(
             assert mock_sam_to_bam.call_count == 0
 
         # Test with a SAM file
-        with patch("sr2silo.import_to_loculus.sam_to_bam") as mock_sam_to_bam:
+        with patch("sr2silo.process_from_vpipe.sam_to_bam") as mock_sam_to_bam:
             nuc_align_to_silo_njson(
                 input_file=test_sam_path,  # This is a SAM file
                 sample_id=sample_files["sample_id"],
@@ -147,7 +145,6 @@ def test_skip_merge_file_handling(
                 primers_file=sample_files["primer_file"],
                 output_fp=output_fp,
                 reference=sample_files["reference"],
-                upload=False,
                 skip_merge=True,
             )
 
