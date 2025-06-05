@@ -120,5 +120,3 @@ def submit_to_silo(result_dir: Path, s3_link: str) -> bool:
         logging.error(f"Error submitting data to Lapis: {response}")
         logging.error(f"Response: {response.text}")
         return False
-
-

@@ -1,5 +1,5 @@
 """Converts V-PIPE's outputs of nucleotide read sequences output to
-   ready to import nuclotides and amino acid sequences to the SILO database."""
+ready to import nuclotides and amino acid sequences to the SILO database."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ import logging
 import json
 
 from pathlib import Path
-
 
 
 from sr2silo.process import (
@@ -25,6 +24,7 @@ from sr2silo.vpipe import Sample
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
 
 def nuc_align_to_silo_njson(
     input_file: Path,
@@ -167,4 +167,6 @@ def nuc_align_to_silo_njson(
             logging.info(f"Temporary file {merged_reads_fp} removed.")
 
     logging.info(f"Processed reads saved to: {aligned_reads_fp}")
-    logging.info("Processing completed. Use 'submit-to-loculus' command to upload and submit to SILO.")
+    logging.info(
+        "Processing completed. Use 'submit-to-loculus' command to upload and submit to SILO."
+    )

@@ -183,7 +183,9 @@ def submit_to_loculus(
 
     # Check if file has correct extension
     if processed_file.suffixes != [".ndjson", ".zst"]:
-        logging.error(f"File must have .ndjson.zst extension, got: {processed_file.suffixes}")
+        logging.error(
+            f"File must have .ndjson.zst extension, got: {processed_file.suffixes}"
+        )
         raise typer.Exit(1)
 
     ci_env = is_ci_environment()

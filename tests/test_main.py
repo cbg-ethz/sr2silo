@@ -110,6 +110,7 @@ def test_submit_to_loculus_command_wrong_extension():
     """Test submit-to-loculus command fails when file has wrong extension."""
     # Create a temporary file with wrong extension
     import tempfile
+
     with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
         tmp.write(b"test content")
         tmp_path = tmp.name
@@ -128,6 +129,7 @@ def test_submit_to_loculus_command_wrong_extension():
         assert result.exit_code == 1
     finally:
         import os
+
         os.unlink(tmp_path)
 
 

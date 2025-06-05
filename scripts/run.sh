@@ -22,6 +22,6 @@ sr2silo process-from-vpipe \
     --reference "$NUC_REFERENCE"
 
 # Uncomment the following lines to upload and submit the processed file to SILO
-# sr2silo submit-to-loculus \
-#     --processed-file "$OUTPUT_FILE.zst" \
-#     --sample-id "$SAMPLE_ID"
+sr2silo submit-to-loculus \
+    --processed-file "$OUTPUT_FILE.zst" \
+    --sample-id "$SAMPLE_ID"
