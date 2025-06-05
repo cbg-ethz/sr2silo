@@ -60,6 +60,5 @@ rule process_sample:
             --timeline-file {params.timeline_file} \
             --primer-file {params.primers_file} \
             --output-fp {output.result_fp} \
-            --reference {params.nuc_reference} \
-            --no-upload 2>&1 | tee -a {log}
+            --reference {params.nuc_reference}
         """
