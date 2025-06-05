@@ -6,7 +6,6 @@ as expected when invoked with various commands and options.
 
 from __future__ import annotations
 
-import os
 
 from typer.testing import CliRunner
 
@@ -37,26 +36,26 @@ def test_run_command():
     assert "Not yet implemented" in result.stdout
 
 
-def test_import_to_loculus_help():
-    """Test the help output for import-to-loculus command."""
-    result = runner.invoke(app, ["import-to-loculus", "--help"])
+def test_process_from_vpipe_help():
+    """Test the help output for process-from-vpipe command."""
+    result = runner.invoke(app, ["process-from-vpipe", "--help"])
     assert result.exit_code == 0
     assert "V-PIPE to SILO conversion" in result.stdout
 
 
-def test_import_to_loculus_missing_required():
-    """Test import-to-loculus fails when required arguments are missing."""
-    result = runner.invoke(app, ["import-to-loculus"])
+def test_process_from_vpipe_missing_required():
+    """Test process-from-vpipe fails when required arguments are missing."""
+    result = runner.invoke(app, ["process-from-vpipe"])
     assert result.exit_code != 0  # Should fail due to missing required options
 
 
-def test_import_to_loculus_with_real_files(real_sample_files_import_to_loculus):
-    """Test import-to-loculus with real sample files."""
+def test_process_from_vpipe_with_real_files(real_sample_files_import_to_loculus):
+    """Test process-from-vpipe with real sample files."""
 
     result = runner.invoke(
         app,
         [
-            "import-to-loculus",
+            "process-from-vpipe",
             "--input-file",
             str(real_sample_files_import_to_loculus["input_file"]),
             "--sample-id",
@@ -71,7 +70,6 @@ def test_import_to_loculus_with_real_files(real_sample_files_import_to_loculus):
             str(real_sample_files_import_to_loculus["output_file"]),
             "--reference",
             real_sample_files_import_to_loculus["reference"],
-            "--no-upload",
         ],
     )
 
@@ -79,48 +77,67 @@ def test_import_to_loculus_with_real_files(real_sample_files_import_to_loculus):
     assert "Starting V-PIPE to SILO conversion" in result.stdout
 
 
-def test_import_to_loculus_with_real_files_and_upload(
-    real_sample_files_import_to_loculus,
-):
-    """Test import-to-loculus with real sample files and upload flag in a CI
-    environment.
-    """
-    env = os.environ.copy()
-    env["CI"] = "true"
-
-    result = runner.invoke(
-        app,
-        [
-            "import-to-loculus",
-            "--input-file",
-            str(real_sample_files_import_to_loculus["input_file"]),
-            "--sample-id",
-            real_sample_files_import_to_loculus["sample_id"],
-            "--batch-id",
-            real_sample_files_import_to_loculus["batch_id"],
-            "--timeline-file",
-            str(real_sample_files_import_to_loculus["timeline_file"]),
-            "--primer-file",
-            str(real_sample_files_import_to_loculus["primer_file"]),
-            "--output-fp",
-            str(real_sample_files_import_to_loculus["output_file"]),
-            "--reference",
-            real_sample_files_import_to_loculus["reference"],
-            "--upload",
-        ],
-        env=env,
-    )
-
+def test_submit_to_loculus_command_help():
+    """Test the help output for submit-to-loculus command."""
+    result = runner.invoke(app, ["submit-to-loculus", "--help"])
     assert result.exit_code == 0
-    assert "Starting V-PIPE to SILO conversion" in result.stdout
+    assert "Upload processed file to S3 and submit to SILO/Loculus" in result.stdout
 
 
-def test_import_to_loculus_with_skip_merge(real_sample_files_import_to_loculus):
-    """Test import-to-loculus with skip-merge option to bypass read pair merging."""
+def test_submit_to_loculus_command_missing_required():
+    """Test submit-to-loculus command fails when required arguments are missing."""
+    result = runner.invoke(app, ["submit-to-loculus"])
+    assert result.exit_code != 0  # Should fail due to missing required options
+
+
+def test_submit_to_loculus_command_nonexistent_file():
+    """Test submit-to-loculus command fails when processed file doesn't exist."""
     result = runner.invoke(
         app,
         [
-            "import-to-loculus",
+            "submit-to-loculus",
+            "--processed-file",
+            "/tmp/nonexistent.ndjson.zst",
+            "--sample-id",
+            "test_sample",
+        ],
+    )
+    assert result.exit_code == 1
+
+
+def test_submit_to_loculus_command_wrong_extension():
+    """Test submit-to-loculus command fails when file has wrong extension."""
+    # Create a temporary file with wrong extension
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
+        tmp.write(b"test content")
+        tmp_path = tmp.name
+
+    try:
+        result = runner.invoke(
+            app,
+            [
+                "submit-to-loculus",
+                "--processed-file",
+                tmp_path,
+                "--sample-id",
+                "test_sample",
+            ],
+        )
+        assert result.exit_code == 1
+    finally:
+        import os
+
+        os.unlink(tmp_path)
+
+
+def test_process_from_vpipe_with_skip_merge(real_sample_files_import_to_loculus):
+    """Test process-from-vpipe with skip-merge option to bypass read pair merging."""
+    result = runner.invoke(
+        app,
+        [
+            "process-from-vpipe",
             "--input-file",
             str(real_sample_files_import_to_loculus["input_file"]),
             "--sample-id",
@@ -135,7 +152,6 @@ def test_import_to_loculus_with_skip_merge(real_sample_files_import_to_loculus):
             str(real_sample_files_import_to_loculus["output_file"]),
             "--reference",
             real_sample_files_import_to_loculus["reference"],
-            "--no-upload",
             "--skip-merge",
         ],
     )
