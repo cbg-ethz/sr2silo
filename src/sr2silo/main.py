@@ -10,7 +10,7 @@ from typing import Annotated
 import typer
 
 from sr2silo.config import get_version, is_ci_environment
-from sr2silo.import_to_loculus import nuc_align_to_silo_njson
+from sr2silo.import_to_loculus import nuc_align_to_silo_njson, submit_to_silo, upload_to_s3
 
 app = typer.Typer(
     name="sr2silo",
@@ -96,13 +96,6 @@ def import_to_loculus(
             help="See folder names in resources/",
         ),
     ] = "sars-cov-2",
-    upload: Annotated[
-        bool,
-        typer.Option(
-            "--upload/--no-upload",
-            help="Upload and submit to SILO.",
-        ),
-    ] = False,
     skip_merge: Annotated[
         bool,
         typer.Option(
@@ -112,8 +105,8 @@ def import_to_loculus(
     ] = False,
 ) -> None:
     """
-    V-PIPE to SILO conversion with amino acids, special metadata,
-    Upload to S3 and submission to Loculus.
+    V-PIPE to SILO conversion with amino acids and special metadata.
+    Processing only - use 'submit' command to upload and submit to SILO.
     """
     typer.echo("Starting V-PIPE to SILO conversion.")
 
@@ -124,7 +117,6 @@ def import_to_loculus(
     logging.info(f"Using genome reference: {reference}")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using batch_id: {batch_id}")
-    logging.info(f"Upload to S3 and submit to SILO: {upload}")
     logging.info(f"Skip read pair merging: {skip_merge}")
 
     # check if $TMPDIR is set, if not use /tmp
@@ -151,10 +143,68 @@ def import_to_loculus(
         primers_file=primer_file,
         output_fp=output_fp,
         reference=reference,
-        upload=upload,
+        upload=False,  # Processing only, use 'submit' command for upload
         skip_merge=skip_merge,
         version_info=version_info,
     )
+
+
+@app.command()
+def submit(
+    processed_file: Annotated[
+        Path,
+        typer.Option(
+            "--processed-file",
+            "-f",
+            help="Path to the processed .ndjson.zst file to upload and submit.",
+        ),
+    ],
+    sample_id: Annotated[
+        str,
+        typer.Option(
+            "--sample-id",
+            "-s",
+            help="Sample ID for the processed file.",
+        ),
+    ],
+) -> None:
+    """
+    Upload processed file to S3 and submit to SILO/Loculus.
+    """
+    typer.echo("Starting upload and submission to SILO.")
+
+    logging.info(f"Processing file: {processed_file}")
+    logging.info(f"Using sample_id: {sample_id}")
+
+    # Check if the processed file exists
+    if not processed_file.exists():
+        logging.error(f"Processed file not found: {processed_file}")
+        raise typer.Exit(1)
+
+    # Check if file has correct extension
+    if processed_file.suffixes != [".ndjson", ".zst"]:
+        logging.error(f"File must have .ndjson.zst extension, got: {processed_file.suffixes}")
+        raise typer.Exit(1)
+
+    ci_env = is_ci_environment()
+    logging.info(f"Running in CI environment: {ci_env}")
+
+    # Get version information
+    version_info = get_version(True)
+    logging.info(f"Running version: {version_info}")
+
+    # Get the result directory (parent of the processed file)
+    result_dir = processed_file.parent
+
+    # Upload to S3 and submit to SILO
+    s3_link = upload_to_s3(processed_file, sample_id)
+    success = submit_to_silo(result_dir, s3_link)
+    
+    if success:
+        typer.echo("Upload and submission completed successfully.")
+    else:
+        typer.echo("Upload and submission failed.")
+        raise typer.Exit(1)
 
 
 def main():
