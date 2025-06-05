@@ -70,7 +70,6 @@ def test_skip_merge_option(
             primers_file=sample_files["primer_file"],
             output_fp=output_fp,
             reference=sample_files["reference"],
-            upload=False,
             skip_merge=skip_merge,
         )
 
@@ -129,7 +128,6 @@ def test_skip_merge_file_handling(
                 primers_file=sample_files["primer_file"],
                 output_fp=output_fp,
                 reference=sample_files["reference"],
-                upload=False,
                 skip_merge=True,
             )
 
@@ -147,7 +145,6 @@ def test_skip_merge_file_handling(
                 primers_file=sample_files["primer_file"],
                 output_fp=output_fp,
                 reference=sample_files["reference"],
-                upload=False,
                 skip_merge=True,
             )
 
