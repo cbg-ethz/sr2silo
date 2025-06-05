@@ -168,5 +168,6 @@ def nuc_align_to_silo_njson(
 
     logging.info(f"Processed reads saved to: {aligned_reads_fp}")
     logging.info(
-        "Processing completed. Use 'submit-to-loculus' command to upload and submit to SILO."
+        "Processing completed. Use 'submit-to-loculus' command to upload "
+        "and submit to SILO."
     )
