@@ -6,7 +6,6 @@ as expected when invoked with various commands and options.
 
 from __future__ import annotations
 
-import os
 
 from typer.testing import CliRunner
 
