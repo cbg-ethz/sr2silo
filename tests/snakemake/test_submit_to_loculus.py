@@ -67,7 +67,8 @@ def test_submit_to_loculus():
             print(f"STDOUT: {result.stdout}")
 
             # Check that the rule was properly parsed and would be executed
-            # In dry-run mode, the output file won't be created but the rule should be validated
+            # In dry-run mode,
+            # the output file won't be created but the rule should be validated
             assert (
                 "submit_to_loculus" in result.stdout
                 or "submit_to_loculus" in result.stderr
