@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-
 from pathlib import Path
 
 from sr2silo.config import (
@@ -13,10 +12,8 @@ from sr2silo.config import (
     get_submission_url,
     is_ci_environment,
 )
-
 from sr2silo.silo import LapisClient, Submission
 from sr2silo.storage import upload_file_to_s3
-
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -71,7 +68,7 @@ def upload_to_s3(aligned_reads_fp: Path, sample_id: str) -> str:
     logging.info(f"Uploading to S3: {aligned_reads_fp}")
     suffix = aligned_reads_fp.suffix
     s3_file_name = f"{sample_id}.{suffix}"
-    s3_bucket = "sr2silo01"
+    s3_bucket = "sr2silo01"  # TODO : Make this configurable
     s3_link = f"s3://{s3_bucket}/{s3_file_name}"
     upload_file_to_s3(aligned_reads_fp, s3_bucket, s3_file_name)
     return s3_link
