@@ -73,7 +73,7 @@ rule submit_to_loculus:
         - AWS_DEFAULT_REGION
         - KEYCLOAK_TOKEN_URL
         - SUBMISSION_URL
-    Confirured in the workflow/config.yaml file.
+    Configured in the workflow/config.yaml file.
 
     Development Note:
     With Loculus File Sharing and S3 managed uploads, this rule
