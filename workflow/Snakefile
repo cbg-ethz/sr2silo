@@ -60,5 +60,5 @@ rule process_sample:
             --timeline-file {params.timeline_file} \
             --primer-file {params.primers_file} \
             --output-fp {output.result_fp} \
-            --reference {params.nuc_reference} | tee {log}
+            --reference {params.nuc_reference} > {log} 2>&1
         """
