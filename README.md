@@ -65,7 +65,7 @@ The total output is handled in an `.ndjson.zst`.
 
 ### Resource Requirements
 
-When running sr2silo, particularly the `import-to-loculus` command, be aware of memory and storage requirements:
+When running sr2silo, particularly the `process-from-vpipe` command, be aware of memory and storage requirements:
 
 - Standard configuration uses 8GB RAM and one CPU core
 - Processing batches of 100k reads requires ~3GB RAM plus ~3GB for Diamond
@@ -178,17 +178,19 @@ pytest
 
 ### Run CLI
 
-The sr2silo CLI has two main commands:
+The sr2silo CLI has three main commands:
 
 1. `run` - Not yet implemented command for future functionality
-2. `import-to-loculus` - Convert BAM alignments to SILO format and optionally upload
+2. `process-from-vpipe` - Process V-Pipe BAM alignments to SILO format (processing only)
+3. `submit-to-loculus` - Upload processed files to S3 and submit to SILO/Loculus
 
-#### Basic Usage
+#### Two-Step Workflow
 
-The main command you'll use is `import-to-loculus`:
+sr2silo follows a two-step workflow:
 
+**Step 1: Process V-Pipe data**
 ```bash
-sr2silo import-to-loculus \
+sr2silo process-from-vpipe \
     --input-file INPUT.bam \
     --sample-id SAMPLE_ID \
     --batch-id BATCH_ID \
@@ -198,7 +200,14 @@ sr2silo import-to-loculus \
     --reference sars-cov-2
 ```
 
-#### Required Arguments
+**Step 2: Submit to Loculus**
+```bash
+sr2silo submit-to-loculus \
+    --processed-file OUTPUT.ndjson.zst \
+    --sample-id SAMPLE_ID
+```
+
+#### Required Arguments for `process-from-vpipe`
 
 - `--input-file, -i`: Path to the input BAM alignment file
 - `--sample-id, -s`: Sample ID to use for metadata
@@ -207,17 +216,23 @@ sr2silo import-to-loculus \
 - `--primer-file, -p`: Path to the primers configuration file
 - `--output-fp, -o`: Path for the output file (will be auto-suffixed with .ndjson.zst)
 
-#### Optional Arguments
+#### Required Arguments for `submit-to-loculus`
+
+- `--processed-file, -f`: Path to the processed .ndjson.zst file to upload and submit
+- `--sample-id, -s`: Sample ID for the processed file
+
+#### Optional Arguments for `process-from-vpipe`
 
 - `--reference, -r`: Reference genome to use (default: "sars-cov-2")
-- `--upload/--no-upload`: Whether to upload results to S3 and submit to SILO (default: no-upload)
+- `--skip-merge/--no-skip-merge`: Skip merging of paired-end reads (default: no-skip-merge)
 
 #### Example Usage
 
 Here's a complete example with sample data:
 
+**Step 1: Process V-Pipe data**
 ```bash
-sr2silo import-to-loculus \
+sr2silo process-from-vpipe \
     --input-file ./data/sample/alignments/REF_aln_trim.bam \
     --sample-id "A1_05_2024_10_08" \
     --batch-id "20241024_2411515907" \
@@ -227,13 +242,16 @@ sr2silo import-to-loculus \
     --reference sars-cov-2
 ```
 
-To also upload the results to SILO, add the `--upload` flag:
+This will create a processed file `./results/output.ndjson.zst`.
 
+**Step 2: Submit to Loculus**
 ```bash
-sr2silo import-to-loculus \
-    # ...same arguments as above... \
-    --upload
+sr2silo submit-to-loculus \
+    --processed-file ./results/output.ndjson.zst \
+    --sample-id "A1_05_2024_10_08"
 ```
+
+This will upload the processed file to S3 and submit it to SILO/Loculus.
 
 ### Tool Sections
 The code quality checks run on GitHub can be seen in

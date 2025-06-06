@@ -11,13 +11,17 @@ PRIMERS_FILE="./resources/sars-cov-2/primers/primers.yaml"
 NUC_REFERENCE="sars-cov-2"
 
 # Run using sr2silo CLI
-# Add --upload flag if you want to upload and submit to SILO
-sr2silo import-to-loculus \
+# Use submit-to-loculus command to upload and submit processed files to SILO
+sr2silo process-from-vpipe \
     --input-file "$INPUT_FILE" \
     --sample-id "$SAMPLE_ID" \
     --batch-id "$BATCH_ID" \
     --timeline-file "$TIMELINE_FILE" \
     --primer-file "$PRIMERS_FILE" \
     --output-fp "$OUTPUT_FILE" \
-    --reference "$NUC_REFERENCE" \
-    # --upload # Uncomment to enable upload to S3 and submission to SILO
+    --reference "$NUC_REFERENCE"
+
+# Uncomment the following lines to upload and submit the processed file to SILO
+sr2silo submit-to-loculus \
+    --processed-file "$OUTPUT_FILE.zst" \
+    --sample-id "$SAMPLE_ID"
