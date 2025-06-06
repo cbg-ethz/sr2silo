@@ -90,28 +90,17 @@ rule submit_to_loculus:
         "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}_batchId_{batch_id}.log",
     conda:
         "envs/sr2silo.yaml"
+    envvars:
+        AWS_ACCESS_KEY_ID=config.get("AWS_ACCESS_KEY_ID", ""),
+        AWS_SECRET_ACCESS_KEY=config.get("AWS_SECRET_ACCESS_KEY", ""),
+        AWS_DEFAULT_REGION=config.get("AWS_DEFAULT_REGION", "us-east-1"),
+        KEYCLOAK_TOKEN_URL=config.get("KEYCLOAK_TOKEN_URL", ""),
+        SUBMISSION_URL=config.get("SUBMISSION_URL", ""),
     shell:
-        (
-            """
-        export AWS_ACCESS_KEY_ID="""
-            + config.get("AWS_ACCESS_KEY_ID", "")
-            + """; \
-                                        export AWS_SECRET_ACCESS_KEY="""
-            + config.get("AWS_SECRET_ACCESS_KEY", "")
-            + """; \
-                                        export AWS_DEFAULT_REGION="""
-            + config.get("AWS_DEFAULT_REGION", "us-east-1")
-            + """; \
-                                        export KEYCLOAK_TOKEN_URL="""
-            + config.get("KEYCLOAK_TOKEN_URL", "")
-            + """; \
-                                        export SUBMISSION_URL="""
-            + config.get("SUBMISSION_URL", "")
-            + """; \
-                                        sr2silo submit-to-loculus \
-                                            --processed-file {input.result_fp} \
-                                            --sample-id {params.sample_id} > {log} 2>&1 && \
-                                        mkdir -p $(dirname {output.flag}) && \
-                                        touch {output.flag}
-                                        """
-        )
+        """
+        sr2silo submit-to-loculus \
+            --processed-file {input.result_fp} \
+            --sample-id {params.sample_id} > {log} 2>&1 && \
+        mkdir -p $(dirname {output.flag}) && \
+        touch {output.flag}
+        """
