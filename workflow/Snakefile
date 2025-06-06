@@ -53,13 +53,12 @@ rule process_sample:
         "envs/sr2silo.yaml"
     shell:
         """
-        sr2silo import-to-loculus \
+        sr2silo process-from-vpipe \
             --input-file {input.sample_fp} \
             --sample-id {params.sample_id} \
             --batch-id {params.batch_id} \
             --timeline-file {params.timeline_file} \
             --primer-file {params.primers_file} \
             --output-fp {output.result_fp} \
-            --reference {params.nuc_reference} \
-            --no-upload 2>&1 | tee -a {log}
+            --reference {params.nuc_reference} > {log} 2>&1
         """

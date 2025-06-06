@@ -18,10 +18,7 @@ from sr2silo.process import bam_to_sam
 # Define test data paths
 TEST_DATA_DIR = Path(__file__).parent / "data"
 
-INPUT_BAM_PATH = TEST_DATA_DIR / "REF_aln_trim_subsample.bam"
-EXPECTED_SAM_PATH = TEST_DATA_DIR / "REF_aln_trim_subsample_expected.sam"
 
-# TODO - centralize the test data.
 LARGE_TEST_DATA_DIR = (
     TEST_DATA_DIR
     / "samples_large"
@@ -49,14 +46,15 @@ def bam_data() -> Path:
 
     Complementary to sam_data.
     """
-    return INPUT_BAM_PATH
+    return TEST_DATA_DIR / "REF_aln_trim_subsample.bam"
 
 
+@pytest.fixture
 def sam_data() -> Path:
     """Return a sample SAM file path.
     This is the expected SAM data for
     the test data in the INPUT_BAM_PATH."""
-    return EXPECTED_SAM_PATH
+    return TEST_DATA_DIR / "REF_aln_trim_subsample_expected.sam"
 
 
 @pytest.fixture
@@ -110,6 +108,7 @@ class DummyRead:
     """A dummy read object for testing purposes."""
 
     def __init__(self):
+        """Initialize the dummy read with some attributes."""
         self.query_name = "read1"
         self.query_sequence = "ACTG"
         self.query_qualities = [30, 31, 32, 33]
@@ -163,8 +162,12 @@ def primers():
 
 @pytest.fixture
 def timeline():
-    """Return the timeline file path."""
-    return Path("./tests/data/samples/timeline_A1_05_2024_10_08.tsv")
+    """Return the timeline file path.
+
+    The timeline file companies the large test data samples in the
+    `samples_large` directory for testing purposes.
+    """
+    return Path("./tests/data/samples_large/timeline_A1_05_2024_10_08.tsv")
 
 
 @pytest.fixture
@@ -186,3 +189,9 @@ def real_sample_files_import_to_loculus(tmp_path, primers, timeline, sample):
         "batch_id": "20241024_2411515907",
         "reference": "sars-cov-2",
     }
+
+
+@pytest.fixture
+def reference_genome_covid_fp():
+    """Return the reference genome file path."""
+    return Path("resources/sars-cov-2/nuc_reference_genomes.fasta")

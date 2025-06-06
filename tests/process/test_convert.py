@@ -4,6 +4,7 @@ This module contains tests for the conversion functions in the sr2silo package.
 
 from __future__ import annotations
 
+import tempfile
 from pathlib import Path
 
 import pysam
@@ -29,23 +30,26 @@ def test_bam_to_sam(bam_data: Path):
     BAM -> SAM -> BAM conversion cannot be tested directly,
     as the resulting BAM file will not be identical to the original BAM file.
     """
-
     # Convert the BAM file to SAM
-    sam_file = bam_data.with_suffix(".sam")
-    bam_to_sam(bam_data, sam_file)
+    # Use a temporary directory to isolate the generated SAM file output,
+    # ensuring test reliability and avoiding side effects.
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        temp_path = Path(tmpdirname)  # Convert string path to Path object
+        sam_file = temp_path / bam_data.with_suffix(".sam")
+        bam_to_sam(bam_data, sam_file)
 
-    # Check that the SAM file was created
-    assert sam_file.exists(), "The SAM file was not created"
-    # check that the SAM file is not empty
-    assert sam_file.stat().st_size > 0, "The SAM file is empty"
-    # check that the SAM file is not a binary file
-    with sam_file.open("r") as f:
-        first_line = f.readline()
-        assert first_line.startswith("@")
-    # assert that the file is larger than the original BAM file
-    assert (
-        sam_file.stat().st_size > bam_data.stat().st_size
-    ), "The SAM file is smaller than the BAM file"
+        # Check that the SAM file was created
+        assert sam_file.exists(), "The SAM file was not created"
+        # check that the SAM file is not empty
+        assert sam_file.stat().st_size > 0, "The SAM file is empty"
+        # check that the SAM file is not a binary file
+        with sam_file.open("r") as f:
+            first_line = f.readline()
+            assert first_line.startswith("@")
+        # assert that the file is larger than the original BAM file
+        assert (
+            sam_file.stat().st_size > bam_data.stat().st_size
+        ), "The SAM file is smaller than the BAM file"
 
 
 def test_sort_bam_file(tmp_path, monkeypatch):
