@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sr2silo"
-version = "0.1.2"
+version = "0.2.0"
 description = "short-read to silo"
 authors = ["Gordon Julian Koehn <gordon.koehn@dbsse.ethz.ch>"]
 readme = "README.md"
@@ -36,7 +36,7 @@ pyright = "^1.1.395"
 mkdocs-material = "^9.1.6"
 mkdocs-gen-files = "^0.4.0"
 mkdocs-literate-nav = "^0.6.0"
-setuptools = "^74.1.2"
+setuptools = "^78.1.1"
 mkdocstrings-python = "^1.13.0"
 
 [tool.coverage.report]

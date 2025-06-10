@@ -62,3 +62,56 @@ rule process_sample:
             --output-fp {output.result_fp} \
             --reference {params.nuc_reference} > {log} 2>&1
         """
+
+
+rule submit_to_loculus:
+    """Submits the processed sample to loculus.
+
+    Note the required environment variables:
+        - AWS_ACCESS_KEY_ID
+        - AWS_SECRET_ACCESS_KEY
+        - AWS_DEFAULT_REGION
+        - KEYCLOAK_TOKEN_URL
+        - SUBMISSION_URL
+    Configured in the workflow/config.yaml file.
+
+    Development Note:
+    With Loculus File Sharing and S3 managed uploads, this rule
+    will get simpler in the future, abstracting s3 locations away.
+    """
+    input:
+        result_fp=f"{config['RESULTS_DIR']}"
+        + "/sampleId-{sample_id}_batchId-{batch_id}.ndjson.zst",
+    output:
+        flag=f"{config['RESULTS_DIR']}/uploads/sampleId-{{sample_id}}_batchId-{{batch_id}}.uploaded",
+    params:
+        sample_id=lambda wildcards: wildcards.sample_id,
+    log:
+        "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}_batchId_{batch_id}.log",
+    conda:
+        "envs/sr2silo.yaml"
+    shell:
+        (
+            """
+        export AWS_ACCESS_KEY_ID="""
+            + config.get("AWS_ACCESS_KEY_ID", "")
+            + """; \
+                                        export AWS_SECRET_ACCESS_KEY="""
+            + config.get("AWS_SECRET_ACCESS_KEY", "")
+            + """; \
+                                        export AWS_DEFAULT_REGION="""
+            + config.get("AWS_DEFAULT_REGION", "us-east-1")
+            + """; \
+                                        export KEYCLOAK_TOKEN_URL="""
+            + config.get("KEYCLOAK_TOKEN_URL", "")
+            + """; \
+                                        export SUBMISSION_URL="""
+            + config.get("SUBMISSION_URL", "")
+            + """; \
+                                        sr2silo submit-to-loculus \
+                                            --processed-file {input.result_fp} \
+                                            --sample-id {params.sample_id} > {log} 2>&1 && \
+                                        mkdir -p $(dirname {output.flag}) && \
+                                        touch {output.flag}
+                                        """
+        )
