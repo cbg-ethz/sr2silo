@@ -3,8 +3,21 @@
 from __future__ import annotations
 
 import importlib.metadata
+import logging
 import os
 import subprocess
+import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load .env file using python-dotenv
+
+
+# Load .env file from the project root
+env_path = Path(__file__).parent.parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
+logging.info(f"Loaded environment variables from {env_path} using python-dotenv")
 
 
 def is_ci_environment() -> bool:
@@ -56,11 +69,11 @@ def get_keycloak_token_url() -> str:
     Returns:
         str: The Keycloak token URL
     """
-    default_url = (
-        "https://authentication-wise-seqs.loculus.org/realms/loculus/"
-        "protocol/openid-connect/token"
-    )
-    return os.getenv("KEYCLOAK_TOKEN_URL", default_url)
+    url = os.getenv("KEYCLOAK_TOKEN_URL")
+    if url is None:
+        logging.error("KEYCLOAK_TOKEN_URL environment variable is not set")
+        sys.exit(1)
+    return url
 
 
 def get_submission_url() -> str:
@@ -69,11 +82,11 @@ def get_submission_url() -> str:
     Returns:
         str: The submission URL with group_id placeholder
     """
-    default_url = (
-        "https://backend-wise-seqs.loculus.org/test/submit?"
-        "groupId={group_id}&dataUseTermsType=OPEN"
-    )
-    return os.getenv("SUBMISSION_URL", default_url)
+    url = os.getenv("SUBMISSION_URL")
+    if url is None:
+        logging.error("SUBMISSION_URL environment variable is not set")
+        sys.exit(1)
+    return url
 
 
 def get_organism() -> str:

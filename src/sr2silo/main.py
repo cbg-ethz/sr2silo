@@ -11,7 +11,7 @@ import typer
 
 from sr2silo.config import get_version, is_ci_environment
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
-from sr2silo.submit_to_loculus import submit_to_silo, upload_to_s3
+from sr2silo.submit_to_loculus import submit_to_silo
 
 app = typer.Typer(
     name="sr2silo",
@@ -198,9 +198,9 @@ def submit_to_loculus(
     # Get the result directory (parent of the processed file)
     result_dir = processed_file.parent
 
-    # Upload to S3 and submit to SILO
-    s3_link = upload_to_s3(processed_file, sample_id)
-    success = submit_to_silo(result_dir, s3_link)
+    # Submit to SILO using the pre-signed upload approach
+    # This will handle both metadata and processed file upload via pre-signed URLs
+    success = submit_to_silo(result_dir, processed_file)
 
     if success:
         typer.echo("Upload and submission completed successfully.")

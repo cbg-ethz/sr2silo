@@ -76,16 +76,17 @@ def upload_to_s3(aligned_reads_fp: Path, sample_id: str) -> str:
     return s3_link
 
 
-def submit_to_silo(result_dir: Path) -> bool:  # TODO: rename to `submit_to_loculus`
-    """Submit S3 reference to SILO.
+def submit_to_silo(result_dir: Path, processed_file: Path) -> bool:
+    """Submit data to SILO using the new pre-signed upload approach.
 
     Args:
         result_dir (Path): Directory where to save submission files.
+        processed_file (Path): Path to the processed .ndjson.zst file to upload.
 
     Returns:
         bool: True if submission was successful, False otherwise.
     """
-    logging.info("Submitting to Loculus")
+    logging.info("Submitting to Loculus...")
 
     # Create the new metadata file format
     metadata_fp = Submission.create_metadata_file(result_dir)
@@ -112,8 +113,12 @@ def submit_to_silo(result_dir: Path) -> bool:  # TODO: rename to `submit_to_locu
         client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL, organism)
         client.authenticate(username="testuser", password="testuser")
 
-        # Submit using new API
-        response = client.submit(group_id=1, metadata_file_path=metadata_fp)
+        # Submit using new API with both metadata and processed file
+        response = client.submit(
+            group_id=1,
+            metadata_file_path=metadata_fp,
+            processed_file_path=processed_file,
+        )
 
         if response["status"] == "success":
             logging.info("Submission successful.")

@@ -84,6 +84,7 @@ class LapisClient:
         self,
         group_id: int,
         metadata_file_path: Path,
+        processed_file_path: Path | None = None,
         submission_id: str | None = None,
         data_use_terms_type: str = "OPEN",
     ) -> SubmitResponse:
@@ -92,6 +93,7 @@ class LapisClient:
         Args:
             group_id: The group ID for the submission
             metadata_file_path: Path to the metadata TSV file
+            processed_file_path: Path to the processed data file (e.g., .ndjson.zst)
             submission_id: Unique identifier for this submission (auto-generated if not provided)
             data_use_terms_type: Data use terms type (default: "OPEN")
 
@@ -118,39 +120,44 @@ class LapisClient:
                 "message": "Mock submission successful in CI environment",
             }
 
-        # Step 1: Request upload URLs for metadata file (we skip sequence file for now)
-        upload_responses = self.request_upload(group_id=group_id, numberFiles=1)
+        # Step 1: Upload processed file via pre-signed URL if provided
+        file_mapping_entries = {}
 
-        if not upload_responses:
-            raise Exception("Failed to get upload URLs")
+        if processed_file_path is not None:
+            # Request pre-signed URL for processed file
+            upload_responses = self.request_upload(group_id=group_id, numberFiles=1)
 
-        metadata_upload = upload_responses[0]
+            if not upload_responses:
+                raise Exception("Failed to get upload URLs for processed file")
 
-        # Step 2: Upload metadata file to S3 using pre-signed URL
-        try:
-            with open(metadata_file_path, "rb") as f:
-                upload_response = requests.put(
-                    metadata_upload["url"],
-                    data=f,
-                    headers={"Content-Type": "text/tab-separated-values"},
-                )
-                upload_response.raise_for_status()
-                logging.info("Metadata file uploaded successfully to S3")
-        except Exception as e:
-            logging.error(f"Failed to upload metadata file: {e}")
-            raise Exception(f"Upload failed: {e}")
+            processed_upload = upload_responses[0]
 
-        # Step 3: Create file mapping
-        file_mapping = {
-            submission_id: {
-                "metadata": [
+            # Upload processed file to S3 using pre-signed URL
+            try:
+                with open(processed_file_path, "rb") as f:
+                    upload_response = requests.put(
+                        processed_upload["url"],
+                        data=f,
+                        headers={"Content-Type": "application/octet-stream"},
+                    )
+                    upload_response.raise_for_status()
+                    logging.info(
+                        f"Processed file uploaded successfully to S3: {processed_file_path.name}"
+                    )
+
+                # Add to file mapping
+                file_mapping_entries["sequences"] = [
                     {
-                        "fileId": metadata_upload["fileId"],
-                        "name": metadata_file_path.name,
+                        "fileId": processed_upload["fileId"],
+                        "name": processed_file_path.name,
                     }
                 ]
-            }
-        }
+            except Exception as e:
+                logging.error(f"Failed to upload processed file: {e}")
+                raise Exception(f"Processed file upload failed: {e}")
+
+        # Step 2: Create file mapping
+        file_mapping = {submission_id: file_mapping_entries}
 
         # Generate a unique request ID
         request_id = str(uuid.uuid4())
@@ -334,7 +341,7 @@ class Submission:
 
     @staticmethod
     def create_metadata_file(result_dir: Path) -> Path:
-        """Create a metadata TSV file with the new format containing only a date field.
+        """Create a metadata TSV file with the format containing only a date field.
 
         Args:
             result_dir: Directory where to save the metadata file
