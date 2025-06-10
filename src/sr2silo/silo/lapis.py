@@ -108,10 +108,12 @@ class LapisClient:
                 "Authentication required. Please call authenticate() first."
             )
 
-        # Generate submission_id if not provided
+        # Use provided submission_id or generate if not provided
         if submission_id is None:
             submission_id = str(uuid.uuid4())
             logging.info(f"Generated submission_id: {submission_id}")
+        else:
+            logging.info(f"Using provided submission_id: {submission_id}")
 
         if self.is_ci_environment:
             logging.info("CI environment detected. Returning mock submit response.")
@@ -134,19 +136,28 @@ class LapisClient:
 
             # Upload processed file to S3 using pre-signed URL
             try:
+                # Get file size for Content-Length header
+                file_size = processed_file_path.stat().st_size
+                logging.info(
+                    f"Uploading processed file: {processed_file_path.name} ({file_size} bytes)"
+                )
+
                 with open(processed_file_path, "rb") as f:
                     upload_response = requests.put(
                         processed_upload["url"],
                         data=f,
-                        headers={"Content-Type": "application/octet-stream"},
+                        headers={
+                            "Content-Type": "application/octet-stream",
+                            "Content-Length": str(file_size),
+                        },
                     )
                     upload_response.raise_for_status()
                     logging.info(
-                        f"Processed file uploaded successfully to S3: {processed_file_path.name}"
+                        f"Processed file uploaded successfully to S3: {processed_file_path.name} ({file_size} bytes)"
                     )
 
                 # Add to file mapping
-                file_mapping_entries["sequences"] = [
+                file_mapping_entries["silo_reads"] = [
                     {
                         "fileId": processed_upload["fileId"],
                         "name": processed_file_path.name,
@@ -172,14 +183,13 @@ class LapisClient:
             "x-request-id": request_id,
         }
 
-        # Create empty sequence file for form data
+        # Create files for form data - no sequence file for sc2 organism
         files = {
             "metadataFile": (
                 "metadata.tsv",
                 open(metadata_file_path, "rb"),
                 "text/tab-separated-values",
             ),
-            "sequenceFile": ("", "", "application/octet-stream"),  # Empty sequence file
             "fileMapping": ("", json.dumps(file_mapping), "application/json"),
         }
 
@@ -189,16 +199,28 @@ class LapisClient:
             response.raise_for_status()
 
             logging.info("Submission successful.")
+            logging.debug(f"Response status: {response.status_code}")
+            logging.debug(f"Response headers: {response.headers}")
+            logging.debug(f"Response text: {response.text}")
 
             # Parse response - adjust based on actual API response structure
             try:
                 response_data = response.json()
-                return {
-                    "status": "success",
-                    "message": response_data.get(
-                        "message", "Submission completed successfully"
-                    ),
-                }
+                logging.debug(f"Response JSON: {response_data}")
+                # Handle both dict and list responses
+                if isinstance(response_data, dict):
+                    return {
+                        "status": "success",
+                        "message": response_data.get(
+                            "message", "Submission completed successfully"
+                        ),
+                    }
+                else:
+                    # If response is a list or other format
+                    return {
+                        "status": "success",
+                        "message": f"Submission completed successfully. Response: {response_data}",
+                    }
             except ValueError:
                 # If response is not JSON, create a basic response
                 return {
@@ -340,24 +362,27 @@ class Submission:
         return submission_ids
 
     @staticmethod
-    def create_metadata_file(result_dir: Path) -> Path:
-        """Create a metadata TSV file with the format containing only a date field.
+    def create_metadata_file(result_dir: Path) -> tuple[Path, str]:
+        """Create a metadata TSV file with the required submissionId header.
 
         Args:
             result_dir: Directory where to save the metadata file
 
         Returns:
-            Path to the created metadata file
+            Tuple of (Path to the created metadata file, submission ID)
         """
         result_dir_submission = result_dir / "submission"
         result_dir_submission.mkdir(parents=True, exist_ok=True)
 
+        submission_id = str(uuid.uuid4())
         metadata_fp = result_dir_submission / "metadata.tsv"
         with metadata_fp.open("w") as f:
-            # Write header with just the date field for now
-            f.write("date\n")
-            # Write empty data for now as requested
-            f.write("\n")
+            # Write header with required submissionId field and optional date field
+            f.write("submissionId\tdate\n")
+            # Write a sample entry with the generated UUID for submissionId
+            f.write(f"{submission_id}\t2024-01-01\n")
 
-        logging.info(f"Metadata file created at: {metadata_fp}")
-        return metadata_fp
+        logging.info(
+            f"Metadata file created at: {metadata_fp} with submission ID: {submission_id}"
+        )
+        return metadata_fp, submission_id

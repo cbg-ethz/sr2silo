@@ -88,8 +88,8 @@ def submit_to_silo(result_dir: Path, processed_file: Path) -> bool:
     """
     logging.info("Submitting to Loculus...")
 
-    # Create the new metadata file format
-    metadata_fp = Submission.create_metadata_file(result_dir)
+    # Create the new metadata file format and get the submission ID
+    metadata_fp, submission_id = Submission.create_metadata_file(result_dir)
 
     if is_ci_environment():
         logging.info(
@@ -118,6 +118,7 @@ def submit_to_silo(result_dir: Path, processed_file: Path) -> bool:
             group_id=1,
             metadata_file_path=metadata_fp,
             processed_file_path=processed_file,
+            submission_id=submission_id,
         )
 
         if response["status"] == "success":
