@@ -76,6 +76,36 @@ def get_submission_url() -> str:
     return os.getenv("SUBMISSION_URL", default_url)
 
 
+def get_organism() -> str:
+    """Get the organism identifier from environment, or return default if not set.
+
+    Returns:
+        str: The organism identifier (e.g., 'sc2', 'sars-cov-2')
+    """
+    return os.getenv("ORGANISM", "sc2")
+
+
+def get_frontend_url() -> str:
+    """Get the frontend URL by deriving it from the submission URL.
+
+    Returns:
+        str: The frontend URL (removes 'backend-' prefix from submission URL)
+    """
+    submission_url = get_submission_url()
+
+    # Extract the base URL and remove 'backend-' prefix
+    # Example: https://backend-wise-seqs.loculus.org/... -> https://wise-seqs.loculus.org/...
+    if "backend-" in submission_url:
+        frontend_url = submission_url.replace("backend-", "")
+        # Remove the path part and just keep the domain
+        if "//" in frontend_url:
+            protocol_and_domain = frontend_url.split("//")[1].split("/")[0]
+            return f"https://{protocol_and_domain}"
+
+    # Fallback if pattern doesn't match
+    return "https://wise-seqs.loculus.org"
+
+
 def get_mock_urls() -> tuple[str, str]:
     """Get mock URLs for CI environment.
 
