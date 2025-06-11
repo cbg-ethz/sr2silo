@@ -7,17 +7,15 @@ import logging
 from pathlib import Path
 
 from sr2silo.config import (
+    get_frontend_url,
     get_keycloak_token_url,
     get_mock_urls,
+    get_organism,
     get_submission_url,
     is_ci_environment,
 )
 from sr2silo.silo import LapisClient, Submission
 from sr2silo.storage import upload_file_to_s3
-
-logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
-)
 
 
 def load_config(config_file: Path) -> dict:
@@ -74,18 +72,20 @@ def upload_to_s3(aligned_reads_fp: Path, sample_id: str) -> str:
     return s3_link
 
 
-def submit_to_silo(result_dir: Path, s3_link: str) -> bool:
-    """Submit S3 reference to SILO.
+def submit_to_silo(result_dir: Path, processed_file: Path) -> bool:
+    """Submit data to SILO using the new pre-signed upload approach.
 
     Args:
         result_dir (Path): Directory where to save submission files.
-        s3_link (str): The S3 link to submit.
+        processed_file (Path): Path to the processed .ndjson.zst file to upload.
 
     Returns:
         bool: True if submission was successful, False otherwise.
     """
-    logging.info("Submitting to Loculus")
-    input_fp = make_submission_file(result_dir, s3_link)
+    logging.info("Submitting to Loculus...")
+
+    # Create the new metadata file format and get the submission ID
+    metadata_fp, submission_id = Submission.create_metadata_file(result_dir)
 
     if is_ci_environment():
         logging.info(
@@ -100,20 +100,37 @@ def submit_to_silo(result_dir: Path, s3_link: str) -> bool:
         logging.info(f"Using Keycloak URL: {KEYCLOAK_TOKEN_URL}")
         logging.info(f"Using submission URL: {SUBMISSION_URL}")
 
-    client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL)  # type: ignore
-    client.authenticate(username="testuser", password="testuser")
-    submission_ids = Submission.get_submission_ids_from_tsv(input_fp)
-    fasta_str = Submission.generate_placeholder_fasta(submission_ids)
-    submission = Submission(fasta_str, input_fp)
-    response = client.submit(group_id=1, data=submission)
-    if response.status_code == 200:
-        logging.info("Submission successful.")
-        logging.info(
-            "You can approve the upload for release at:\n\n"
-            "https://wise-seqs.loculus.org/salmonella/submission/1/review"
+    # Get organism configuration
+    organism = get_organism()
+    logging.info(f"Using organism: {organism}")
+
+    try:
+        # Create client with organism parameter
+        client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL, organism)
+        client.authenticate(username="testuser", password="testuser")
+
+        # Submit using new API with both metadata and processed file
+        response = client.submit(
+            group_id=1,
+            metadata_file_path=metadata_fp,
+            processed_file_path=processed_file,
+            submission_id=submission_id,
         )
-        return True
-    else:
-        logging.error(f"Error submitting data to Lapis: {response}")
-        logging.error(f"Response: {response.text}")
+
+        if response["status"] == "success":
+            logging.info(response["message"])
+
+            # Get the frontend URL from config
+            frontend_url = get_frontend_url()
+            logging.info(
+                f"You can approve the upload for release at: "
+                f"{frontend_url}/{organism}/submission/1/review"
+            )
+            return True
+        else:
+            logging.error(f"Submission failed: {response}")
+            return False
+
+    except Exception as e:
+        logging.error(f"Error during submission: {e}")
         return False
