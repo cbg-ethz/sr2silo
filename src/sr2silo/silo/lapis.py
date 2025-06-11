@@ -206,33 +206,14 @@ class LapisClient:
             logging.debug(f"Response headers: {response.headers}")
             logging.debug(f"Response text: {response.text}")
 
-            # Parse response - adjust based on actual API response structure
-            try:
-                response_data = response.json()
-                logging.debug(f"Response JSON: {response_data}")
-                # Handle both dict and list responses
-                if isinstance(response_data, dict):
-                    return {
-                        "status": "success",
-                        "message": response_data.get(
-                            "message", "Submission completed successfully"
-                        ),
-                    }
-                else:
-                    # If response is a list or other format
-                    return {
-                        "status": "success",
-                        "message": (
-                            f"Submission completed successfully. "
-                            f"Response: {response_data}"
-                        ),
-                    }
-            except ValueError:
-                # If response is not JSON, create a basic response
-                return {
-                    "status": "success",
-                    "message": "Submission completed successfully",
-                }
+            # Parse response
+            response_data = response.json()
+            accession = response_data[0].get("accession", "N/A")
+            submission_id = response_data[0].get("submissionId", "N/A")
+            return {
+                "status": "success",
+                "message": f"Submission completed successfully. Accession: {accession}, Submission ID: {submission_id}",
+            }
 
         except requests.exceptions.HTTPError as e:
             logging.error(f"Error submitting data to Lapis: {e}")
