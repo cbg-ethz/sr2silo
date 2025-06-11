@@ -140,8 +140,8 @@ class LapisClient:
                 # Get file size for Content-Length header
                 file_size = processed_file_path.stat().st_size
                 logging.info(
-                    f"""Uploading processed file:
-                    {processed_file_path.name} ({file_size} bytes)"""
+                    f"Uploading processed file: {processed_file_path.name} "
+                    f"({file_size} bytes)"
                 )
 
                 with open(processed_file_path, "rb") as f:
@@ -155,8 +155,8 @@ class LapisClient:
                     )
                     upload_response.raise_for_status()
                     logging.info(
-                        f"""Processed file uploaded successfully to S3:
-                        {processed_file_path.name} ({file_size} bytes)"""
+                        f"Processed file uploaded successfully to S3: "
+                        f"{processed_file_path.name} ({file_size} bytes)"
                     )
 
                 # Add to file mapping
@@ -222,8 +222,10 @@ class LapisClient:
                     # If response is a list or other format
                     return {
                         "status": "success",
-                        "message": f"""Submission completed successfully.
-                         Response: {response_data}""",
+                        "message": (
+                            f"Submission completed successfully. "
+                            f"Response: {response_data}"
+                        ),
                     }
             except ValueError:
                 # If response is not JSON, create a basic response
@@ -389,7 +391,7 @@ class Submission:
             f.write(f"{submission_id}\t2024-01-01\n")
 
         logging.info(
-            f"""Metadata file created at:
-            {metadata_fp} with submission ID: {submission_id}"""
+            f"Metadata file created at: {metadata_fp} "
+            f"with submission ID: {submission_id}"
         )
         return metadata_fp, submission_id

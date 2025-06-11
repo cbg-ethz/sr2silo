@@ -13,9 +13,9 @@ from sr2silo.config import get_version, is_ci_environment
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
 from sr2silo.submit_to_loculus import submit_to_silo
 
-# Configure logging early in the application startup
+# Use force=True to override any existing logging configuration
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", force=True
 )
 
 
