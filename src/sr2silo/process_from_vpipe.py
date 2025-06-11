@@ -16,6 +16,7 @@ from sr2silo.process import (
     sam_to_bam,
     sort_bam_file,
 )
+
 from sr2silo.vpipe import Sample
 
 
