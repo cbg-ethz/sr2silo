@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.metadata
 import os
 import subprocess
+from pathlib import Path
 
 
 def is_ci_environment() -> bool:
@@ -91,3 +92,80 @@ def get_mock_urls() -> tuple[str, str]:
         "groupId={group_id}&dataUseTermsType=OPEN"
     )
     return mock_keycloak_url, mock_submission_url
+
+
+def get_sample_dir() -> str | None:
+    """Get the sample directory from environment.
+
+    Returns:
+        str | None: The sample directory path, or None if not set
+    """
+    return os.getenv("SAMPLE_DIR")
+
+
+def get_sample_id() -> str | None:
+    """Get the sample ID from environment.
+
+    Returns:
+        str | None: The sample ID, or None if not set
+    """
+    return os.getenv("SAMPLE_ID")
+
+
+def get_batch_id() -> str | None:
+    """Get the batch ID from environment.
+
+    Returns:
+        str | None: The batch ID, or None if not set
+    """
+    return os.getenv("BATCH_ID")
+
+
+def get_timeline_file() -> str | None:
+    """Get the timeline file path from environment.
+
+    Returns:
+        str | None: The timeline file path, or None if not set
+    """
+    return os.getenv("TIMELINE_FILE")
+
+
+def get_primer_file() -> str | None:
+    """Get the primer file path from environment.
+
+    Returns:
+        str | None: The primer file path, or None if not set
+    """
+    return os.getenv("PRIMER_FILE")
+
+
+def get_nextclade_reference() -> str:
+    """Get the Nextclade reference from environment, or return default if not set.
+
+    Returns:
+        str: The Nextclade reference
+    """
+    return os.getenv("NEXTCLADE_REFERENCE", "sars-cov-2")
+
+
+def get_results_dir() -> str | None:
+    """Get the results directory from environment.
+
+    Returns:
+        str | None: The results directory path, or None if not set
+    """
+    return os.getenv("RESULTS_DIR")
+
+
+def get_default_input_file() -> Path | None:
+    """Get the default input file path based on SAMPLE_DIR environment variable.
+    
+    Looks for the standard V-PIPE alignment file 'REF_aln_trim.bam' in the sample directory.
+
+    Returns:
+        Path | None: The default input file path, or None if SAMPLE_DIR is not set
+    """
+    sample_dir = get_sample_dir()
+    if sample_dir:
+        return Path(sample_dir) / "REF_aln_trim.bam"
+    return None

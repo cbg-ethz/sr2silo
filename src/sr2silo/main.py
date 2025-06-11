@@ -9,7 +9,17 @@ from typing import Annotated
 
 import typer
 
-from sr2silo.config import get_version, is_ci_environment
+from sr2silo.config import (
+    get_batch_id,
+    get_default_input_file,
+    get_nextclade_reference,
+    get_primer_file,
+    get_results_dir,
+    get_sample_id,
+    get_timeline_file,
+    get_version,
+    is_ci_environment,
+)
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
 from sr2silo.submit_to_loculus import submit_to_silo, upload_to_s3
 
@@ -42,61 +52,61 @@ def run():
 @app.command()
 def process_from_vpipe(
     input_file: Annotated[
-        Path,
+        Path | None,
         typer.Option(
             "--input-file",
             "-i",
-            help="Path to the input file.",
+            help="Path to the input file. Can be set via SAMPLE_DIR environment variable (will look for REF_aln_trim.bam).",
         ),
-    ],
+    ] = None,
     sample_id: Annotated[
-        str,
+        str | None,
         typer.Option(
             "--sample-id",
             "-s",
-            help="Sample ID to use for metadata.",
+            help="Sample ID to use for metadata. Can be set via SAMPLE_ID environment variable.",
         ),
-    ],
+    ] = None,
     batch_id: Annotated[
-        str,
+        str | None,
         typer.Option(
             "--batch-id",
             "-b",
-            help="Batch ID to use for metadata.",
+            help="Batch ID to use for metadata. Can be set via BATCH_ID environment variable.",
         ),
-    ],
+    ] = None,
     timeline_file: Annotated[
-        Path,
+        Path | None,
         typer.Option(
             "--timeline-file",
             "-t",
-            help="Path to the timeline file.",
+            help="Path to the timeline file. Can be set via TIMELINE_FILE environment variable.",
         ),
-    ],
+    ] = None,
     primer_file: Annotated[
-        Path,
+        Path | None,
         typer.Option(
             "--primer-file",
             "-p",
-            help="Path to the primers file.",
+            help="Path to the primers file. Can be set via PRIMER_FILE environment variable.",
         ),
-    ],
+    ] = None,
     output_fp: Annotated[
-        Path,
+        Path | None,
         typer.Option(
             "--output-fp",
             "-o",
-            help="Path to the output file. Must end with .ndjson.",
+            help="Path to the output file. Must end with .ndjson. Can be set via RESULTS_DIR environment variable (will auto-generate filename).",
         ),
-    ],
+    ] = None,
     reference: Annotated[
-        str,
+        str | None,
         typer.Option(
             "--reference",
             "-r",
-            help="See folder names in resources/",
+            help="See folder names in resources/. Can be set via NEXTCLADE_REFERENCE environment variable.",
         ),
-    ] = "sars-cov-2",
+    ] = None,
     skip_merge: Annotated[
         bool,
         typer.Option(
@@ -109,6 +119,49 @@ def process_from_vpipe(
     V-PIPE to SILO conversion with amino acids and special metadata.
     Processing only - use 'submit-to-loculus' command to upload and submit to SILO.
     """
+    # Apply environment variable defaults
+    if input_file is None:
+        input_file = get_default_input_file()
+    if sample_id is None:
+        sample_id = get_sample_id()
+    if batch_id is None:
+        batch_id = get_batch_id()
+    if timeline_file is None:
+        env_timeline = get_timeline_file()
+        if env_timeline:
+            timeline_file = Path(env_timeline)
+    if primer_file is None:
+        env_primer = get_primer_file()
+        if env_primer:
+            primer_file = Path(env_primer)
+    if reference is None:
+        reference = get_nextclade_reference()
+    if output_fp is None:
+        env_results = get_results_dir()
+        if env_results and sample_id and batch_id:
+            output_fp = Path(env_results) / f"{sample_id}_{batch_id}_silo_input.ndjson"
+
+    # Validate required parameters
+    missing_params = []
+    if input_file is None:
+        missing_params.append("--input-file or SAMPLE_DIR environment variable")
+    if sample_id is None:
+        missing_params.append("--sample-id or SAMPLE_ID environment variable")
+    if batch_id is None:
+        missing_params.append("--batch-id or BATCH_ID environment variable")
+    if timeline_file is None:
+        missing_params.append("--timeline-file or TIMELINE_FILE environment variable")
+    if primer_file is None:
+        missing_params.append("--primer-file or PRIMER_FILE environment variable")
+    if output_fp is None:
+        missing_params.append("--output-fp or RESULTS_DIR environment variable")
+    if reference is None:
+        missing_params.append("--reference or NEXTCLADE_REFERENCE environment variable")
+
+    if missing_params:
+        typer.echo(f"Error: Missing required parameters: {', '.join(missing_params)}")
+        raise typer.Exit(1)
+
     typer.echo("Starting V-PIPE to SILO conversion.")
 
     logging.info(f"Processing input file: {input_file}")
