@@ -100,20 +100,26 @@ def get_frontend_url() -> str:
 
     Returns:
         str: The frontend URL (removes 'backend-' prefix from submission URL)
+
+    Raises:
+        ValueError: If the submission URL doesn't contain 'backend-' prefix
     """
     submission_url = get_submission_url()
 
     # Extract the base URL and remove 'backend-' prefix
     # Example: https://backend-wise-seqs.loculus.org/... -> https://wise-seqs.loculus.org/...
-    if "backend-" in submission_url:
-        frontend_url = submission_url.replace("backend-", "")
-        # Remove the path part and just keep the domain
-        if "//" in frontend_url:
-            protocol_and_domain = frontend_url.split("//")[1].split("/")[0]
-            return f"https://{protocol_and_domain}"
+    if "backend-" not in submission_url:
+        raise ValueError(
+            "Cannot derive frontend URL: submission URL doesn't contain 'backend-' prefix"
+        )
 
-    # Fallback if pattern doesn't match
-    return "https://wise-seqs.loculus.org"
+    frontend_url = submission_url.replace("backend-", "")
+    # Remove the path part and just keep the domain
+    if "//" not in frontend_url:
+        raise ValueError("Cannot derive frontend URL: invalid URL format")
+
+    protocol_and_domain = frontend_url.split("//")[1].split("/")[0]
+    return f"https://{protocol_and_domain}"
 
 
 def get_mock_urls() -> tuple[str, str]:

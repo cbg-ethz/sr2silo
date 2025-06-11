@@ -124,7 +124,7 @@ def submit_to_silo(result_dir: Path, processed_file: Path) -> bool:
             # Get the frontend URL from config
             frontend_url = get_frontend_url()
             logging.info(
-                "You can approve the upload for release at:\n\n"
+                f"You can approve the upload for release at: "
                 f"{frontend_url}/{organism}/submission/1/review"
             )
             return True
