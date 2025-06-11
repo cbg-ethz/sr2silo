@@ -91,3 +91,31 @@ def get_mock_urls() -> tuple[str, str]:
         "groupId={group_id}&dataUseTermsType=OPEN"
     )
     return mock_keycloak_url, mock_submission_url
+
+
+def get_timeline_file() -> str | None:
+    """Get the timeline file path from environment variable.
+
+    Returns:
+        str | None: The timeline file path if set, None otherwise
+    """
+    return os.getenv("TIMELINE_FILE")
+
+
+def get_primer_file() -> str | None:
+    """Get the primer file path from environment variable.
+
+    Returns:
+        str | None: The primer file path if set, None otherwise
+    """
+    return os.getenv("PRIMER_FILE")
+
+
+def get_reference() -> str:
+    """Get the reference genome from environment variable, or return default.
+
+    Returns:
+        str: The reference genome identifier
+    """
+    env_ref = os.getenv("NEXTCLADE_REFERENCE")
+    return env_ref if env_ref else "sars-cov-2"

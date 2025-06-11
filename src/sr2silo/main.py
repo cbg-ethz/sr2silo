@@ -9,7 +9,13 @@ from typing import Annotated
 
 import typer
 
-from sr2silo.config import get_version, is_ci_environment
+from sr2silo.config import (
+    get_primer_file,
+    get_reference,
+    get_timeline_file,
+    get_version,
+    is_ci_environment,
+)
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
 from sr2silo.submit_to_loculus import submit_to_silo, upload_to_s3
 
@@ -65,22 +71,6 @@ def process_from_vpipe(
             help="Batch ID to use for metadata.",
         ),
     ],
-    timeline_file: Annotated[
-        Path,
-        typer.Option(
-            "--timeline-file",
-            "-t",
-            help="Path to the timeline file.",
-        ),
-    ],
-    primer_file: Annotated[
-        Path,
-        typer.Option(
-            "--primer-file",
-            "-p",
-            help="Path to the primers file.",
-        ),
-    ],
     output_fp: Annotated[
         Path,
         typer.Option(
@@ -89,14 +79,39 @@ def process_from_vpipe(
             help="Path to the output file. Must end with .ndjson.",
         ),
     ],
+    timeline_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--timeline-file",
+            "-t",
+            help=(
+                "Path to the timeline file. "
+                "Can be set via TIMELINE_FILE environment variable."
+            ),
+        ),
+    ] = None,
+    primer_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--primer-file",
+            "-p",
+            help=(
+                "Path to the primers file. "
+                "Can be set via PRIMER_FILE environment variable."
+            ),
+        ),
+    ] = None,
     reference: Annotated[
-        str,
+        str | None,
         typer.Option(
             "--reference",
             "-r",
-            help="See folder names in resources/",
+            help=(
+                "See folder names in resources/. "
+                "Can be set via NEXTCLADE_REFERENCE environment variable."
+            ),
         ),
-    ] = "sars-cov-2",
+    ] = None,
     skip_merge: Annotated[
         bool,
         typer.Option(
@@ -110,6 +125,32 @@ def process_from_vpipe(
     Processing only - use 'submit-to-loculus' command to upload and submit to SILO.
     """
     typer.echo("Starting V-PIPE to SILO conversion.")
+
+    # Handle environment variable defaults
+    if timeline_file is None:
+        env_timeline = get_timeline_file()
+        if env_timeline is not None:
+            timeline_file = Path(env_timeline)
+        else:
+            typer.echo(
+                "Error: --timeline-file is required or set TIMELINE_FILE "
+                "environment variable"
+            )
+            raise typer.Exit(1)
+
+    if primer_file is None:
+        env_primer = get_primer_file()
+        if env_primer is not None:
+            primer_file = Path(env_primer)
+        else:
+            typer.echo(
+                "Error: --primer-file is required or set PRIMER_FILE "
+                "environment variable"
+            )
+            raise typer.Exit(1)
+
+    if reference is None:
+        reference = get_reference()  # This has a default of "sars-cov-2"
 
     logging.info(f"Processing input file: {input_file}")
     logging.info(f"Using timeline file: {timeline_file}")
