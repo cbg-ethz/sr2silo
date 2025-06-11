@@ -7,7 +7,6 @@ import logging
 from pathlib import Path
 
 from sr2silo.config import (
-
     get_frontend_url,
     get_keycloak_token_url,
     get_mock_urls,
@@ -71,7 +70,6 @@ def upload_to_s3(aligned_reads_fp: Path, sample_id: str) -> str:
     s3_link = f"s3://{s3_bucket}/{s3_file_name}"
     upload_file_to_s3(aligned_reads_fp, s3_bucket, s3_file_name)
     return s3_link
-
 
 
 def submit_to_silo(result_dir: Path, processed_file: Path) -> bool:
