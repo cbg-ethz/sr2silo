@@ -213,7 +213,8 @@ class LapisClient:
             submission_id = response_data[0].get("submissionId", "N/A")
             return {
                 "status": "success",
-                "message": f"Submission completed successfully. Accession: {accession}, Submission ID: {submission_id}",
+                "message": f"Submission completed successfully."
+                f"Accession: {accession}, Submission ID: {submission_id}",
             }
 
         except requests.exceptions.HTTPError as e:

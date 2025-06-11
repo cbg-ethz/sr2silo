@@ -118,7 +118,6 @@ def submit_to_silo(result_dir: Path, processed_file: Path) -> bool:
         )
 
         if response["status"] == "success":
-            logging.info("Submission successful.")
             logging.info(response["message"])
 
             # Get the frontend URL from config

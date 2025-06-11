@@ -110,7 +110,10 @@ def get_frontend_url() -> str:
     # Example: https://backend-wise-seqs.loculus.org/... -> https://wise-seqs.loculus.org/...
     if "backend-" not in submission_url:
         raise ValueError(
-            "Cannot derive frontend URL: submission URL doesn't contain 'backend-' prefix"
+            """
+            Cannot derive frontend URL:
+            submission URL doesn't contain 'backend-' prefix
+            """
         )
 
     frontend_url = submission_url.replace("backend-", "")
