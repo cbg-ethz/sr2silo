@@ -6,6 +6,7 @@ import csv
 import json
 import logging
 import uuid
+from datetime import date
 from pathlib import Path
 from typing import List, TypedDict
 
@@ -369,7 +370,8 @@ class Submission:
             # Write header with required submissionId field and optional date field
             f.write("submissionId\tdate\n")
             # Write a sample entry with the generated UUID for submissionId
-            f.write(f"{submission_id}\t2024-01-01\n")
+            today = date.today().isoformat()
+            f.write(f"{submission_id}\t{today}\n")
 
         logging.info(
             f"Metadata file created at: {metadata_fp} "
