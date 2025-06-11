@@ -3,13 +3,11 @@ ready to import nuclotides and amino acid sequences to the SILO database."""
 
 from __future__ import annotations
 
+import json
+import logging
 import os
 import tempfile
-import logging
-import json
-
 from pathlib import Path
-
 
 from sr2silo.process import (
     bam_to_sam,
@@ -18,12 +16,7 @@ from sr2silo.process import (
     sam_to_bam,
     sort_bam_file,
 )
-
 from sr2silo.vpipe import Sample
-
-logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
-)
 
 
 def nuc_align_to_silo_njson(

@@ -13,6 +13,12 @@ from sr2silo.config import get_version, is_ci_environment
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
 from sr2silo.submit_to_loculus import submit_to_silo
 
+# Configure logging early in the application startup
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+
 app = typer.Typer(
     name="sr2silo",
     help=(

@@ -11,9 +11,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load .env file using python-dotenv
-
-
 # Load .env file from the project root
 env_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)

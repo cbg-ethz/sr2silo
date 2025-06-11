@@ -17,10 +17,6 @@ from sr2silo.config import (
 from sr2silo.silo import LapisClient, Submission
 from sr2silo.storage import upload_file_to_s3
 
-logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
 
 def load_config(config_file: Path) -> dict:
     """Load a JSON configuration file."""
