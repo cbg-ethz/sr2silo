@@ -9,6 +9,9 @@ import importlib.metadata
 
 import sr2silo.vpipe as vpipe
 
-__version__ = importlib.metadata.version("sr2silo")
+try:
+    __version__ = importlib.metadata.version("sr2silo")
+except importlib.metadata.PackageNotFoundError:
+    __version__ = "unknown"
 
 __all__ = ["vpipe"]

@@ -43,24 +43,38 @@ rule process_sample:
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
         batch_id=lambda wildcards: wildcards.batch_id,
-        timeline_file=config["TIMELINE_FILE"],
-        primers_file=config["PRIMERS_FILE"],
-        nuc_reference=config["NUC_REFERENCE"],
-        aa_reference=config["NUC_REFERENCE"],
+        timeline_file=config.get("TIMELINE_FILE", ""),
+        primers_file=config.get("PRIMERS_FILE", ""),
+        nuc_reference=config.get("NUC_REFERENCE", "sars-cov-2"),
     log:
         "logs/sr2silo/process_sample/sampleId_{sample_id}_batchId_{batch_id}.log",  # Clearer wildcard separation
     conda:
         "envs/sr2silo.yaml"
     shell:
         """
+        timeline_arg=""
+        if [ -n "{params.timeline_file}" ]; then
+            timeline_arg="--timeline-file {params.timeline_file}"
+        fi
+        
+        primer_arg=""
+        if [ -n "{params.primers_file}" ]; then
+            primer_arg="--primer-file {params.primers_file}"
+        fi
+        
+        reference_arg=""
+        if [ -n "{params.nuc_reference}" ]; then
+            reference_arg="--reference {params.nuc_reference}"
+        fi
+        
         sr2silo process-from-vpipe \
             --input-file {input.sample_fp} \
             --sample-id {params.sample_id} \
             --batch-id {params.batch_id} \
-            --timeline-file {params.timeline_file} \
-            --primer-file {params.primers_file} \
             --output-fp {output.result_fp} \
-            --reference {params.nuc_reference} > {log} 2>&1
+            $timeline_arg \
+            $primer_arg \
+            $reference_arg > {log} 2>&1
         """
 
 
@@ -71,8 +85,8 @@ rule submit_to_loculus:
         - AWS_ACCESS_KEY_ID
         - AWS_SECRET_ACCESS_KEY
         - AWS_DEFAULT_REGION
-        - KEYCLOAK_TOKEN_URL
-        - SUBMISSION_URL
+        - KEYCLOAK_TOKEN_URL (or provided as CLI parameter)
+        - SUBMISSION_URL (or provided as CLI parameter)
     Configured in the workflow/config.yaml file.
 
     Development Note:
@@ -86,32 +100,33 @@ rule submit_to_loculus:
         flag=f"{config['RESULTS_DIR']}/uploads/sampleId-{{sample_id}}_batchId-{{batch_id}}.uploaded",
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
+        keycloak_token_url=config.get("KEYCLOAK_TOKEN_URL", ""),
+        submission_url=config.get("SUBMISSION_URL", ""),
     log:
         "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}_batchId_{batch_id}.log",
     conda:
         "envs/sr2silo.yaml"
     shell:
-        (
-            """
-        export AWS_ACCESS_KEY_ID="""
-            + config.get("AWS_ACCESS_KEY_ID", "")
-            + """; \
-                                        export AWS_SECRET_ACCESS_KEY="""
-            + config.get("AWS_SECRET_ACCESS_KEY", "")
-            + """; \
-                                        export AWS_DEFAULT_REGION="""
-            + config.get("AWS_DEFAULT_REGION", "us-east-1")
-            + """; \
-                                        export KEYCLOAK_TOKEN_URL="""
-            + config.get("KEYCLOAK_TOKEN_URL", "")
-            + """; \
-                                        export SUBMISSION_URL="""
-            + config.get("SUBMISSION_URL", "")
-            + """; \
-                                        sr2silo submit-to-loculus \
-                                            --processed-file {input.result_fp} \
-                                            --sample-id {params.sample_id} > {log} 2>&1 && \
-                                        mkdir -p $(dirname {output.flag}) && \
-                                        touch {output.flag}
-                                        """
-        )
+        """
+        export AWS_ACCESS_KEY_ID="{config.get('AWS_ACCESS_KEY_ID', '')}"
+        export AWS_SECRET_ACCESS_KEY="{config.get('AWS_SECRET_ACCESS_KEY', '')}"
+        export AWS_DEFAULT_REGION="{config.get('AWS_DEFAULT_REGION', 'us-east-1')}"
+        
+        keycloak_arg=""
+        if [ -n "{params.keycloak_token_url}" ]; then
+            keycloak_arg="--keycloak-token-url {params.keycloak_token_url}"
+        fi
+        
+        submission_arg=""
+        if [ -n "{params.submission_url}" ]; then
+            submission_arg="--submission-url {params.submission_url}"
+        fi
+        
+        sr2silo submit-to-loculus \
+            --processed-file {input.result_fp} \
+            --sample-id {params.sample_id} \
+            $keycloak_arg \
+            $submission_arg > {log} 2>&1 && \
+        mkdir -p $(dirname {output.flag}) && \
+        touch {output.flag}
+        """

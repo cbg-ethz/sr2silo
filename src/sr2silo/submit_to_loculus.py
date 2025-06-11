@@ -95,8 +95,12 @@ def submit_to_silo(result_dir: Path, processed_file: Path) -> bool:
         KEYCLOAK_TOKEN_URL, SUBMISSION_URL = get_mock_urls()
     else:
         # Get URLs from environment or use defaults
-        KEYCLOAK_TOKEN_URL = get_keycloak_token_url()
-        SUBMISSION_URL = get_submission_url()
+        try:
+            KEYCLOAK_TOKEN_URL = get_keycloak_token_url()
+            SUBMISSION_URL = get_submission_url()
+        except ValueError as e:
+            logging.error(f"Configuration error: {e}")
+            return False
         logging.info(f"Using Keycloak URL: {KEYCLOAK_TOKEN_URL}")
         logging.info(f"Using submission URL: {SUBMISSION_URL}")
 
