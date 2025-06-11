@@ -3,8 +3,18 @@
 from __future__ import annotations
 
 import importlib.metadata
+import logging
 import os
 import subprocess
+import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load .env file from the project root
+env_path = Path(__file__).parent.parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
+logging.info(f"Loaded environment variables from {env_path} using python-dotenv")
 
 
 def is_ci_environment() -> bool:
@@ -56,11 +66,11 @@ def get_keycloak_token_url() -> str:
     Returns:
         str: The Keycloak token URL
     """
-    default_url = (
-        "https://authentication-wise-seqs.loculus.org/realms/loculus/"
-        "protocol/openid-connect/token"
-    )
-    return os.getenv("KEYCLOAK_TOKEN_URL", default_url)
+    url = os.getenv("KEYCLOAK_TOKEN_URL")
+    if url is None:
+        logging.error("KEYCLOAK_TOKEN_URL environment variable is not set")
+        sys.exit(1)
+    return url
 
 
 def get_submission_url() -> str:
@@ -69,11 +79,50 @@ def get_submission_url() -> str:
     Returns:
         str: The submission URL with group_id placeholder
     """
-    default_url = (
-        "https://backend-wise-seqs.loculus.org/test/submit?"
-        "groupId={group_id}&dataUseTermsType=OPEN"
-    )
-    return os.getenv("SUBMISSION_URL", default_url)
+    url = os.getenv("SUBMISSION_URL")
+    if url is None:
+        logging.error("SUBMISSION_URL environment variable is not set")
+        sys.exit(1)
+    return url
+
+
+def get_organism() -> str:
+    """Get the organism identifier from environment, or return default if not set.
+
+    Returns:
+        str: The organism identifier (e.g., 'sc2', 'sars-cov-2')
+    """
+    return os.getenv("ORGANISM", "sc2")
+
+
+def get_frontend_url() -> str:
+    """Get the frontend URL by deriving it from the submission URL.
+
+    Returns:
+        str: The frontend URL (removes 'backend-' prefix from submission URL)
+
+    Raises:
+        ValueError: If the submission URL doesn't contain 'backend-' prefix
+    """
+    submission_url = get_submission_url()
+
+    # Extract the base URL and remove 'backend-' prefix
+    # Example: https://backend-wise-seqs.loculus.org/... -> https://wise-seqs.loculus.org/...
+    if "backend-" not in submission_url:
+        raise ValueError(
+            """
+            Cannot derive frontend URL:
+            submission URL doesn't contain 'backend-' prefix
+            """
+        )
+
+    frontend_url = submission_url.replace("backend-", "")
+    # Remove the path part and just keep the domain
+    if "//" not in frontend_url:
+        raise ValueError("Cannot derive frontend URL: invalid URL format")
+
+    protocol_and_domain = frontend_url.split("//")[1].split("/")[0]
+    return f"https://{protocol_and_domain}"
 
 
 def get_mock_urls() -> tuple[str, str]:
