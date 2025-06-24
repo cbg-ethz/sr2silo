@@ -275,19 +275,26 @@ The repository includes a configured GitHub Copilot Agent that automatically app
 - Import sorting is maintained with isort
 - Type checking and documentation standards are enforced
 
-For developers, you can also run the code quality checks manually:
+For developers, you can also run the code quality checks manually using the same commands the agent uses:
 ```bash
-./scripts/check-code-quality.sh
-```
+# Run pre-commit hooks
+poetry run pre-commit run --all-files
 
-This script will:
-1. Install dependencies
-2. Run pre-commit hooks (if available)
-3. Format code with Black
-4. Sort imports with isort
-5. Fix linting issues with Ruff
-6. Verify type hints with pyright
-7. Check documentation coverage
+# Format code with Black
+poetry run black .
+
+# Sort imports with isort
+poetry run isort .
+
+# Fix linting issues with Ruff
+poetry run ruff check --fix .
+
+# Check type hints with pyright
+poetry run pyright
+
+# Check documentation coverage
+poetry run interrogate src
+```
 
 
 ## Contributing
@@ -296,9 +303,11 @@ This project welcomes contributions and suggestions. For details, visit the repo
 
 ### Code Quality Standards
 
-Before contributing, please ensure your code meets our quality standards by running:
+Before contributing, please ensure your code meets our quality standards by running the formatting and linting tools:
 ```bash
-./scripts/check-code-quality.sh
+poetry run black .
+poetry run isort .
+poetry run ruff check --fix .
 ```
 
-This will automatically format your code and check for any issues. The GitHub Copilot Agent is configured to help maintain these standards automatically.
+The GitHub Copilot Agent is configured to help maintain these standards automatically.
