@@ -92,7 +92,8 @@ def process_from_vpipe(
         typer.Option(
             "--timeline-file",
             "-t",
-            help="Path to the timeline file. Falls back to TIMELINE_FILE environment variable.",
+            help="Path to the timeline file. Falls back to TIMELINE_FILE "
+            "environment variable.",
         ),
     ] = None,
     primer_file: Annotated[
@@ -100,7 +101,8 @@ def process_from_vpipe(
         typer.Option(
             "--primer-file",
             "-p",
-            help="Path to the primers file. Falls back to PRIMER_FILE environment variable.",
+            help="Path to the primers file. Falls back to PRIMER_FILE "
+            "environment variable.",
         ),
     ] = None,
     reference: Annotated[
@@ -108,7 +110,8 @@ def process_from_vpipe(
         typer.Option(
             "--reference",
             "-r",
-            help="See folder names in resources/. Falls back to NEXTCLADE_REFERENCE environment variable.",
+            help="See folder names in resources/. Falls back to "
+            "NEXTCLADE_REFERENCE environment variable.",
         ),
     ] = None,
     skip_merge: Annotated[
@@ -130,7 +133,8 @@ def process_from_vpipe(
         timeline_file = get_timeline_file()
         if timeline_file is None:
             logging.error(
-                "Timeline file must be provided via --timeline-file or TIMELINE_FILE environment variable"
+                "Timeline file must be provided via --timeline-file "
+                "or TIMELINE_FILE environment variable"
             )
             raise typer.Exit(1)
 
@@ -139,7 +143,8 @@ def process_from_vpipe(
         primer_file = get_primer_file()
         if primer_file is None:
             logging.error(
-                "Primer file must be provided via --primer-file or PRIMER_FILE environment variable"
+                "Primer file must be provided via --primer-file or "
+                "PRIMER_FILE environment variable"
             )
             raise typer.Exit(1)
 
@@ -161,7 +166,8 @@ def process_from_vpipe(
         temp_dir = Path(os.environ["TMPDIR"])
         logging.info(f"Recognize temporary directory set in Env: {temp_dir}")
         logging.info(
-            "This will be used for amino acid translation and alignment - by diamond."
+            "This will be used for amino acid translation and "
+            "alignment - by diamond."
         )
 
     ci_env = is_ci_environment()
@@ -207,14 +213,16 @@ def submit_to_loculus(
         str | None,
         typer.Option(
             "--keycloak-token-url",
-            help="Keycloak authentication URL. Falls back to KEYCLOAK_TOKEN_URL environment variable.",
+            help="Keycloak authentication URL. Falls back to "
+            "KEYCLOAK_TOKEN_URL environment variable.",
         ),
     ] = None,
     submission_url: Annotated[
         str | None,
         typer.Option(
             "--submission-url",
-            help="Loculus submission URL. Falls back to SUBMISSION_URL environment variable.",
+            help="Loculus submission URL. Falls back to "
+            "SUBMISSION_URL environment variable.",
         ),
     ] = None,
 ) -> None:

@@ -187,7 +187,8 @@ def test_process_from_vpipe_environment_variables():
                 "/tmp/test.ndjson.zst",
             ],
         )
-        # Should fail due to missing input file, but environment variables should be processed
+        # Should fail due to missing input file,
+        # but environment variables should be processed
         assert result.exit_code == 1  # Should fail due to missing file
         # We can verify the environment variables were picked up by manually checking
         # since the logs go to stderr which typer doesn't capture by default
