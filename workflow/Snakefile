@@ -90,7 +90,7 @@ rule submit_to_loculus:
         flag=f"{config['RESULTS_DIR']}/uploads/sampleId-{{sample_id}}_batchId-{{batch_id}}.uploaded",
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
-        keycloak_url=config.get("KEYCLOAK_TOKEN_URL") or raise ValueError("KEYCLOAK_TOKEN_URL is missing in the configuration. Please set it in the environment or the config file."),
+        keycloak_url=config.get("KEYCLOAK_TOKEN_URL", ""),
         submission_url=config.get("SUBMISSION_URL", ""),
     log:
         "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}_batchId_{batch_id}.log",
