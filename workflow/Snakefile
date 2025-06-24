@@ -30,6 +30,10 @@ rule all:
             f"{config['RESULTS_DIR']}/sampleId-{sample_id}_batchId-{get_batch_id(sample_id)}.ndjson.zst"
             for sample_id in config["SAMPLE_BATCH_IDS"].keys()
         ],
+        [
+            f"{config['RESULTS_DIR']}/uploads/sampleId-{sample_id}_batchId-{get_batch_id(sample_id)}.uploaded"
+            for sample_id in config["SAMPLE_BATCH_IDS"].keys()
+        ]
 
 
 rule process_sample:
