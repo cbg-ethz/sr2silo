@@ -11,10 +11,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load .env file from the project root
+# Load .env file from the project root if it exists
 env_path = Path(__file__).parent.parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
-logging.info(f"Loaded environment variables from {env_path} using python-dotenv")
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+    logging.info(f"Loaded environment variables from {env_path} using python-dotenv")
+else:
+    logging.debug(f"No .env file found at {env_path}, using only system environment variables")
 
 
 def is_ci_environment() -> bool:
@@ -60,28 +63,40 @@ def get_version(add_git_info: bool = True) -> str:
         return package_version
 
 
-def get_keycloak_token_url() -> str:
+def get_keycloak_token_url(default: str | None = None) -> str:
     """Get the Keycloak token URL from environment, or return default if not set.
+
+    Args:
+        default: Optional default value to use if environment variable is not set
 
     Returns:
         str: The Keycloak token URL
+
+    Raises:
+        SystemExit: If no URL is available from environment or default
     """
-    url = os.getenv("KEYCLOAK_TOKEN_URL")
+    url = os.getenv("KEYCLOAK_TOKEN_URL", default)
     if url is None:
-        logging.error("KEYCLOAK_TOKEN_URL environment variable is not set")
+        logging.error("KEYCLOAK_TOKEN_URL environment variable is not set and no default provided")
         sys.exit(1)
     return url
 
 
-def get_submission_url() -> str:
+def get_submission_url(default: str | None = None) -> str:
     """Get the LAPIS submission URL from environment, or return default if not set.
+
+    Args:
+        default: Optional default value to use if environment variable is not set
 
     Returns:
         str: The submission URL with group_id placeholder
+
+    Raises:
+        SystemExit: If no URL is available from environment or default
     """
-    url = os.getenv("SUBMISSION_URL")
+    url = os.getenv("SUBMISSION_URL", default)
     if url is None:
-        logging.error("SUBMISSION_URL environment variable is not set")
+        logging.error("SUBMISSION_URL environment variable is not set and no default provided")
         sys.exit(1)
     return url
 
@@ -93,6 +108,52 @@ def get_organism() -> str:
         str: The organism identifier (e.g., 'sc2', 'sars-cov-2')
     """
     return os.getenv("ORGANISM", "sc2")
+
+
+def get_timeline_file(default: Path | str | None = None) -> Path | None:
+    """Get the timeline file path from environment, or return default if not set.
+
+    Args:
+        default: Optional default path to use if environment variable is not set
+
+    Returns:
+        Path | None: The timeline file path, or None if not available
+    """
+    timeline_file = os.getenv("TIMELINE_FILE")
+    if timeline_file:
+        return Path(timeline_file)
+    elif default:
+        return Path(default) if isinstance(default, str) else default
+    return None
+
+
+def get_primer_file(default: Path | str | None = None) -> Path | None:
+    """Get the primer file path from environment, or return default if not set.
+
+    Args:
+        default: Optional default path to use if environment variable is not set
+
+    Returns:
+        Path | None: The primer file path, or None if not available
+    """
+    primer_file = os.getenv("PRIMER_FILE")
+    if primer_file:
+        return Path(primer_file)
+    elif default:
+        return Path(default) if isinstance(default, str) else default
+    return None
+
+
+def get_nextclade_reference(default: str = "sars-cov-2") -> str:
+    """Get the Nextclade reference from environment, or return default if not set.
+
+    Args:
+        default: Default reference to use if environment variable is not set
+
+    Returns:
+        str: The Nextclade reference identifier
+    """
+    return os.getenv("NEXTCLADE_REFERENCE", default)
 
 
 def get_frontend_url() -> str:

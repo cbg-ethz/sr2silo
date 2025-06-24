@@ -72,12 +72,19 @@ def upload_to_s3(aligned_reads_fp: Path, sample_id: str) -> str:
     return s3_link
 
 
-def submit_to_silo(result_dir: Path, processed_file: Path) -> bool:
+def submit_to_silo(
+    result_dir: Path, 
+    processed_file: Path, 
+    keycloak_token_url: str | None = None,
+    submission_url: str | None = None
+) -> bool:
     """Submit data to SILO using the new pre-signed upload approach.
 
     Args:
         result_dir (Path): Directory where to save submission files.
         processed_file (Path): Path to the processed .ndjson.zst file to upload.
+        keycloak_token_url (str | None): Keycloak token URL. If None, uses environment.
+        submission_url (str | None): Submission URL. If None, uses environment.
 
     Returns:
         bool: True if submission was successful, False otherwise.
@@ -94,9 +101,9 @@ def submit_to_silo(result_dir: Path, processed_file: Path) -> bool:
         # Get mock URLs for CI environment, then continue with LAPIS submission
         KEYCLOAK_TOKEN_URL, SUBMISSION_URL = get_mock_urls()
     else:
-        # Get URLs from environment or use defaults
-        KEYCLOAK_TOKEN_URL = get_keycloak_token_url()
-        SUBMISSION_URL = get_submission_url()
+        # Get URLs from parameters or environment
+        KEYCLOAK_TOKEN_URL = keycloak_token_url or get_keycloak_token_url()
+        SUBMISSION_URL = submission_url or get_submission_url()
         logging.info(f"Using Keycloak URL: {KEYCLOAK_TOKEN_URL}")
         logging.info(f"Using submission URL: {SUBMISSION_URL}")
 
