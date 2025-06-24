@@ -265,7 +265,40 @@ We are using:
   * [Pytest](https://docs.pytest.org/) to run the unit tests code and workflows.
   * [Interrogate](https://interrogate.readthedocs.io/) to check the documentation.
 
+#### GitHub Copilot Agent Integration
+
+The repository includes a configured GitHub Copilot Agent that automatically applies code quality standards. The configuration in `.github/copilot.yml` ensures that:
+
+- Pre-commit hooks are run before suggesting changes
+- Code formatting with Black is applied automatically
+- Linting issues are fixed with Ruff
+- Import sorting is maintained with isort
+- Type checking and documentation standards are enforced
+
+For developers, you can also run the code quality checks manually:
+```bash
+./scripts/check-code-quality.sh
+```
+
+This script will:
+1. Install dependencies
+2. Run pre-commit hooks (if available)
+3. Format code with Black
+4. Sort imports with isort
+5. Fix linting issues with Ruff
+6. Verify type hints with pyright
+7. Check documentation coverage
+
 
 ## Contributing
 
 This project welcomes contributions and suggestions. For details, visit the repository's [Contributor License Agreement (CLA)](https://cla.opensource.microsoft.com) and [Code of Conduct](https://opensource.microsoft.com/codeofconduct/) pages.
+
+### Code Quality Standards
+
+Before contributing, please ensure your code meets our quality standards by running:
+```bash
+./scripts/check-code-quality.sh
+```
+
+This will automatically format your code and check for any issues. The GitHub Copilot Agent is configured to help maintain these standards automatically.
