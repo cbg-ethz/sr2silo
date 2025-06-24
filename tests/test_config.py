@@ -6,9 +6,18 @@ import importlib
 import importlib.metadata
 import os
 import subprocess
+from pathlib import Path
 from unittest.mock import patch
 
-from sr2silo.config import get_version, is_ci_environment
+from sr2silo.config import (
+    get_keycloak_token_url,
+    get_nextclade_reference,
+    get_primer_file,
+    get_submission_url,
+    get_timeline_file,
+    get_version,
+    is_ci_environment,
+)
 
 
 def test_is_ci_environment():
@@ -91,3 +100,100 @@ def test_get_version_package_not_found():
             ):
                 version = get_version()
                 assert version == "unknown"
+
+
+def test_get_timeline_file():
+    """Test get_timeline_file function."""
+    # Test with environment variable set
+    with patch.dict(os.environ, {"TIMELINE_FILE": "/path/to/timeline.tsv"}):
+        result = get_timeline_file()
+        assert result == Path("/path/to/timeline.tsv")
+
+    # Test with environment variable not set, with default
+    with patch.dict(os.environ, {}, clear=True):
+        result = get_timeline_file("/default/timeline.tsv")
+        assert result == Path("/default/timeline.tsv")
+
+    # Test with environment variable not set, no default
+    with patch.dict(os.environ, {}, clear=True):
+        result = get_timeline_file()
+        assert result is None
+
+    # Test with Path default
+    with patch.dict(os.environ, {}, clear=True):
+        result = get_timeline_file(Path("/path/default.tsv"))
+        assert result == Path("/path/default.tsv")
+
+
+def test_get_primer_file():
+    """Test get_primer_file function."""
+    # Test with environment variable set
+    with patch.dict(os.environ, {"PRIMER_FILE": "/path/to/primers.yaml"}):
+        result = get_primer_file()
+        assert result == Path("/path/to/primers.yaml")
+
+    # Test with environment variable not set, with default
+    with patch.dict(os.environ, {}, clear=True):
+        result = get_primer_file("/default/primers.yaml")
+        assert result == Path("/default/primers.yaml")
+
+    # Test with environment variable not set, no default
+    with patch.dict(os.environ, {}, clear=True):
+        result = get_primer_file()
+        assert result is None
+
+
+def test_get_nextclade_reference():
+    """Test get_nextclade_reference function."""
+    # Test with environment variable set
+    with patch.dict(os.environ, {"NEXTCLADE_REFERENCE": "custom-ref"}):
+        result = get_nextclade_reference()
+        assert result == "custom-ref"
+
+    # Test with environment variable not set, uses default
+    with patch.dict(os.environ, {}, clear=True):
+        result = get_nextclade_reference()
+        assert result == "sars-cov-2"
+
+    # Test with custom default
+    with patch.dict(os.environ, {}, clear=True):
+        result = get_nextclade_reference("custom-default")
+        assert result == "custom-default"
+
+
+def test_get_keycloak_token_url():
+    """Test get_keycloak_token_url function."""
+    # Test with environment variable set
+    with patch.dict(os.environ, {"KEYCLOAK_TOKEN_URL": "https://auth.example.com"}):
+        result = get_keycloak_token_url()
+        assert result == "https://auth.example.com"
+
+    # Test with environment variable not set, with default
+    with patch.dict(os.environ, {}, clear=True):
+        result = get_keycloak_token_url("https://default.auth.com")
+        assert result == "https://default.auth.com"
+
+    # Test with environment variable not set, no default - should exit
+    with patch.dict(os.environ, {}, clear=True):
+        with patch("sys.exit") as mock_exit:
+            get_keycloak_token_url()
+            mock_exit.assert_called_once_with(1)
+
+
+def test_get_submission_url():
+    """Test get_submission_url function."""
+    # Test with environment variable set
+    with patch.dict(os.environ, {"SUBMISSION_URL": "https://submit.example.com"}):
+        result = get_submission_url()
+        assert result == "https://submit.example.com"
+
+    # Test with environment variable not set, with default
+    with patch.dict(os.environ, {}, clear=True):
+        result = get_submission_url("https://default.submit.com")
+        assert result == "https://default.submit.com"
+
+    # Test with environment variable not set, no default - should exit
+    with patch.dict(os.environ, {}, clear=True):
+        with patch("sys.exit") as mock_exit:
+            get_submission_url()
+            mock_exit.assert_called_once_with(1)
