@@ -161,6 +161,7 @@ def get_nextclade_reference(default: str = "sars-cov-2") -> str:
     """
     return os.getenv("NEXTCLADE_REFERENCE", default)
 
+
 def get_frontend_url() -> str:
     """Get the frontend URL by deriving it from the submission URL.
 
