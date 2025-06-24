@@ -73,10 +73,10 @@ def upload_to_s3(aligned_reads_fp: Path, sample_id: str) -> str:
 
 
 def submit_to_silo(
-    result_dir: Path, 
-    processed_file: Path, 
+    result_dir: Path,
+    processed_file: Path,
     keycloak_token_url: str | None = None,
-    submission_url: str | None = None
+    submission_url: str | None = None,
 ) -> bool:
     """Submit data to SILO using the new pre-signed upload approach.
 

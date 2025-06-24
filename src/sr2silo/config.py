@@ -17,7 +17,9 @@ if env_path.exists():
     load_dotenv(dotenv_path=env_path)
     logging.info(f"Loaded environment variables from {env_path} using python-dotenv")
 else:
-    logging.debug(f"No .env file found at {env_path}, using only system environment variables")
+    logging.debug(
+        f"No .env file found at {env_path}, using only system environment variables"
+    )
 
 
 def is_ci_environment() -> bool:
@@ -77,7 +79,9 @@ def get_keycloak_token_url(default: str | None = None) -> str:
     """
     url = os.getenv("KEYCLOAK_TOKEN_URL", default)
     if url is None:
-        logging.error("KEYCLOAK_TOKEN_URL environment variable is not set and no default provided")
+        logging.error(
+            "KEYCLOAK_TOKEN_URL environment variable is not set and no default provided"
+        )
         sys.exit(1)
     return url
 
@@ -96,7 +100,9 @@ def get_submission_url(default: str | None = None) -> str:
     """
     url = os.getenv("SUBMISSION_URL", default)
     if url is None:
-        logging.error("SUBMISSION_URL environment variable is not set and no default provided")
+        logging.error(
+            "SUBMISSION_URL environment variable is not set and no default provided"
+        )
         sys.exit(1)
     return url
 

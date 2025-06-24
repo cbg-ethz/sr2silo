@@ -6,7 +6,6 @@ as expected when invoked with various commands and options.
 
 from __future__ import annotations
 
-
 from typer.testing import CliRunner
 
 from sr2silo.main import app
@@ -163,25 +162,29 @@ def test_process_from_vpipe_with_skip_merge(real_sample_files_import_to_loculus)
 
 def test_process_from_vpipe_environment_variables():
     """Test process-from-vpipe with environment variables."""
-    from unittest.mock import patch
     import os
-    
+    from unittest.mock import patch
+
     # Test with environment variables set
     env_vars = {
         "TIMELINE_FILE": "/path/to/timeline.tsv",
         "PRIMER_FILE": "/path/to/primers.yaml",
-        "NEXTCLADE_REFERENCE": "env-reference"
+        "NEXTCLADE_REFERENCE": "env-reference",
     }
-    
+
     with patch.dict(os.environ, env_vars):
         result = runner.invoke(
             app,
             [
                 "process-from-vpipe",
-                "--input-file", "/tmp/test.bam",
-                "--sample-id", "test-sample",
-                "--batch-id", "test-batch",
-                "--output-fp", "/tmp/test.ndjson.zst",
+                "--input-file",
+                "/tmp/test.bam",
+                "--sample-id",
+                "test-sample",
+                "--batch-id",
+                "test-batch",
+                "--output-fp",
+                "/tmp/test.ndjson.zst",
             ],
         )
         # Should fail due to missing input file, but environment variables should be processed
@@ -192,28 +195,35 @@ def test_process_from_vpipe_environment_variables():
 
 def test_process_from_vpipe_cli_overrides_env():
     """Test that CLI arguments override environment variables."""
-    from unittest.mock import patch
     import os
-    
+    from unittest.mock import patch
+
     # Set environment variables
     env_vars = {
         "TIMELINE_FILE": "/env/timeline.tsv",
         "PRIMER_FILE": "/env/primers.yaml",
-        "NEXTCLADE_REFERENCE": "env-reference"
+        "NEXTCLADE_REFERENCE": "env-reference",
     }
-    
+
     with patch.dict(os.environ, env_vars):
         result = runner.invoke(
             app,
             [
                 "process-from-vpipe",
-                "--input-file", "/tmp/test.bam",
-                "--sample-id", "test-sample",
-                "--batch-id", "test-batch",
-                "--output-fp", "/tmp/test.ndjson.zst",
-                "--timeline-file", "/cli/timeline.tsv",
-                "--primer-file", "/cli/primers.yaml",
-                "--reference", "cli-reference",
+                "--input-file",
+                "/tmp/test.bam",
+                "--sample-id",
+                "test-sample",
+                "--batch-id",
+                "test-batch",
+                "--output-fp",
+                "/tmp/test.ndjson.zst",
+                "--timeline-file",
+                "/cli/timeline.tsv",
+                "--primer-file",
+                "/cli/primers.yaml",
+                "--reference",
+                "cli-reference",
             ],
         )
         # CLI arguments should override environment variables
@@ -223,19 +233,23 @@ def test_process_from_vpipe_cli_overrides_env():
 
 def test_process_from_vpipe_missing_env_and_cli():
     """Test process-from-vpipe fails when neither env vars nor CLI args provided."""
-    from unittest.mock import patch
     import os
-    
+    from unittest.mock import patch
+
     # Clear environment variables
     with patch.dict(os.environ, {}, clear=True):
         result = runner.invoke(
             app,
             [
                 "process-from-vpipe",
-                "--input-file", "/tmp/test.bam", 
-                "--sample-id", "test-sample",
-                "--batch-id", "test-batch",
-                "--output-fp", "/tmp/test.ndjson.zst",
+                "--input-file",
+                "/tmp/test.bam",
+                "--sample-id",
+                "test-sample",
+                "--batch-id",
+                "test-batch",
+                "--output-fp",
+                "/tmp/test.ndjson.zst",
             ],
         )
         assert result.exit_code == 1
@@ -245,22 +259,24 @@ def test_process_from_vpipe_missing_env_and_cli():
 
 def test_submit_to_loculus_environment_variables():
     """Test submit-to-loculus with environment variables."""
-    from unittest.mock import patch
     import os
-    
+    from unittest.mock import patch
+
     # Test with environment variables set
     env_vars = {
         "KEYCLOAK_TOKEN_URL": "https://env.auth.com/token",
         "SUBMISSION_URL": "https://env.submit.com/api",
     }
-    
+
     with patch.dict(os.environ, env_vars):
         result = runner.invoke(
             app,
             [
                 "submit-to-loculus",
-                "--processed-file", "/tmp/test.ndjson.zst",
-                "--sample-id", "test-sample",
+                "--processed-file",
+                "/tmp/test.ndjson.zst",
+                "--sample-id",
+                "test-sample",
             ],
         )
         # Should fail due to missing file, but environment variables should be processed
@@ -269,24 +285,28 @@ def test_submit_to_loculus_environment_variables():
 
 def test_submit_to_loculus_cli_overrides_env():
     """Test that CLI arguments override environment variables for submit command."""
-    from unittest.mock import patch
     import os
-    
+    from unittest.mock import patch
+
     # Set environment variables
     env_vars = {
         "KEYCLOAK_TOKEN_URL": "https://env.auth.com/token",
         "SUBMISSION_URL": "https://env.submit.com/api",
     }
-    
+
     with patch.dict(os.environ, env_vars):
         result = runner.invoke(
             app,
             [
                 "submit-to-loculus",
-                "--processed-file", "/tmp/test.ndjson.zst",
-                "--sample-id", "test-sample",
-                "--keycloak-token-url", "https://cli.auth.com/token",
-                "--submission-url", "https://cli.submit.com/api",
+                "--processed-file",
+                "/tmp/test.ndjson.zst",
+                "--sample-id",
+                "test-sample",
+                "--keycloak-token-url",
+                "https://cli.auth.com/token",
+                "--submission-url",
+                "https://cli.submit.com/api",
             ],
         )
         # CLI arguments should override environment variables
@@ -295,17 +315,19 @@ def test_submit_to_loculus_cli_overrides_env():
 
 def test_submit_to_loculus_missing_env_and_cli():
     """Test submit-to-loculus fails when neither env vars nor CLI args provided."""
-    from unittest.mock import patch
     import os
-    
+    from unittest.mock import patch
+
     # Clear environment variables
     with patch.dict(os.environ, {}, clear=True):
         result = runner.invoke(
             app,
             [
                 "submit-to-loculus",
-                "--processed-file", "/tmp/test.ndjson.zst",
-                "--sample-id", "test-sample",
+                "--processed-file",
+                "/tmp/test.ndjson.zst",
+                "--sample-id",
+                "test-sample",
             ],
         )
         assert result.exit_code == 1
