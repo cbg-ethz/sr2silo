@@ -19,7 +19,6 @@ from sr2silo.config import (
     is_ci_environment,
 )
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
-
 from sr2silo.submit_to_loculus import submit_to_silo
 
 # Use force=True to override any existing logging configuration
@@ -130,14 +129,18 @@ def process_from_vpipe(
     if timeline_file is None:
         timeline_file = get_timeline_file()
         if timeline_file is None:
-            logging.error("Timeline file must be provided via --timeline-file or TIMELINE_FILE environment variable")
+            logging.error(
+                "Timeline file must be provided via --timeline-file or TIMELINE_FILE environment variable"
+            )
             raise typer.Exit(1)
 
     # Resolve primer_file with environment fallback
     if primer_file is None:
         primer_file = get_primer_file()
         if primer_file is None:
-            logging.error("Primer file must be provided via --primer-file or PRIMER_FILE environment variable")
+            logging.error(
+                "Primer file must be provided via --primer-file or PRIMER_FILE environment variable"
+            )
             raise typer.Exit(1)
 
     # Resolve reference with environment fallback
@@ -258,10 +261,10 @@ def submit_to_loculus(
     # Submit to SILO using the pre-signed upload approach
     # This will handle both metadata and processed file upload via pre-signed URLs
     success = submit_to_silo(
-        result_dir, 
-        processed_file, 
+        result_dir,
+        processed_file,
         keycloak_token_url=keycloak_token_url,
-        submission_url=submission_url
+        submission_url=submission_url,
     )
 
     if success:
