@@ -19,6 +19,7 @@ from sr2silo.config import (
     is_ci_environment,
 )
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
+
 from sr2silo.submit_to_loculus import submit_to_silo
 
 # Use force=True to override any existing logging configuration
@@ -268,6 +269,7 @@ def submit_to_loculus(
 
     # Submit to SILO using the pre-signed upload approach
     # This will handle both metadata and processed file upload via pre-signed URLs
+
     success = submit_to_silo(
         result_dir,
         processed_file,
