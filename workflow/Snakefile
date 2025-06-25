@@ -4,7 +4,9 @@
 
 import yaml
 import os
+import csv
 from pathlib import Path
+from datetime import datetime
 
 
 CONFIG = "workflow/config.yaml"
@@ -19,21 +21,113 @@ with open(CONFIG, "r") as file:
     config = yaml.safe_load(file)
 
 
+def get_sample_batch_mapping():
+    """Read timeline file and filter by date range and location codes."""
+
+    # Read the timeline file
+    sample_batch_mapping = {}
+
+    with open(config["TIMELINE_FILE"], "r") as f:
+        reader = csv.reader(f, delimiter="\t")
+        # Skip header row if it exists
+        first_row = next(reader, None)
+        if first_row and first_row[0] == "sample":
+            # This is a header row, continue with the next rows
+            pass
+        else:
+            # This is data, process it
+            if first_row and len(first_row) >= 7:
+                sample, batch, reads, proto, location_code, date_str, location = (
+                    first_row
+                )
+
+                # Convert date string to datetime for comparison
+                try:
+                    sample_date = datetime.strptime(date_str, "%Y-%m-%d")
+                    location_code_int = int(location_code)
+
+                    # Filter by date range
+                    start_date = datetime.strptime(config["START_DATE"], "%Y-%m-%d")
+                    end_date = datetime.strptime(config["END_DATE"], "%Y-%m-%d")
+
+                    if (
+                        start_date <= sample_date <= end_date
+                        and location_code_int in config["LOCATIONS"]
+                    ):
+                        sample_batch_mapping[sample] = batch
+                except (ValueError, TypeError):
+                    pass  # Skip invalid rows
+
+        # Process remaining rows
+        for row in reader:
+            if len(row) < 7:  # Skip invalid rows
+                continue
+
+            sample, batch, reads, proto, location_code, date_str, location = row
+
+            # Convert date string to datetime for comparison
+            try:
+                sample_date = datetime.strptime(date_str, "%Y-%m-%d")
+            except ValueError:
+                continue  # Skip rows with invalid date format
+
+            # Convert location_code to int for comparison
+            try:
+                location_code_int = int(location_code)
+            except ValueError:
+                continue  # Skip rows with invalid location code
+
+            # Filter by date range
+            start_date = datetime.strptime(config["START_DATE"], "%Y-%m-%d")
+            end_date = datetime.strptime(config["END_DATE"], "%Y-%m-%d")
+
+            if not (start_date <= sample_date <= end_date):
+                continue
+
+            # Filter by location codes
+            if location_code_int not in config["LOCATIONS"]:
+                continue
+
+            # Add to mapping
+            sample_batch_mapping[sample] = batch
+
+    return sample_batch_mapping
+
+
 def get_batch_id(sample_id):
-    """Get the batch ids from the sample batch ids."""
-    return config["SAMPLE_BATCH_IDS"][sample_id]
+    """Get the batch id from the filtered sample batch mapping."""
+    sample_batch_mapping = get_sample_batch_mapping()
+    return sample_batch_mapping[sample_id]
+
+
+# Get the filtered sample-batch mapping
+SAMPLE_BATCH_IDS = get_sample_batch_mapping()
+
+# Warning if no samples found
+if not SAMPLE_BATCH_IDS:
+    print("⚠️  WARNING: No samples found matching the filtering criteria!")
+    print(f"   Date range: {config['START_DATE']} to {config['END_DATE']}")
+    print(f"   Location codes: {config['LOCATIONS']}")
+    print(f"   Timeline file: {config['TIMELINE_FILE']}")
+    print("   Please check your configuration and timeline file.")
+    print("   The workflow will complete with no jobs to execute.")
+else:
+    print(f"✓ Found {len(SAMPLE_BATCH_IDS)} samples matching criteria:")
+    for sample_id, batch_id in SAMPLE_BATCH_IDS.items():
+        print(f"   {sample_id} -> {batch_id}")
+    print()
 
 
 rule all:
     input:
         [
             f"{config['RESULTS_DIR']}/sampleId-{sample_id}_batchId-{get_batch_id(sample_id)}.ndjson.zst"
-            for sample_id in config["SAMPLE_BATCH_IDS"].keys()
+            for sample_id in SAMPLE_BATCH_IDS.keys()
         ],
         [
             f"{config['RESULTS_DIR']}/uploads/sampleId-{sample_id}_batchId-{get_batch_id(sample_id)}.uploaded"
-            for sample_id in config["SAMPLE_BATCH_IDS"].keys()
-        ]
+            for sample_id in SAMPLE_BATCH_IDS.keys()
+        ],
 
 
 rule process_sample:

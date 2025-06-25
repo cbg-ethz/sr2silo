@@ -1,6 +1,8 @@
 BASE_SAMPLE_DIR: "tests/data/samples_large"
-SAMPLE_BATCH_IDS:
-  A1_05_2024_10_08: "20241024_2411515907"
+LOCATIONS:
+  - 5   # Lugano (TI)
+START_DATE: "2024-10-05"
+END_DATE: "2024-10-30"
 TIMELINE_FILE: "tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
 PRIMERS_FILE: "resources/sars-cov-2/primers/primers.yaml"
 NUC_REFERENCE: "sars-cov-2"
