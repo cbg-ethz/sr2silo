@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sr2silo"
-version = "1.0.1"
+version = "1.0.0"
 description = "short-read to silo"
 authors = ["Gordon Julian Koehn <gordon.koehn@dbsse.ethz.ch>"]
 readme = "README.md"
