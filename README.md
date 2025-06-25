@@ -253,6 +253,40 @@ sr2silo submit-to-loculus \
 
 This will upload the processed file to S3 and submit it to SILO/Loculus.
 
+### Environment Variable Configuration
+
+sr2silo supports flexible configuration through environment variables, making it easy to use in different deployment scenarios including conda packages and pip installations.
+
+**Key features:**
+- No `.env` file required
+- CLI parameters override environment variables
+- Environment variables provide convenient defaults
+
+**Quick example using environment variables:**
+```bash
+# Set common configuration via environment variables
+export TIMELINE_FILE=/path/to/timeline.tsv
+export PRIMER_FILE=/path/to/primers.yaml
+export NEXTCLADE_REFERENCE=sars-cov-2
+
+# Run with minimal CLI arguments
+sr2silo process-from-vpipe \
+    --input-file input.bam \
+    --sample-id SAMPLE_001 \
+    --batch-id BATCH_001 \
+    --output-fp output.ndjson
+
+# Environment variables for submission
+export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
+export SUBMISSION_URL=https://backend.example.com/api
+
+sr2silo submit-to-loculus \
+    --processed-file output.ndjson.zst \
+    --sample-id SAMPLE_001
+```
+
+For complete documentation on environment variable configuration, see [docs/usage/environment_configuration.md](docs/usage/environment_configuration.md).
+
 ### Tool Sections
 The code quality checks run on GitHub can be seen in
  - ``.github/workflows/test.yml`` for the python package CI/CD,
