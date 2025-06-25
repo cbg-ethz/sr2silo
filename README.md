@@ -253,40 +253,6 @@ sr2silo submit-to-loculus \
 
 This will upload the processed file to S3 and submit it to SILO/Loculus.
 
-### Environment Variable Configuration
-
-sr2silo supports flexible configuration through environment variables, making it easy to use in different deployment scenarios including conda packages and pip installations.
-
-**Key features:**
-- No `.env` file required
-- CLI parameters override environment variables
-- Environment variables provide convenient defaults
-
-**Quick example using environment variables:**
-```bash
-# Set common configuration via environment variables
-export TIMELINE_FILE=/path/to/timeline.tsv
-export PRIMER_FILE=/path/to/primers.yaml
-export NEXTCLADE_REFERENCE=sars-cov-2
-
-# Run with minimal CLI arguments
-sr2silo process-from-vpipe \
-    --input-file input.bam \
-    --sample-id SAMPLE_001 \
-    --batch-id BATCH_001 \
-    --output-fp output.ndjson
-
-# Environment variables for submission
-export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
-export SUBMISSION_URL=https://backend.example.com/api
-
-sr2silo submit-to-loculus \
-    --processed-file output.ndjson.zst \
-    --sample-id SAMPLE_001
-```
-
-For complete documentation on environment variable configuration, see [docs/usage/environment_configuration.md](docs/usage/environment_configuration.md).
-
 ### Tool Sections
 The code quality checks run on GitHub can be seen in
  - ``.github/workflows/test.yml`` for the python package CI/CD,
@@ -299,49 +265,7 @@ We are using:
   * [Pytest](https://docs.pytest.org/) to run the unit tests code and workflows.
   * [Interrogate](https://interrogate.readthedocs.io/) to check the documentation.
 
-#### GitHub Copilot Agent Integration
-
-The repository includes a configured GitHub Copilot Agent that automatically applies code quality standards. The configuration in `.github/copilot.yml` ensures that:
-
-- Pre-commit hooks are run before suggesting changes
-- Code formatting with Black is applied automatically
-- Linting issues are fixed with Ruff
-- Import sorting is maintained with isort
-- Type checking and documentation standards are enforced
-
-For developers, you can also run the code quality checks manually using the same commands the agent uses:
-```bash
-# Run pre-commit hooks
-poetry run pre-commit run --all-files
-
-# Format code with Black
-poetry run black .
-
-# Sort imports with isort
-poetry run isort .
-
-# Fix linting issues with Ruff
-poetry run ruff check --fix .
-
-# Check type hints with pyright
-poetry run pyright
-
-# Check documentation coverage
-poetry run interrogate src
-```
-
 
 ## Contributing
 
 This project welcomes contributions and suggestions. For details, visit the repository's [Contributor License Agreement (CLA)](https://cla.opensource.microsoft.com) and [Code of Conduct](https://opensource.microsoft.com/codeofconduct/) pages.
-
-### Code Quality Standards
-
-Before contributing, please ensure your code meets our quality standards by running the formatting and linting tools:
-```bash
-poetry run black .
-poetry run isort .
-poetry run ruff check --fix .
-```
-
-The GitHub Copilot Agent is configured to help maintain these standards automatically.
