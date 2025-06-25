@@ -30,10 +30,20 @@ rule all:
             f"{config['RESULTS_DIR']}/sampleId-{sample_id}_batchId-{get_batch_id(sample_id)}.ndjson.zst"
             for sample_id in config["SAMPLE_BATCH_IDS"].keys()
         ],
+        [
+            f"{config['RESULTS_DIR']}/uploads/sampleId-{sample_id}_batchId-{get_batch_id(sample_id)}.uploaded"
+            for sample_id in config["SAMPLE_BATCH_IDS"].keys()
+        ]
 
 
 rule process_sample:
-    """Processes the sample to ndjson, skip upload to loculus."""
+    """Processes the sample to ndjson, skip upload to loculus.
+
+    This rule demonstrates the flexible parameter approach:
+    - Parameters can be provided via CLI arguments (as shown)
+    - Or via environment variables (TIMELINE_FILE, PRIMER_FILE, NEXTCLADE_REFERENCE)
+    - CLI arguments take precedence over environment variables
+    """
     input:
         sample_fp=f"{config['BASE_SAMPLE_DIR']}"
         + "/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam",
@@ -67,17 +77,15 @@ rule process_sample:
 rule submit_to_loculus:
     """Submits the processed sample to loculus.
 
-    Note the required environment variables:
-        - AWS_ACCESS_KEY_ID
-        - AWS_SECRET_ACCESS_KEY
-        - AWS_DEFAULT_REGION
+    This rule now uses CLI parameters with environment variable fallbacks.
+    The sr2silo command will automatically use environment variables
+    if CLI parameters are not provided.
+
+    Required configuration (via config file or environment variables):
         - KEYCLOAK_TOKEN_URL
         - SUBMISSION_URL
-    Configured in the workflow/config.yaml file.
 
-    Development Note:
-    With Loculus File Sharing and S3 managed uploads, this rule
-    will get simpler in the future, abstracting s3 locations away.
+    CLI parameters take precedence over environment variables.
     """
     input:
         result_fp=f"{config['RESULTS_DIR']}"
@@ -86,32 +94,19 @@ rule submit_to_loculus:
         flag=f"{config['RESULTS_DIR']}/uploads/sampleId-{{sample_id}}_batchId-{{batch_id}}.uploaded",
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
+        keycloak_url=config.get("KEYCLOAK_TOKEN_URL", ""),
+        submission_url=config.get("SUBMISSION_URL", ""),
     log:
         "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}_batchId_{batch_id}.log",
     conda:
         "envs/sr2silo.yaml"
     shell:
-        (
-            """
-        export AWS_ACCESS_KEY_ID="""
-            + config.get("AWS_ACCESS_KEY_ID", "")
-            + """; \
-                                        export AWS_SECRET_ACCESS_KEY="""
-            + config.get("AWS_SECRET_ACCESS_KEY", "")
-            + """; \
-                                        export AWS_DEFAULT_REGION="""
-            + config.get("AWS_DEFAULT_REGION", "us-east-1")
-            + """; \
-                                        export KEYCLOAK_TOKEN_URL="""
-            + config.get("KEYCLOAK_TOKEN_URL", "")
-            + """; \
-                                        export SUBMISSION_URL="""
-            + config.get("SUBMISSION_URL", "")
-            + """; \
-                                        sr2silo submit-to-loculus \
-                                            --processed-file {input.result_fp} \
-                                            --sample-id {params.sample_id} > {log} 2>&1 && \
-                                        mkdir -p $(dirname {output.flag}) && \
-                                        touch {output.flag}
-                                        """
-        )
+        """
+        sr2silo submit-to-loculus \
+            --processed-file {input.result_fp} \
+            --sample-id {params.sample_id} \
+            --keycloak-token-url "{params.keycloak_url}" \
+            --submission-url "{params.submission_url}" > {log} 2>&1 && \
+        mkdir -p $(dirname {output.flag}) && \
+        touch {output.flag}
+        """
