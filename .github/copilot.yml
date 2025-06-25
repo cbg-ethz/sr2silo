@@ -1,2 +1,34 @@
 agent:
   default_branch: dev
+  rules:
+    - name: "Use pre-commit hooks for code quality"
+      description: "Always run pre-commit hooks before suggesting changes to ensure code quality standards are met"
+      instructions: |
+        Before making any code changes, always run pre-commit hooks to ensure code formatting and quality:
+        1. Run `poetry run pre-commit run --all-files` to check all files
+        2. Run `poetry run black --check --diff .` to verify Python code formatting
+        3. Run `poetry run ruff check .` to check for linting issues
+        4. If any issues are found, apply the fixes automatically:
+           - Run `poetry run black .` to format Python code
+           - Run `poetry run ruff check --fix .` to fix linting issues
+           - Run `poetry run isort .` to sort imports
+        5. Always use the project's configured tools (Black, Ruff, isort, pyright) as defined in pyproject.toml
+        6. Ensure all changes comply with the pre-commit configuration in .pre-commit-config.yaml
+    - name: "Follow project code style"
+      description: "Ensure all code changes follow the project's established style guidelines"
+      instructions: |
+        When making code changes:
+        1. Use Black for Python code formatting (configured in pyproject.toml)
+        2. Follow Ruff linting rules for code quality
+        3. Ensure imports are sorted with isort using the "black" profile
+        4. Maintain type hints and ensure pyright type checking passes
+        5. Follow the interrogate documentation standards (95% coverage required)
+        6. Use the same coding patterns and conventions as existing code
+    - name: "Test before committing"
+      description: "Run tests to ensure changes don't break existing functionality"
+      instructions: |
+        Before finalizing any changes:
+        1. Run `poetry run pytest` to ensure all tests pass
+        2. If tests fail, investigate and fix the issues
+        3. Maintain or improve test coverage
+        4. Follow existing test patterns and naming conventions

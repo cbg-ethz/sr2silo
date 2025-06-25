@@ -38,6 +38,7 @@ requirements:
     - pysam >=0.23.0
     - requests >=2.25.0
     - moto >=5.0.22
+    - python-dotenv >=1.0.0
 
 test:
   imports:

@@ -18,6 +18,7 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
+        args: ["--ignore-words-list", "ARTIC"]
 
   - repo: https://github.com/PyCQA/isort
     rev: 6.0.1
