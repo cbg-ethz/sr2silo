@@ -9,7 +9,15 @@ from typing import Annotated
 
 import typer
 
-from sr2silo.config import get_version, is_ci_environment
+from sr2silo.config import (
+    get_keycloak_token_url,
+    get_nextclade_reference,
+    get_primer_file,
+    get_submission_url,
+    get_timeline_file,
+    get_version,
+    is_ci_environment,
+)
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
 
 from sr2silo.submit_to_loculus import submit_to_silo
@@ -72,22 +80,6 @@ def process_from_vpipe(
             help="Batch ID to use for metadata.",
         ),
     ],
-    timeline_file: Annotated[
-        Path,
-        typer.Option(
-            "--timeline-file",
-            "-t",
-            help="Path to the timeline file.",
-        ),
-    ],
-    primer_file: Annotated[
-        Path,
-        typer.Option(
-            "--primer-file",
-            "-p",
-            help="Path to the primers file.",
-        ),
-    ],
     output_fp: Annotated[
         Path,
         typer.Option(
@@ -96,14 +88,33 @@ def process_from_vpipe(
             help="Path to the output file. Must end with .ndjson.",
         ),
     ],
+    timeline_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--timeline-file",
+            "-t",
+            help="Path to the timeline file. Falls back to TIMELINE_FILE "
+            "environment variable.",
+        ),
+    ] = None,
+    primer_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--primer-file",
+            "-p",
+            help="Path to the primers file. Falls back to PRIMER_FILE "
+            "environment variable.",
+        ),
+    ] = None,
     reference: Annotated[
-        str,
+        str | None,
         typer.Option(
             "--reference",
             "-r",
-            help="See folder names in resources/",
+            help="See folder names in resources/. Falls back to "
+            "NEXTCLADE_REFERENCE environment variable.",
         ),
-    ] = "sars-cov-2",
+    ] = None,
     skip_merge: Annotated[
         bool,
         typer.Option(
@@ -117,6 +128,30 @@ def process_from_vpipe(
     Processing only - use 'submit-to-loculus' command to upload and submit to SILO.
     """
     typer.echo("Starting V-PIPE to SILO conversion.")
+
+    # Resolve timeline_file with environment fallback
+    if timeline_file is None:
+        timeline_file = get_timeline_file()
+        if timeline_file is None:
+            logging.error(
+                "Timeline file must be provided via --timeline-file "
+                "or TIMELINE_FILE environment variable"
+            )
+            raise typer.Exit(1)
+
+    # Resolve primer_file with environment fallback
+    if primer_file is None:
+        primer_file = get_primer_file()
+        if primer_file is None:
+            logging.error(
+                "Primer file must be provided via --primer-file or "
+                "PRIMER_FILE environment variable"
+            )
+            raise typer.Exit(1)
+
+    # Resolve reference with environment fallback
+    if reference is None:
+        reference = get_nextclade_reference()
 
     logging.info(f"Processing input file: {input_file}")
     logging.info(f"Using timeline file: {timeline_file}")
@@ -132,7 +167,8 @@ def process_from_vpipe(
         temp_dir = Path(os.environ["TMPDIR"])
         logging.info(f"Recognize temporary directory set in Env: {temp_dir}")
         logging.info(
-            "This will be used for amino acid translation and alignment - by diamond."
+            "This will be used for amino acid translation and "
+            "alignment - by diamond."
         )
 
     ci_env = is_ci_environment()
@@ -174,14 +210,40 @@ def submit_to_loculus(
             help="Sample ID for the processed file.",
         ),
     ],
+    keycloak_token_url: Annotated[
+        str | None,
+        typer.Option(
+            "--keycloak-token-url",
+            help="Keycloak authentication URL. Falls back to "
+            "KEYCLOAK_TOKEN_URL environment variable.",
+        ),
+    ] = None,
+    submission_url: Annotated[
+        str | None,
+        typer.Option(
+            "--submission-url",
+            help="Loculus submission URL. Falls back to "
+            "SUBMISSION_URL environment variable.",
+        ),
+    ] = None,
 ) -> None:
     """
     Upload processed file to S3 and submit to SILO/Loculus.
     """
     typer.echo("Starting upload and submission to SILO.")
 
+    # Resolve keycloak_token_url with environment fallback
+    if keycloak_token_url is None:
+        keycloak_token_url = get_keycloak_token_url()
+
+    # Resolve submission_url with environment fallback
+    if submission_url is None:
+        submission_url = get_submission_url()
+
     logging.info(f"Processing file: {processed_file}")
     logging.info(f"Using sample_id: {sample_id}")
+    logging.info(f"Using Keycloak token URL: {keycloak_token_url}")
+    logging.info(f"Using submission URL: {submission_url}")
 
     # Check if the processed file exists
     if not processed_file.exists():
@@ -207,7 +269,13 @@ def submit_to_loculus(
 
     # Submit to SILO using the pre-signed upload approach
     # This will handle both metadata and processed file upload via pre-signed URLs
-    success = submit_to_silo(result_dir, processed_file)
+
+    success = submit_to_silo(
+        result_dir,
+        processed_file,
+        keycloak_token_url=keycloak_token_url,
+        submission_url=submission_url,
+    )
 
     if success:
         typer.echo("Upload and submission completed successfully.")
