@@ -107,7 +107,8 @@ D4_10_2024_09_30	20241024_2411515907	250	v532	10	2024-09-30	Zürich (ZH)
 
         result = get_sample_batch_mapping_test(config)
 
-        # Should find A1_05_2024_10_08 (location 5, date 2024-10-08) and B2_15_2024_10_15 (location 15, date 2024-10-15)
+        # Should find A1_05_2024_10_08 (location 5, date 2024-10-08)
+        # and B2_15_2024_10_15 (location 15, date 2024-10-15)
         expected = {
             "A1_05_2024_10_08": "20241024_2411515907",
             "B2_15_2024_10_15": "20241024_2411515907",
