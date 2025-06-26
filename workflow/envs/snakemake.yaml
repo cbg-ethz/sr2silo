@@ -1,0 +1,9 @@
+name: snakemake-env
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - snakemake>=7.0
+  - pandas>=2.0
+  - pyyaml>=6.0
