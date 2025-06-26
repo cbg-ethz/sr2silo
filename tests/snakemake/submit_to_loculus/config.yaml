@@ -1,14 +1,13 @@
 BASE_SAMPLE_DIR: "samples_large"
-SAMPLE_BATCH_IDS:
-  A1_05_2024_10_08: "20241024_2411515907"
+LOCATIONS:
+  - 5   # Lugano (TI)
+START_DATE: "2024-10-01"
+END_DATE: "2024-10-31"
 TIMELINE_FILE: "timeline_A1_05_2024_10_08.tsv"
 PRIMERS_FILE: "resources/sars-cov-2/primers/primers.yaml"
 NUC_REFERENCE: "sars-cov-2"
 RESULTS_DIR: "results"
 
 # Environment variables for submit_to_loculus rule
-AWS_ACCESS_KEY_ID: "test_access_key_id"
-AWS_SECRET_ACCESS_KEY: "test_secret_access_key"
-AWS_DEFAULT_REGION: "us-east-1"
 KEYCLOAK_TOKEN_URL: "https://test.keycloak.token.url"
 SUBMISSION_URL: "https://test.submission.url"

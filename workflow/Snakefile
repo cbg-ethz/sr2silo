@@ -152,7 +152,7 @@ rule process_sample:
         nuc_reference=config["NUC_REFERENCE"],
         aa_reference=config["NUC_REFERENCE"],
     log:
-        "logs/sr2silo/process_sample/sampleId_{sample_id}_batchId_{batch_id}.log",  # Clearer wildcard separation
+        "logs/sr2silo/process_sample/sampleId_{sample_id}_batchId_{batch_id}.log",
     conda:
         "envs/sr2silo.yaml"
     shell:
