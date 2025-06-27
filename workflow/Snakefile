@@ -180,6 +180,8 @@ rule submit_to_loculus:
         - SUBMISSION_URL
 
     CLI parameters take precedence over environment variables.
+
+    Note: On ETH cluster, this rule loads the eth_proxy module for internet access.
     """
     input:
         result_fp=f"{config['RESULTS_DIR']}"
@@ -196,6 +198,8 @@ rule submit_to_loculus:
         "envs/sr2silo.yaml"
     shell:
         """
+        # Load ETH proxy module for internet access on cluster
+        module load eth_proxy && \
         sr2silo submit-to-loculus \
             --processed-file {input.result_fp} \
             --sample-id {params.sample_id} \
