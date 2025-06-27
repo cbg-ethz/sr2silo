@@ -40,7 +40,7 @@
 
 # Parse command-line arguments
 USE_EXISTING_ENV=false
-CORES=4  # Default number of cores
+CORES=10  # Default number of cores
 LOG_DIR="/cluster/work/bewi/members/koehng/logs"  # Default log directory
 
 function show_usage {
@@ -89,4 +89,4 @@ sbatch \
     -o "$LOG_DIR/sr2silo.out" \
     -e "$LOG_DIR/sr2silo.err" \
     -J sr2silo \
-    --wrap ". /etc/profile.d/software_stack_default.sh && module load eth_proxy && echo 'Proxy loaded: \${https_proxy}' && $SNAKEMAKE_CMD"
+    --wrap "module load eth_proxy && echo 'Proxy loaded: \${https_proxy}' && $SNAKEMAKE_CMD"
