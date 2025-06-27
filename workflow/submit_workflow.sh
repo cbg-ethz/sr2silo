@@ -10,6 +10,7 @@
 # Basic usage:
 #   ./submit_workflow.sh
 #       - Submits job with 4 cores using workflow-defined conda environments
+#       - Logs to /cluster/work/bewi/members/koehng/logs/
 #
 # With options:
 #   ./submit_workflow.sh -c 8
@@ -18,8 +19,11 @@
 #   ./submit_workflow.sh -e
 #       - Uses your currently active conda environment instead of creating new ones
 #
-#   ./submit_workflow.sh -e -c 12
-#       - Uses your current conda environment with 12 cores
+#   ./submit_workflow.sh -l /path/to/logs
+#       - Uses custom log directory instead of the default
+#
+#   ./submit_workflow.sh -e -c 12 -l /custom/logs
+#       - Uses your current conda environment with 12 cores and custom log directory
 #
 # The script will submit a SLURM job that:
 #   - Allocates the specified number of cores
@@ -27,8 +31,8 @@
 #   - Sets 160GB temporary disk space
 #   - Sets a time limit of 12 hours
 #   - Names the job "sr2silo" for easy identification
-#   - Outputs logs to /cluster/home/koehng/logs/
-#
+#   - Outputs logs to the specified directory
+
 # =============================================================================
 
 # Submit Snakemake workflow to SLURM with conda environment options
@@ -36,18 +40,21 @@
 # Parse command-line arguments
 USE_EXISTING_ENV=false
 CORES=4  # Default number of cores
+LOG_DIR="/cluster/work/bewi/members/koehng/logs"  # Default log directory
 
 function show_usage {
-  echo "Usage: $0 [-e] [-c CORES]"
+  echo "Usage: $0 [-e] [-c CORES] [-l LOG_DIR]"
   echo "  -e            Use existing conda environment (default: use workflow-defined conda envs)"
   echo "  -c CORES      Number of cores to use (default: 4)"
+  echo "  -l LOG_DIR    Directory for log files (default: /cluster/work/bewi/members/koehng/logs)"
   exit 1
 }
 
-while getopts "ec:" opt; do
+while getopts "ec:l:" opt; do
   case $opt in
     e) USE_EXISTING_ENV=true ;;
     c) CORES=$OPTARG ;;
+    l) LOG_DIR=$OPTARG ;;
     *) show_usage ;;
   esac
 done
@@ -60,10 +67,14 @@ if [ "$USE_EXISTING_ENV" = true ]; then
 else
   # Use the conda environments defined in the workflow
   echo "Using workflow-defined conda environments"
-  SNAKEMAKE_CMD="snakemake --use-conda -c $CORES"
+  SNAKEMAKE_CMD="snakemake --use-conda --conda-frontend conda -c $CORES"
 fi
 
 echo "Running with $CORES cores"
+echo "Log directory: $LOG_DIR"
+
+# Create log directory if it doesn't exist
+mkdir -p "$LOG_DIR"
 
 # Submit job to SLURM
 # -J sr2silo : Sets the job name to "sr2silo" for easy identification in the SLURM queue
@@ -74,7 +85,7 @@ sbatch \
     --mem-per-cpu=8G \
     --tmp=160G \
     --time=12:00:00 \
-    -o /cluster/home/koehng/logs/sr2silo.out \
-    -e /cluster/home/koehng/logs/sr2silo.err \
+    -o "$LOG_DIR/sr2silo.out" \
+    -e "$LOG_DIR/sr2silo.err" \
     -J sr2silo \
     --wrap "$SNAKEMAKE_CMD"
