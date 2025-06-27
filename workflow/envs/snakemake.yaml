@@ -1,9 +1,9 @@
-name: sr2silo-env
+name: snakemake-env
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
   - defaults
 dependencies:
-  - sr2silo=1.0.1
+  - snakemake>=7.0
   - pandas>=2.0
   - pyyaml>=6.0
