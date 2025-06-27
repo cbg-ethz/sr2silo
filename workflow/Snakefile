@@ -137,6 +137,8 @@ rule process_sample:
     - Parameters can be provided via CLI arguments (as shown)
     - Or via environment variables (TIMELINE_FILE, PRIMER_FILE, NEXTCLADE_REFERENCE)
     - CLI arguments take precedence over environment variables
+
+    Note: On ETH cluster, internet access is provided by eth_proxy module loaded at job level.
     """
     input:
         sample_fp=f"{config['BASE_SAMPLE_DIR']}"
@@ -181,7 +183,7 @@ rule submit_to_loculus:
 
     CLI parameters take precedence over environment variables.
 
-    Note: On ETH cluster, this rule loads the eth_proxy module for internet access.
+    Note: On ETH cluster, internet access is provided by eth_proxy module loaded at job level.
     """
     input:
         result_fp=f"{config['RESULTS_DIR']}"
@@ -198,8 +200,6 @@ rule submit_to_loculus:
         "envs/sr2silo.yaml"
     shell:
         """
-        # Load ETH proxy module for internet access on cluster
-        module load eth_proxy && \
         sr2silo submit-to-loculus \
             --processed-file {input.result_fp} \
             --sample-id {params.sample_id} \

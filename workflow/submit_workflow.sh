@@ -31,6 +31,7 @@
 #   - Sets 160GB temporary disk space
 #   - Sets a time limit of 12 hours
 #   - Names the job "sr2silo" for easy identification
+#   - Loads eth_proxy module for internet access on ETH cluster
 #   - Outputs logs to the specified directory
 
 # =============================================================================
@@ -88,4 +89,4 @@ sbatch \
     -o "$LOG_DIR/sr2silo.out" \
     -e "$LOG_DIR/sr2silo.err" \
     -J sr2silo \
-    --wrap "$SNAKEMAKE_CMD"
+    --wrap "module load eth_proxy && $SNAKEMAKE_CMD"
