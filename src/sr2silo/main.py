@@ -10,16 +10,18 @@ from typing import Annotated
 import typer
 
 from sr2silo.config import (
+    get_group_id,
     get_keycloak_token_url,
     get_nextclade_reference,
+    get_password,
     get_primer_file,
     get_submission_url,
     get_timeline_file,
+    get_username,
     get_version,
     is_ci_environment,
 )
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
-
 from sr2silo.submit_to_loculus import submit_to_silo
 
 # Use force=True to override any existing logging configuration
@@ -226,6 +228,30 @@ def submit_to_loculus(
             "SUBMISSION_URL environment variable.",
         ),
     ] = None,
+    group_id: Annotated[
+        int | None,
+        typer.Option(
+            "--group-id",
+            help="Group ID for submission. Falls back to "
+            "GROUP_ID environment variable.",
+        ),
+    ] = None,
+    username: Annotated[
+        str | None,
+        typer.Option(
+            "--username",
+            help="Username for authentication. Falls back to "
+            "USERNAME environment variable.",
+        ),
+    ] = None,
+    password: Annotated[
+        str | None,
+        typer.Option(
+            "--password",
+            help="Password for authentication. Falls back to "
+            "PASSWORD environment variable.",
+        ),
+    ] = None,
 ) -> None:
     """
     Upload processed file to S3 and submit to SILO/Loculus.
@@ -240,10 +266,24 @@ def submit_to_loculus(
     if submission_url is None:
         submission_url = get_submission_url()
 
+    # Resolve group_id with environment fallback
+    if group_id is None:
+        group_id = get_group_id()
+
+    # Resolve username with environment fallback
+    if username is None:
+        username = get_username()
+
+    # Resolve password with environment fallback
+    if password is None:
+        password = get_password()
+
     logging.info(f"Processing file: {processed_file}")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using Keycloak token URL: {keycloak_token_url}")
     logging.info(f"Using submission URL: {submission_url}")
+    logging.info(f"Using group ID: {group_id}")
+    logging.info(f"Using username: {username}")
 
     # Check if the processed file exists
     if not processed_file.exists():
@@ -275,6 +315,9 @@ def submit_to_loculus(
         processed_file,
         keycloak_token_url=keycloak_token_url,
         submission_url=submission_url,
+        group_id=group_id,
+        username=username,
+        password=password,
     )
 
     if success:

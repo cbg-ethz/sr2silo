@@ -10,3 +10,9 @@ RESULTS_DIR: "results"
 
 KEYCLOAK_TOKEN_URL: "https://authentication-wise-files.loculus.org/realms/loculus/protocol/openid-connect/token"
 SUBMISSION_URL: "https://backend-wise-files.loculus.org"
+
+# Authentication parameters for submission (required)
+GROUP_ID: 1
+# For production use prefer reading them from environment at runtime or prompting the user.
+USERNAME: "testuser"
+PASSWORD: "testuser"

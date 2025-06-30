@@ -180,6 +180,9 @@ rule submit_to_loculus:
     Required configuration (via config file or environment variables):
         - KEYCLOAK_TOKEN_URL
         - SUBMISSION_URL
+        - GROUP_ID
+        - USERNAME
+        - PASSWORD
 
     CLI parameters take precedence over environment variables.
 
@@ -194,6 +197,9 @@ rule submit_to_loculus:
         sample_id=lambda wildcards: wildcards.sample_id,
         keycloak_url=config.get("KEYCLOAK_TOKEN_URL", ""),
         submission_url=config.get("SUBMISSION_URL", ""),
+        group_id=config.get("GROUP_ID", "1"),
+        username=config.get("USERNAME", "testuser"),
+        password=config.get("PASSWORD", "testuser"),
     log:
         "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}_batchId_{batch_id}.log",
     conda:
@@ -204,7 +210,10 @@ rule submit_to_loculus:
             --processed-file {input.result_fp} \
             --sample-id {params.sample_id} \
             --keycloak-token-url "{params.keycloak_url}" \
-            --submission-url "{params.submission_url}" > {log} 2>&1 && \
+            --submission-url "{params.submission_url}" \
+            --group-id {params.group_id} \
+            --username {params.username} \
+            --password {params.password} > {log} 2>&1 && \
         mkdir -p $(dirname {output.flag}) && \
         touch {output.flag}
         """
