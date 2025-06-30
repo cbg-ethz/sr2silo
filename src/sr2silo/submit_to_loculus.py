@@ -7,7 +7,6 @@ import logging
 from pathlib import Path
 
 from sr2silo.config import (
-    get_frontend_url,
     get_group_id,
     get_keycloak_token_url,
     get_mock_urls,
@@ -100,13 +99,6 @@ def submit_to_silo(
 
         if response["status"] == "success":
             logging.info(response["message"])
-
-            # Get the frontend URL from config
-            frontend_url = get_frontend_url()
-            logging.info(
-                f"You can approve the upload for release at: "
-                f"{frontend_url}/{organism}/submission/{resolved_group_id}/review"
-            )
             return True
         else:
             logging.error(f"Submission failed: {response}")

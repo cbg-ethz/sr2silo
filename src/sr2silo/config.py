@@ -162,36 +162,6 @@ def get_nextclade_reference(default: str = "sars-cov-2") -> str:
     return os.getenv("NEXTCLADE_REFERENCE", default)
 
 
-def get_frontend_url() -> str:
-    """Get the frontend URL by deriving it from the submission URL.
-
-    Returns:
-        str: The frontend URL (removes 'backend-' prefix from submission URL)
-
-    Raises:
-        ValueError: If the submission URL doesn't contain 'backend-' prefix
-    """
-    submission_url = get_submission_url()
-
-    # Extract the base URL and remove 'backend-' prefix
-    # Example: https://backend-wise-seqs.loculus.org/... -> https://wise-seqs.loculus.org/...
-    if "backend-" not in submission_url:
-        raise ValueError(
-            """
-            Cannot derive frontend URL:
-            submission URL doesn't contain 'backend-' prefix
-            """
-        )
-
-    frontend_url = submission_url.replace("backend-", "")
-    # Remove the path part and just keep the domain
-    if "//" not in frontend_url:
-        raise ValueError("Cannot derive frontend URL: invalid URL format")
-
-    protocol_and_domain = frontend_url.split("//")[1].split("/")[0]
-    return f"https://{protocol_and_domain}"
-
-
 def get_group_id(default: int | None = None) -> int:
     """Get the group ID from environment, or return default if not set.
 
