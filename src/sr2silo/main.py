@@ -12,11 +12,8 @@ import typer
 from sr2silo.config import (
     get_group_id,
     get_keycloak_token_url,
-    get_nextclade_reference,
     get_password,
-    get_primer_file,
     get_submission_url,
-    get_timeline_file,
     get_username,
     get_version,
     is_ci_environment,
@@ -45,15 +42,6 @@ def callback(ctx: typer.Context):
     """Callback function that runs when no subcommand is provided."""
     if ctx.invoked_subcommand is None:
         typer.echo("Well, you gotta decide what to do.. see --help for subcommands")
-
-
-@app.command()
-def run():
-    """
-    Wrangel short-reads into cleartext alignments,
-    optionally translation and align in amino acids.
-    """
-    typer.echo("Not yet implemented.")
 
 
 @app.command()
@@ -91,32 +79,29 @@ def process_from_vpipe(
         ),
     ],
     timeline_file: Annotated[
-        Path | None,
+        Path,
         typer.Option(
             "--timeline-file",
             "-t",
-            help="Path to the timeline file. Falls back to TIMELINE_FILE "
-            "environment variable.",
+            help="Path to the timeline file.",
         ),
-    ] = None,
+    ],
     primer_file: Annotated[
-        Path | None,
+        Path,
         typer.Option(
             "--primer-file",
             "-p",
-            help="Path to the primers file. Falls back to PRIMER_FILE "
-            "environment variable.",
+            help="Path to the primers file.",
         ),
-    ] = None,
+    ],
     reference: Annotated[
-        str | None,
+        str,
         typer.Option(
             "--reference",
             "-r",
-            help="See folder names in resources/. Falls back to "
-            "NEXTCLADE_REFERENCE environment variable.",
+            help="See folder names in resources/.",
         ),
-    ] = None,
+    ],
     skip_merge: Annotated[
         bool,
         typer.Option(
@@ -130,30 +115,6 @@ def process_from_vpipe(
     Processing only - use 'submit-to-loculus' command to upload and submit to SILO.
     """
     typer.echo("Starting V-PIPE to SILO conversion.")
-
-    # Resolve timeline_file with environment fallback
-    if timeline_file is None:
-        timeline_file = get_timeline_file()
-        if timeline_file is None:
-            logging.error(
-                "Timeline file must be provided via --timeline-file "
-                "or TIMELINE_FILE environment variable"
-            )
-            raise typer.Exit(1)
-
-    # Resolve primer_file with environment fallback
-    if primer_file is None:
-        primer_file = get_primer_file()
-        if primer_file is None:
-            logging.error(
-                "Primer file must be provided via --primer-file or "
-                "PRIMER_FILE environment variable"
-            )
-            raise typer.Exit(1)
-
-    # Resolve reference with environment fallback
-    if reference is None:
-        reference = get_nextclade_reference()
 
     logging.info(f"Processing input file: {input_file}")
     logging.info(f"Using timeline file: {timeline_file}")
@@ -202,14 +163,6 @@ def submit_to_loculus(
             "--processed-file",
             "-f",
             help="Path to the processed .ndjson.zst file to upload and submit.",
-        ),
-    ],
-    sample_id: Annotated[
-        str,
-        typer.Option(
-            "--sample-id",
-            "-s",
-            help="Sample ID for the processed file.",
         ),
     ],
     keycloak_token_url: Annotated[
@@ -279,7 +232,6 @@ def submit_to_loculus(
         password = get_password()
 
     logging.info(f"Processing file: {processed_file}")
-    logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using Keycloak token URL: {keycloak_token_url}")
     logging.info(f"Using submission URL: {submission_url}")
     logging.info(f"Using group ID: {group_id}")

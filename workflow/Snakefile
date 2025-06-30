@@ -194,12 +194,11 @@ rule submit_to_loculus:
     output:
         flag=f"{config['RESULTS_DIR']}/uploads/sampleId-{{sample_id}}_batchId-{{batch_id}}.uploaded",
     params:
-        sample_id=lambda wildcards: wildcards.sample_id,
         keycloak_url=config.get("KEYCLOAK_TOKEN_URL", ""),
         submission_url=config.get("SUBMISSION_URL", ""),
-        group_id=config.get("GROUP_ID", "1"),
-        username=config.get("USERNAME", "testuser"),
-        password=config.get("PASSWORD", "testuser"),
+        group_id=config.get("GROUP_ID", ""),
+        username=config.get("USERNAME", ""),
+        password=config.get("PASSWORD", ""),
     log:
         "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}_batchId_{batch_id}.log",
     conda:
@@ -208,7 +207,6 @@ rule submit_to_loculus:
         """
         sr2silo submit-to-loculus \
             --processed-file {input.result_fp} \
-            --sample-id {params.sample_id} \
             --keycloak-token-url "{params.keycloak_url}" \
             --submission-url "{params.submission_url}" \
             --group-id {params.group_id} \

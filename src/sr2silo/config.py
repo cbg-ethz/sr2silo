@@ -150,18 +150,6 @@ def get_primer_file(default: Path | str | None = None) -> Path | None:
     return None
 
 
-def get_nextclade_reference(default: str = "sars-cov-2") -> str:
-    """Get the Nextclade reference from environment, or return default if not set.
-
-    Args:
-        default: Default reference to use if environment variable is not set
-
-    Returns:
-        str: The Nextclade reference identifier
-    """
-    return os.getenv("NEXTCLADE_REFERENCE", default)
-
-
 def get_group_id(default: int | None = None) -> int:
     """Get the group ID from environment, or return default if not set.
 
