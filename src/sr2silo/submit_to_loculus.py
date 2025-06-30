@@ -15,7 +15,6 @@ from sr2silo.config import (
     is_ci_environment,
 )
 from sr2silo.silo import LapisClient, Submission
-from sr2silo.storage import upload_file_to_s3
 
 
 def load_config(config_file: Path) -> dict:
@@ -29,47 +28,6 @@ def load_config(config_file: Path) -> dict:
     except json.JSONDecodeError as e:
         logging.error(f"Error decoding JSON from config file: {config_file} - {e}")
         raise
-
-
-def make_submission_file(result_dir: Path, srLink: str) -> Path:
-    """Create a submission file with the given S3 link.
-
-    Args:
-        result_dir (Path): The directory to save the submission file.
-        srLink (str): The S3 link to include in the submission file.
-
-    Returns:
-        Path: The path to the created submission file.
-    """
-    result_dir_submission = result_dir / "submission"
-    result_dir_submission.mkdir(parents=True, exist_ok=True)
-
-    submission_metadata_fp = result_dir_submission / "metadata.tsv"
-    with submission_metadata_fp.open("w") as f:
-        f.write("submissionId\ts3Link\tversionComment\n")
-        f.write(f"001\t{srLink}\t\n")
-    logging.info(f"Submission metadata saved to: {submission_metadata_fp}")
-
-    return submission_metadata_fp
-
-
-def upload_to_s3(aligned_reads_fp: Path, sample_id: str) -> str:
-    """Upload a file to S3 bucket.
-
-    Args:
-        aligned_reads_fp (Path): The file to upload.
-        sample_id (str): Sample ID used in the S3 filename.
-
-    Returns:
-        str: The S3 link to the uploaded file.
-    """
-    logging.info(f"Uploading to S3: {aligned_reads_fp}")
-    suffix = aligned_reads_fp.suffix
-    s3_file_name = f"{sample_id}.{suffix}"
-    s3_bucket = "sr2silo01"  # TODO : Make this configurable
-    s3_link = f"s3://{s3_bucket}/{s3_file_name}"
-    upload_file_to_s3(aligned_reads_fp, s3_bucket, s3_file_name)
-    return s3_link
 
 
 def submit_to_silo(
