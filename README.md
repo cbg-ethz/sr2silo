@@ -191,7 +191,8 @@ sr2silo process-from-vpipe \
     --batch-id BATCH_001 \
     --timeline-file timeline.tsv \
     --primer-file primers.yaml \
-    --output-fp output.ndjson
+    --output-fp output.ndjson \
+    --reference sars-cov-2
 
 # Example: Submit to Loculus (use environment variables for credentials)
 export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
@@ -210,16 +211,11 @@ sr2silo submit-to-loculus --processed-file output.ndjson.zst
 sr2silo supports flexible configuration through environment variables, making it easy to use in different deployment scenarios including conda packages and pip installations.
 
 **Key features:**
-- No `.env` file required
 - CLI parameters override environment variables
-- Environment variables provide convenient defaults
 - **Recommended for credentials to avoid exposing sensitive information in command history**
 
 **Common configuration via environment variables:**
 ```bash
-# Optional configuration (can also be provided via CLI)
-export NEXTCLADE_REFERENCE=sars-cov-2
-
 # Authentication credentials (recommended approach for security)
 export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
 export SUBMISSION_URL=https://backend.example.com/api
@@ -234,14 +230,13 @@ sr2silo process-from-vpipe \
     --batch-id BATCH_001 \
     --timeline-file /path/to/timeline.tsv \
     --primer-file /path/to/primers.yaml \
-    --output-fp output.ndjson
+    --output-fp output.ndjson \
+    --reference sars-cov-2
 
 # Submission using environment variables for credentials
 sr2silo submit-to-loculus \
     --processed-file output.ndjson.zst
 ```
-
-For complete documentation on environment variable configuration, see [docs/usage/environment_configuration.md](docs/usage/environment_configuration.md).
 
 ### Tool Sections
 The code quality checks run on GitHub can be seen in
