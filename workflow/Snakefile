@@ -54,7 +54,7 @@ def get_sample_batch_mapping():
                         start_date <= sample_date <= end_date
                         and location_code_int in config["LOCATIONS"]
                     ):
-                        sample_batch_mapping[sample] = batch
+                        sample_batch_mapping[sample] = batch if batch else ""
                 except (ValueError, TypeError):
                     pass  # Skip invalid rows
 
@@ -88,8 +88,8 @@ def get_sample_batch_mapping():
             if location_code_int not in config["LOCATIONS"]:
                 continue
 
-            # Add to mapping
-            sample_batch_mapping[sample] = batch
+            # Add to mapping (batch can be empty)
+            sample_batch_mapping[sample] = batch if batch else ""
 
     return sample_batch_mapping
 
@@ -97,7 +97,26 @@ def get_sample_batch_mapping():
 def get_batch_id(sample_id):
     """Get the batch id from the filtered sample batch mapping."""
     sample_batch_mapping = get_sample_batch_mapping()
-    return sample_batch_mapping[sample_id]
+    batch_id = sample_batch_mapping.get(sample_id, "")
+    # Handle empty batch_id by returning "nobatch" for file naming
+    return batch_id if batch_id else "nobatch"
+
+
+def get_actual_batch_id(sample_id):
+    """Get the actual batch id (can be empty) for processing."""
+    sample_batch_mapping = get_sample_batch_mapping()
+    return sample_batch_mapping.get(sample_id, "")
+
+
+def get_input_file_path(sample_id):
+    """Get the correct input file path based on whether batch_id exists."""
+    batch_id = get_actual_batch_id(sample_id)
+    if batch_id:
+        # If batch_id exists, use the standard path with batch_id
+        return f"{config['BASE_SAMPLE_DIR']}/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam"
+    else:
+        # If no batch_id, assume the file is directly under the sample directory
+        return f"{config['BASE_SAMPLE_DIR']}/{sample_id}/alignments/REF_aln_trim.bam"
 
 
 # Get the filtered sample-batch mapping
@@ -141,14 +160,13 @@ rule process_sample:
     Note: On ETH cluster, internet access is provided by eth_proxy module loaded at job level.
     """
     input:
-        sample_fp=f"{config['BASE_SAMPLE_DIR']}"
-        + "/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam",
+        sample_fp=lambda wildcards: get_input_file_path(wildcards.sample_id),
     output:
         result_fp=f"{config['RESULTS_DIR']}"
         + "/sampleId-{sample_id}_batchId-{batch_id}.ndjson.zst",
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
-        batch_id=lambda wildcards: wildcards.batch_id,
+        batch_id=lambda wildcards: get_actual_batch_id(wildcards.sample_id),  # Use actual batch_id (can be empty)
         timeline_file=config["TIMELINE_FILE"],
         primers_file=config["PRIMERS_FILE"],
         nuc_reference=config["NUC_REFERENCE"],
@@ -159,10 +177,16 @@ rule process_sample:
         "envs/sr2silo.yaml"
     shell:
         """
+        if [ -n "{params.batch_id}" ]; then
+            BATCH_ID_ARG="--batch-id {params.batch_id}"
+        else
+            BATCH_ID_ARG=""
+        fi
+
         sr2silo process-from-vpipe \
             --input-file {input.sample_fp} \
             --sample-id {params.sample_id} \
-            --batch-id {params.batch_id} \
+            $BATCH_ID_ARG \
             --timeline-file {params.timeline_file} \
             --primer-file {params.primers_file} \
             --output-fp {output.result_fp} \
