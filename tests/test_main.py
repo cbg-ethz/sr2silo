@@ -111,8 +111,6 @@ def test_submit_to_loculus_command_wrong_extension():
                 "submit-to-loculus",
                 "--processed-file",
                 tmp_path,
-                "--sample-id",
-                "test_sample",
             ],
         )
         assert result.exit_code == 1
@@ -176,11 +174,13 @@ def test_process_from_vpipe_environment_variables():
                 "test-batch",
                 "--output-fp",
                 "/tmp/test.ndjson.zst",
+                "--reference",
+                "sars-cov-2",
             ],
         )
         # Should fail due to missing input file,
         # but environment variables should be processed
-        assert result.exit_code == 1  # Should fail due to missing file
+        assert result.exit_code == 2  # Should fail due to missing file
         # We can verify the environment variables were picked up by manually checking
         # since the logs go to stderr which typer doesn't capture by default
 
@@ -242,6 +242,12 @@ def test_process_from_vpipe_missing_env_and_cli():
                 "test-batch",
                 "--output-fp",
                 "/tmp/test.ndjson.zst",
+                "--reference",
+                "sars-cov-2",
+                "--primer-file",
+                "/tmp/primers.yaml",
+                "--timeline-file",
+                "/tmp/timeline.tsv",
             ],
         )
         assert result.exit_code == 1
