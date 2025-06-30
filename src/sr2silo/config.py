@@ -192,6 +192,76 @@ def get_frontend_url() -> str:
     return f"https://{protocol_and_domain}"
 
 
+def get_group_id(default: int | None = None) -> int:
+    """Get the group ID from environment, or return default if not set.
+
+    Args:
+        default: Optional default group ID to use if environment variable is not set
+
+    Returns:
+        int: The group ID for submissions
+
+    Raises:
+        SystemExit: If no group ID is available from environment or default
+    """
+    group_id_str = os.getenv("GROUP_ID")
+    if group_id_str is None:
+        if default is None:
+            logging.error(
+                "GROUP_ID environment variable is not set and no default provided"
+            )
+            sys.exit(1)
+        return default
+
+    try:
+        return int(group_id_str)
+    except ValueError:
+        logging.error(f"Invalid GROUP_ID value '{group_id_str}', must be an integer")
+        sys.exit(1)
+
+
+def get_username(default: str | None = None) -> str:
+    """Get the username from environment, or return default if not set.
+
+    Args:
+        default: Optional default username to use if environment variable is not set
+
+    Returns:
+        str: The username for authentication
+
+    Raises:
+        SystemExit: If no username is available from environment or default
+    """
+    username = os.getenv("USERNAME", default)
+    if username is None:
+        logging.error(
+            "USERNAME environment variable is not set and no default provided"
+        )
+        sys.exit(1)
+    return username
+
+
+def get_password(default: str | None = None) -> str:
+    """Get the password from environment, or return default if not set.
+
+    Args:
+        default: Optional default password to use if environment variable is not set
+
+    Returns:
+        str: The password for authentication
+
+    Raises:
+        SystemExit: If no password is available from environment or default
+    """
+    password = os.getenv("PASSWORD", default)
+    if password is None:
+        logging.error(
+            "PASSWORD environment variable is not set and no default provided"
+        )
+        sys.exit(1)
+    return password
+
+
 def get_mock_urls() -> tuple[str, str]:
     """Get mock URLs for CI environment.
 

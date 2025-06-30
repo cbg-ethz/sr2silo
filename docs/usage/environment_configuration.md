@@ -28,6 +28,9 @@ The package works without requiring a `.env` file. Configuration can be provided
 |---------------|---------------------|-------------|---------|
 | `--keycloak-token-url` | `KEYCLOAK_TOKEN_URL` | Keycloak authentication URL | *(required)* |
 | `--submission-url` | `SUBMISSION_URL` | Loculus submission URL | *(required)* |
+| `--group-id` | `GROUP_ID` | Group ID for submission | *(required)* |
+| `--username` | `USERNAME` | Username for authentication | *(required)* |
+| `--password` | `PASSWORD` | Password for authentication | *(required)* |
 
 ## Usage Patterns
 
@@ -59,6 +62,9 @@ PRIMER_FILE=/path/to/primers.yaml
 NEXTCLADE_REFERENCE=sars-cov-2
 KEYCLOAK_TOKEN_URL=https://your-keycloak-url/token
 SUBMISSION_URL=https://your-submission-url
+GROUP_ID=5
+USERNAME=your_username
+PASSWORD=your_password
 ```
 
 Then source the file before running sr2silo:
@@ -95,6 +101,9 @@ For the submit command, configure the authentication and submission URLs:
 ```bash
 export KEYCLOAK_TOKEN_URL=https://authentication.example.com/token
 export SUBMISSION_URL=https://backend.example.com/submit
+export GROUP_ID=5
+export USERNAME=myuser
+export PASSWORD=mypassword
 
 sr2silo submit-to-loculus \
   --processed-file data.ndjson.zst \
@@ -108,5 +117,8 @@ sr2silo submit-to-loculus \
   --processed-file data.ndjson.zst \
   --sample-id SAMPLE_001 \
   --keycloak-token-url https://auth.example.com/token \
-  --submission-url https://backend.example.com/submit
+  --submission-url https://backend.example.com/submit \
+  --group-id 10 \
+  --username production_user \
+  --password secure_password
 ```
