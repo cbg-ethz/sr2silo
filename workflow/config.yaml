@@ -13,5 +13,5 @@ SUBMISSION_URL: "https://backend-wise-files.loculus.org"
 
 # Authentication parameters for submission (required)
 GROUP_ID: 1
-USERNAME: "your_username"
-PASSWORD: "your_password"
+USERNAME: "testuser"
+PASSWORD: "testuser"
