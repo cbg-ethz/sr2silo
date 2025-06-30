@@ -31,28 +31,6 @@ def load_config(config_file: Path) -> dict:
         raise
 
 
-def make_submission_file(result_dir: Path, srLink: str) -> Path:
-    """Create a submission file with the given S3 link.
-
-    Args:
-        result_dir (Path): The directory to save the submission file.
-        srLink (str): The S3 link to include in the submission file.
-
-    Returns:
-        Path: The path to the created submission file.
-    """
-    result_dir_submission = result_dir / "submission"
-    result_dir_submission.mkdir(parents=True, exist_ok=True)
-
-    submission_metadata_fp = result_dir_submission / "metadata.tsv"
-    with submission_metadata_fp.open("w") as f:
-        f.write("submissionId\ts3Link\tversionComment\n")
-        f.write(f"001\t{srLink}\t\n")
-    logging.info(f"Submission metadata saved to: {submission_metadata_fp}")
-
-    return submission_metadata_fp
-
-
 def upload_to_s3(aligned_reads_fp: Path, sample_id: str) -> str:
     """Upload a file to S3 bucket.
 
