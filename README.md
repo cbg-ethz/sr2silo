@@ -176,82 +176,34 @@ conda activate sr2silo-dev
 pytest
 ```
 
-### Run CLI
-
-The sr2silo CLI has three main commands:
-
-1. `run` - Not yet implemented command for future functionality
-2. `process-from-vpipe` - Process V-Pipe BAM alignments to SILO format (processing only)
-3. `submit-to-loculus` - Upload processed files to S3 and submit to SILO/Loculus
-
-#### Two-Step Workflow
+### Usage
 
 sr2silo follows a two-step workflow:
 
-**Step 1: Process V-Pipe data**
+1. **Process data:** `sr2silo process-from-vpipe --help`
+2. **Submit to Loculus:** `sr2silo submit-to-loculus --help`
+
 ```bash
+# Example: Process V-Pipe data
 sr2silo process-from-vpipe \
-    --input-file INPUT.bam \
-    --sample-id SAMPLE_ID \
-    --batch-id BATCH_ID \
-    --timeline-file TIMELINE.tsv \
-    --primer-file PRIMERS.yaml \
-    --output-fp OUTPUT.ndjson \
-    --reference sars-cov-2
+    --input-file input.bam \
+    --sample-id SAMPLE_001 \
+    --batch-id BATCH_001 \
+    --timeline-file timeline.tsv \
+    --primer-file primers.yaml \
+    --output-fp output.ndjson
+
+# Example: Submit to Loculus (use environment variables for credentials)
+export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
+export SUBMISSION_URL=https://api.example.com/submit
+export GROUP_ID=123
+export USERNAME=your-username
+export PASSWORD=your-password
+
+sr2silo submit-to-loculus --processed-file output.ndjson.zst
 ```
 
-**Step 2: Submit to Loculus**
-```bash
-sr2silo submit-to-loculus \
-    --processed-file OUTPUT.ndjson.zst \
-    --sample-id SAMPLE_ID
-```
-
-#### Required Arguments for `process-from-vpipe`
-
-- `--input-file, -i`: Path to the input BAM alignment file
-- `--sample-id, -s`: Sample ID to use for metadata
-- `--batch-id, -b`: Batch ID to use for metadata
-- `--timeline-file, -t`: Path to the timeline metadata file
-- `--primer-file, -p`: Path to the primers configuration file
-- `--output-fp, -o`: Path for the output file (will be auto-suffixed with .ndjson.zst)
-
-#### Required Arguments for `submit-to-loculus`
-
-- `--processed-file, -f`: Path to the processed .ndjson.zst file to upload and submit
-- `--sample-id, -s`: Sample ID for the processed file
-
-#### Optional Arguments for `process-from-vpipe`
-
-- `--reference, -r`: Reference genome to use (default: "sars-cov-2")
-- `--skip-merge/--no-skip-merge`: Skip merging of paired-end reads (default: no-skip-merge)
-
-#### Example Usage
-
-Here's a complete example with sample data:
-
-**Step 1: Process V-Pipe data**
-```bash
-sr2silo process-from-vpipe \
-    --input-file ./data/sample/alignments/REF_aln_trim.bam \
-    --sample-id "A1_05_2024_10_08" \
-    --batch-id "20241024_2411515907" \
-    --timeline-file ./data/timeline.tsv \
-    --primer-file ./data/primers.yaml \
-    --output-fp ./results/output.ndjson \
-    --reference sars-cov-2
-```
-
-This will create a processed file `./results/output.ndjson.zst`.
-
-**Step 2: Submit to Loculus**
-```bash
-sr2silo submit-to-loculus \
-    --processed-file ./results/output.ndjson.zst \
-    --sample-id "A1_05_2024_10_08"
-```
-
-This will upload the processed file to S3 and submit it to SILO/Loculus.
+**Note:** Use environment variables for credentials to avoid exposing sensitive information in command history.
 
 ### Environment Variable Configuration
 
@@ -261,28 +213,32 @@ sr2silo supports flexible configuration through environment variables, making it
 - No `.env` file required
 - CLI parameters override environment variables
 - Environment variables provide convenient defaults
+- **Recommended for credentials to avoid exposing sensitive information in command history**
 
-**Quick example using environment variables:**
+**Common configuration via environment variables:**
 ```bash
-# Set common configuration via environment variables
-export TIMELINE_FILE=/path/to/timeline.tsv
-export PRIMER_FILE=/path/to/primers.yaml
+# Optional configuration (can also be provided via CLI)
 export NEXTCLADE_REFERENCE=sars-cov-2
 
-# Run with minimal CLI arguments
+# Authentication credentials (recommended approach for security)
+export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
+export SUBMISSION_URL=https://backend.example.com/api
+export GROUP_ID=123
+export USERNAME=your-username
+export PASSWORD=your-password
+
+# Run with required CLI arguments (timeline and primer files must be specified)
 sr2silo process-from-vpipe \
     --input-file input.bam \
     --sample-id SAMPLE_001 \
     --batch-id BATCH_001 \
+    --timeline-file /path/to/timeline.tsv \
+    --primer-file /path/to/primers.yaml \
     --output-fp output.ndjson
 
-# Environment variables for submission
-export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
-export SUBMISSION_URL=https://backend.example.com/api
-
+# Submission using environment variables for credentials
 sr2silo submit-to-loculus \
-    --processed-file output.ndjson.zst \
-    --sample-id SAMPLE_001
+    --processed-file output.ndjson.zst
 ```
 
 For complete documentation on environment variable configuration, see [docs/usage/environment_configuration.md](docs/usage/environment_configuration.md).

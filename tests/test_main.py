@@ -28,13 +28,6 @@ def test_no_args():
     assert "Well, you gotta decide what to do" in result.stdout
 
 
-def test_run_command():
-    """Test the run subcommand."""
-    result = runner.invoke(app, ["run"])
-    assert result.exit_code == 0
-    assert "Not yet implemented" in result.stdout
-
-
 def test_process_from_vpipe_help():
     """Test the help output for process-from-vpipe command."""
     result = runner.invoke(app, ["process-from-vpipe", "--help"])
@@ -97,8 +90,6 @@ def test_submit_to_loculus_command_nonexistent_file():
             "submit-to-loculus",
             "--processed-file",
             "/tmp/nonexistent.ndjson.zst",
-            "--sample-id",
-            "test_sample",
         ],
     )
     assert result.exit_code == 1
@@ -120,8 +111,6 @@ def test_submit_to_loculus_command_wrong_extension():
                 "submit-to-loculus",
                 "--processed-file",
                 tmp_path,
-                "--sample-id",
-                "test_sample",
             ],
         )
         assert result.exit_code == 1
@@ -185,11 +174,13 @@ def test_process_from_vpipe_environment_variables():
                 "test-batch",
                 "--output-fp",
                 "/tmp/test.ndjson.zst",
+                "--reference",
+                "sars-cov-2",
             ],
         )
         # Should fail due to missing input file,
         # but environment variables should be processed
-        assert result.exit_code == 1  # Should fail due to missing file
+        assert result.exit_code == 2  # Should fail due to missing file
         # We can verify the environment variables were picked up by manually checking
         # since the logs go to stderr which typer doesn't capture by default
 
@@ -251,6 +242,12 @@ def test_process_from_vpipe_missing_env_and_cli():
                 "test-batch",
                 "--output-fp",
                 "/tmp/test.ndjson.zst",
+                "--reference",
+                "sars-cov-2",
+                "--primer-file",
+                "/tmp/primers.yaml",
+                "--timeline-file",
+                "/tmp/timeline.tsv",
             ],
         )
         assert result.exit_code == 1
@@ -276,8 +273,6 @@ def test_submit_to_loculus_environment_variables():
                 "submit-to-loculus",
                 "--processed-file",
                 "/tmp/test.ndjson.zst",
-                "--sample-id",
-                "test-sample",
             ],
         )
         # Should fail due to missing file, but environment variables should be processed
@@ -302,8 +297,6 @@ def test_submit_to_loculus_cli_overrides_env():
                 "submit-to-loculus",
                 "--processed-file",
                 "/tmp/test.ndjson.zst",
-                "--sample-id",
-                "test-sample",
                 "--keycloak-token-url",
                 "https://cli.auth.com/token",
                 "--submission-url",
@@ -327,8 +320,6 @@ def test_submit_to_loculus_missing_env_and_cli():
                 "submit-to-loculus",
                 "--processed-file",
                 "/tmp/test.ndjson.zst",
-                "--sample-id",
-                "test-sample",
             ],
         )
         assert result.exit_code == 1
