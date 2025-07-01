@@ -54,7 +54,7 @@ def get_sample_batch_mapping():
                         start_date <= sample_date <= end_date
                         and location_code_int in config["LOCATIONS"]
                     ):
-                        sample_batch_mapping[sample] = batch if batch else ""
+                        sample_batch_mapping[sample] = batch
                 except (ValueError, TypeError):
                     pass  # Skip invalid rows
 
