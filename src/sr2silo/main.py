@@ -99,7 +99,8 @@ def process_from_vpipe(
         typer.Option(
             "--batch-id",
             "-b",
-            help="Batch ID to use for metadata. Optional - if not provided, will be set to empty string.",
+            help="Batch ID to use for metadata. Optional - if "
+            "not provided, will be set to empty string.",
         ),
     ] = None,
     skip_merge: Annotated[

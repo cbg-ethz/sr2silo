@@ -45,7 +45,8 @@ def batch_id_decoder(batch_id: str) -> dict:
         dict: A dictionary contains the decoded components.
               dict: A dictionary contains the decoded components.
                 - sequencing_date (str : date of the sequencing or empty)
-                - flow_cell_serial_number (str : serial number of the flow cell or empty)
+                - flow_cell_serial_number (str : serial number of the flow
+                                            cell or empty)
     """
     if not batch_id or batch_id.strip() == "":
         return {

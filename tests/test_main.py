@@ -97,7 +97,8 @@ def test_process_from_vpipe_with_empty_batch_id(real_sample_files_import_to_locu
 
     assert result.exit_code == 0
     assert "Starting V-PIPE to SILO conversion" in result.stdout
-    # The logging message goes to stderr/logs, not stdout, so we just verify successful execution
+    # The logging message goes to stderr/logs, not stdout,
+    # so we just verify successful execution
 
 
 def test_process_from_vpipe_with_explicit_empty_batch_id(
@@ -131,7 +132,8 @@ def test_process_from_vpipe_with_explicit_empty_batch_id(
 
     assert result.exit_code == 0
     assert "Starting V-PIPE to SILO conversion" in result.stdout
-    # The logging message goes to stderr/logs, not stdout, so we just verify successful execution
+    # The logging message goes to stderr/logs, not stdout,
+    # so we just verify successful execution
 
 
 def test_submit_to_loculus_command_help():

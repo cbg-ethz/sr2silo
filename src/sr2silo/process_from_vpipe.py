@@ -35,7 +35,8 @@ def nuc_align_to_silo_njson(
     Args:
         input_file (Path): The file to process.
         sample_id (str): Sample ID to use for metadata.
-        batch_id (str | None): Batch ID to use for metadata. Can be None or empty string.
+        batch_id (str | None): Batch ID to use for metadata.
+                    Can be None or empty string.
         timeline_file (Path): The timeline file to cross-reference the metadata.
         primers_file (Path): The primers file to cross-reference the metadata.
         output_fp (Path): Path to the output file.
