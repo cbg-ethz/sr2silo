@@ -69,6 +69,73 @@ def test_process_from_vpipe_with_real_files(real_sample_files_import_to_loculus)
     assert "Starting V-PIPE to SILO conversion" in result.stdout
 
 
+def test_process_from_vpipe_with_empty_batch_id(real_sample_files_import_to_loculus):
+    """Test process-from-vpipe with empty batch_id."""
+
+    result = runner.invoke(
+        app,
+        [
+            "process-from-vpipe",
+            "--input-file",
+            str(real_sample_files_import_to_loculus["input_file"]),
+            "--sample-id",
+            real_sample_files_import_to_loculus["sample_id"],
+            # No --batch-id argument provided (should default to None)
+            "--timeline-file",
+            str(real_sample_files_import_to_loculus["timeline_file"]),
+            "--primer-file",
+            str(real_sample_files_import_to_loculus["primer_file"]),
+            "--output-fp",
+            str(
+                real_sample_files_import_to_loculus["output_file"].parent
+                / "empty_batch_test.ndjson.zst"
+            ),
+            "--reference",
+            real_sample_files_import_to_loculus["reference"],
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Starting V-PIPE to SILO conversion" in result.stdout
+    # The logging message goes to stderr/logs, not stdout,
+    # so we just verify successful execution
+
+
+def test_process_from_vpipe_with_explicit_empty_batch_id(
+    real_sample_files_import_to_loculus,
+):
+    """Test process-from-vpipe with explicitly empty batch_id."""
+
+    result = runner.invoke(
+        app,
+        [
+            "process-from-vpipe",
+            "--input-file",
+            str(real_sample_files_import_to_loculus["input_file"]),
+            "--sample-id",
+            real_sample_files_import_to_loculus["sample_id"],
+            "--batch-id",
+            "",  # Explicitly empty batch_id
+            "--timeline-file",
+            str(real_sample_files_import_to_loculus["timeline_file"]),
+            "--primer-file",
+            str(real_sample_files_import_to_loculus["primer_file"]),
+            "--output-fp",
+            str(
+                real_sample_files_import_to_loculus["output_file"].parent
+                / "explicit_empty_batch_test.ndjson.zst"
+            ),
+            "--reference",
+            real_sample_files_import_to_loculus["reference"],
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Starting V-PIPE to SILO conversion" in result.stdout
+    # The logging message goes to stderr/logs, not stdout,
+    # so we just verify successful execution
+
+
 def test_submit_to_loculus_command_help():
     """Test the help output for submit-to-loculus command."""
     result = runner.invoke(app, ["submit-to-loculus", "--help"])

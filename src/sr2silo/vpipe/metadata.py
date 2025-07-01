@@ -39,24 +39,60 @@ def batch_id_decoder(batch_id: str) -> dict:
     """Decode the batch ID into individual components.
 
     Args:
-        batch_id (str): The batch ID to decode.
+        batch_id (str): The batch ID to decode. Can be empty string.
 
     Returns:
         dict: A dictionary contains the decoded components.
-              dict: A dictionary contains the decoded components.
-                - sequencing_date (str : date of the sequencing)
-                - flow_cell_serial_number (str : serial number of the flow cell)
+            - sequencing_date (str): date of the sequencing or empty
+            - flow_cell_serial_number (str): serial number of the flow
+                                            cell or empty
     """
+    if not batch_id or batch_id.strip() == "":
+        return {
+            "sequencing_date": "",
+            "flow_cell_serial_number": "",
+        }
+
     components = batch_id.split("_")
-    # Assign components to meaningful variable names
-    sequencing_date = (
-        f"{components[0][:4]}-{components[0][4:6]}-{components[0][6:]}"  # 2024-10-18
-    )
-    flow_cell_serial_number = components[1]  # AAG55WNM5
-    return {
-        "sequencing_date": sequencing_date,
-        "flow_cell_serial_number": flow_cell_serial_number,
-    }
+    if len(components) < 2:
+        # Handle malformed batch_id
+        logging.warning(
+            f"Malformed batch_id '{batch_id}': expected format "
+            "'YYYYMMDD_SERIAL', but got insufficient components"
+        )
+        return {
+            "sequencing_date": "",
+            "flow_cell_serial_number": "",
+        }
+
+    try:
+        # Assign components to meaningful variable names
+        date_component = components[0]
+        sequencing_date = (
+            f"{date_component[:4]}-{date_component[4:6]}-{date_component[6:]}"
+        )
+        flow_cell_serial_number = components[1]
+
+        # Validate the date component has the right length
+        if len(date_component) != 8:
+            raise ValueError(
+                f"Date component '{date_component}' should be 8 digits (YYYYMMDD)"
+            )
+
+        return {
+            "sequencing_date": sequencing_date,
+            "flow_cell_serial_number": flow_cell_serial_number,
+        }
+    except (IndexError, ValueError) as e:
+        # Handle any parsing errors gracefully
+        logging.warning(
+            f"Failed to parse batch_id '{batch_id}': {e}. "
+            "Leaving sequencing_date and flow_cell_serial_number empty."
+        )
+        return {
+            "sequencing_date": "",
+            "flow_cell_serial_number": "",
+        }
 
 
 def convert_to_iso_date(date: str) -> str:
@@ -77,9 +113,8 @@ def enrich_metadata_from_timeline(metadata: dict[str, str], timeline: Path) -> N
         reader = csv.reader(f, delimiter="\t")
         for row in reader:
             sample_id_match = row[0] == metadata["sample_id"]
-            batch_id_match = row[1] == metadata["batch_id"]
 
-            if sample_id_match and batch_id_match:
+            if sample_id_match:
                 logging.info(
                     "Enriching metadata with timeline data e.g. read_length, "
                     "primer_protocol, location_name"
@@ -99,8 +134,7 @@ def enrich_metadata_from_timeline(metadata: dict[str, str], timeline: Path) -> N
                 if location_code_mismatch:
                     logging.warning(
                         f"Mismatch in location code for sample_id "
-                        f"{metadata['sample_id']} and batch_id "
-                        f"{metadata['batch_id']}"
+                        f"{metadata['sample_id']}"
                     )
                     logging.debug(
                         f"Location code mismatch: {metadata['location_code']} "
@@ -114,8 +148,7 @@ def enrich_metadata_from_timeline(metadata: dict[str, str], timeline: Path) -> N
                 if sampling_date_mismatch:
                     logging.warning(
                         f"Mismatch in sampling date for sample_id "
-                        f"{metadata['sample_id']} and batch_id "
-                        f"{metadata['batch_id']}"
+                        f"{metadata['sample_id']}"
                     )
                     logging.debug(
                         f"Sampling date mismatch: {metadata['sampling_date']} "
@@ -129,7 +162,7 @@ def enrich_metadata_from_timeline(metadata: dict[str, str], timeline: Path) -> N
         else:
             raise ValueError(
                 f"No matching entry found in timeline for sample_id "
-                f"{metadata['sample_id']} and batch_id {metadata['batch_id']}"
+                f"{metadata['sample_id']}"
             )
 
 
@@ -161,7 +194,7 @@ def get_primer_protocol_name(primer_protocol: str, primers: Path) -> str:
 
 
 def get_metadata(
-    sample_id: str, batch_id: str, timeline: Path, primers: Path
+    sample_id: str, batch_id: str | None, timeline: Path, primers: Path
 ) -> dict[str, str]:
     """
     Get metadata for a given sample and batch directory.
@@ -169,7 +202,7 @@ def get_metadata(
 
     Args:
         sample_id (str): The sample ID to use for metadata.
-        batch_id (str): The batch ID to use for metadata.
+        batch_id (str | None): The batch ID to use for metadata. Can be None or empty.
         timeline (Path): The timeline file to cross-reference the metadata.
         primers (Path): The primers file to cross-reference the metadata.
 
@@ -180,13 +213,17 @@ def get_metadata(
 
     metadata = {}
     metadata["sample_id"] = sample_id
+
+    # Handle None or empty batch_id
+    if batch_id is None:
+        batch_id = ""
     metadata["batch_id"] = batch_id
 
     # Decompose the ids into individual components
     logging.info(f"Decoding sample_id: {metadata['sample_id']}")
     sample_id = metadata["sample_id"]
     metadata.update(sample_id_decoder(sample_id))
-    logging.info(f"Decoding batch_id: {metadata['batch_id']}")
+    logging.info(f"Decoding batch_id: '{metadata['batch_id']}'")
     batch_id = metadata["batch_id"]
     metadata.update(batch_id_decoder(batch_id))
 
