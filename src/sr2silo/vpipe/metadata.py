@@ -43,10 +43,9 @@ def batch_id_decoder(batch_id: str) -> dict:
 
     Returns:
         dict: A dictionary contains the decoded components.
-              dict: A dictionary contains the decoded components.
-                - sequencing_date (str : date of the sequencing or empty)
-                - flow_cell_serial_number (str : serial number of the flow
-                                            cell or empty)
+            - sequencing_date (str): date of the sequencing or empty
+            - flow_cell_serial_number (str): serial number of the flow
+                                            cell or empty
     """
     if not batch_id or batch_id.strip() == "":
         return {
@@ -57,20 +56,43 @@ def batch_id_decoder(batch_id: str) -> dict:
     components = batch_id.split("_")
     if len(components) < 2:
         # Handle malformed batch_id
+        logging.warning(
+            f"Malformed batch_id '{batch_id}': expected format "
+            "'YYYYMMDD_SERIAL', but got insufficient components"
+        )
         return {
             "sequencing_date": "",
             "flow_cell_serial_number": "",
         }
 
-    # Assign components to meaningful variable names
-    sequencing_date = (
-        f"{components[0][:4]}-{components[0][4:6]}-{components[0][6:]}"  # 2024-10-18
-    )
-    flow_cell_serial_number = components[1]  # AAG55WNM5
-    return {
-        "sequencing_date": sequencing_date,
-        "flow_cell_serial_number": flow_cell_serial_number,
-    }
+    try:
+        # Assign components to meaningful variable names
+        date_component = components[0]
+        sequencing_date = (
+            f"{date_component[:4]}-{date_component[4:6]}-{date_component[6:]}"
+        )
+        flow_cell_serial_number = components[1]
+
+        # Validate the date component has the right length
+        if len(date_component) != 8:
+            raise ValueError(
+                f"Date component '{date_component}' should be 8 digits (YYYYMMDD)"
+            )
+
+        return {
+            "sequencing_date": sequencing_date,
+            "flow_cell_serial_number": flow_cell_serial_number,
+        }
+    except (IndexError, ValueError) as e:
+        # Handle any parsing errors gracefully
+        logging.warning(
+            f"Failed to parse batch_id '{batch_id}': {e}. "
+            "Leaving sequencing_date and flow_cell_serial_number empty."
+        )
+        return {
+            "sequencing_date": "",
+            "flow_cell_serial_number": "",
+        }
 
 
 def convert_to_iso_date(date: str) -> str:
