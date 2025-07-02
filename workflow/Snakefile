@@ -8,13 +8,8 @@ import csv
 from pathlib import Path
 from datetime import datetime
 
-
 CONFIG = "workflow/config.yaml"
-# CONFIG = "workflow/config_euler.yaml"
-
-
 configfile: CONFIG
-
 
 # Load configuration
 with open(CONFIG, "r") as file:
@@ -170,7 +165,7 @@ rule process_sample:
         timeline_file=config["TIMELINE_FILE"],
         primers_file=config["PRIMERS_FILE"],
         nuc_reference=config["NUC_REFERENCE"],
-        aa_reference=config["NUC_REFERENCE"],
+        aa_reference=config["AA_REFERENCE"],
     log:
         "logs/sr2silo/process_sample/sampleId_{sample_id}_batchId_{batch_id}.log",
     conda:
