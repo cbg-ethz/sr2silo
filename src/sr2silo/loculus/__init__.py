@@ -4,6 +4,7 @@ LAPIS and submitting sequences to LAPIS."""
 
 from __future__ import annotations
 
-from sr2silo.silo.lapis import LapisClient, Submission
+from sr2silo.loculus.lapis import LapisClient
+from sr2silo.loculus.loculus import LoculusClient, Submission
 
-__all__ = ["LapisClient", "Submission"]
+__all__ = ["LoculusClient", "Submission", "LapisClient"]

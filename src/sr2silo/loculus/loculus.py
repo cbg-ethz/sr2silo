@@ -1,4 +1,4 @@
-""" "Interactions with the Lapis API."""
+""" "Interactions with the Loculus API."""
 
 from __future__ import annotations
 
@@ -36,11 +36,11 @@ class FileReference(TypedDict):
     name: str
 
 
-class LapisClient:
-    """Client for interacting with the Lapis API."""
+class LoculusClient:
+    """Client for interacting with the Loculus API."""
 
     def __init__(self, token_url: str, submission_url: str, organism: str) -> None:
-        """Initialize the Lapis client.
+        """Initialize the Loculus client.
 
         Args:
             token_url: URL for authentication token endpoint
@@ -54,7 +54,7 @@ class LapisClient:
         self.token = None
 
     def authenticate(self, username: str, password: str) -> None:
-        """Authenticate with the Lapis API."""
+        """Authenticate with the Loculus API."""
 
         if self.is_ci_environment is True:
             logging.info("CI environment detected. Using dummy token.")
@@ -271,7 +271,7 @@ class LapisClient:
         request_id = str(uuid.uuid4())
 
         # Construct the URL with query parameters
-        url = "https://backend-wise-files.loculus.org/files/request-upload"
+        url = f"{self.submission_url}/files/request-upload"
         params = {"groupId": group_id, "numberFiles": numberFiles}
 
         headers = {
@@ -379,3 +379,46 @@ class Submission:
             f"with submission ID: {submission_id}"
         )
         return metadata_fp, submission_id
+
+
+def refererenceGenome():
+    """Fetch reference genome from the Lapis `sample/referenceGenome` endpoint"""
+
+
+def _reference_json_to_fasta(
+    reference_json_string: str, nucleotide_out_fp: Path, amino_acid_out_fp: Path
+) -> None:
+    """Convert a reference JSON from `sample/referenceGenome` endpoint
+      to separate nucleotide and amino acid reference FASTA files.
+
+    Args:
+        reference_json_string: JSON string containing reference sequences with
+                              'nucleotideSequences' and 'genes' sections
+        nucleotide_output_path: Path to the output nucleotide FASTA file
+        amino_acid_output_path: Path to the output amino acid FASTA file
+
+    Returns:
+        None
+    """
+    # Parse the JSON string
+    reference_data = json.loads(reference_json_string)
+
+    # Create nucleotide FASTA file
+    with nucleotide_out_fp.open("w") as nuc_file:
+        for nuc_seq in reference_data.get("nucleotideSequences", []):
+            seq_name = nuc_seq.get("name", "main")
+            sequence = nuc_seq.get("sequence", "")
+            nuc_file.write(f">{seq_name}\n{sequence}\n")
+
+    logging.info(f"Nucleotide FASTA file created at: {nucleotide_out_fp}")
+
+    # Create amino acid FASTA file
+    with amino_acid_out_fp.open("w") as aa_file:
+        for gene in reference_data.get("genes", []):
+            gene_name = gene.get("name", "")
+            sequence = gene.get("sequence", "")
+            # Remove stop codon asterisk if present
+            sequence = sequence.rstrip("*")
+            aa_file.write(f">{gene_name}\n{sequence}\n")
+
+    logging.info(f"Amino acid FASTA file created at: {amino_acid_out_fp}")
