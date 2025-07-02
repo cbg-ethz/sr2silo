@@ -16,7 +16,7 @@ from sr2silo.config import (
     get_username,
     is_ci_environment,
 )
-from sr2silo.silo import LapisClient, Submission
+from sr2silo.loculus import LoculusClient, Submission
 
 
 def load_config(config_file: Path) -> dict:
@@ -86,7 +86,7 @@ def submit_to_silo(
 
     try:
         # Create client with organism parameter
-        client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL, organism)
+        client = LoculusClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL, organism)
         client.authenticate(username=resolved_username, password=resolved_password)
 
         # Submit using new API with both metadata and processed file
