@@ -165,7 +165,7 @@ def process_from_vpipe(
         # get the domain from the lapis_url
         domain = lapis_url.split("//")[-1].split("/")[0]
         # create the directory if it does not exist
-        Path("resources/reference/<<domain>>").mkdir(parents=True, exist_ok=True)
+        Path(f"resources/reference/{domain}").mkdir(parents=True, exist_ok=True)
         # define the paths for the nucleotide and amino acid references
         nuc_ref_fp = Path(f"resources/reference/{domain}/nuc_ref.fasta")
         aa_ref_fp = Path(f"resources/reference/{domain}/aa_ref.fasta")
@@ -179,8 +179,8 @@ def process_from_vpipe(
         logging.info(
             "Running in CI environment, using default references from resources/reference/sars-cov-2/"
         )
-        nuc_ref_fp = Path("resources/reference/sars-cov-2/nuc_ref.fasta")
-        aa_ref_fp = Path("resources/reference/sars-cov-2/aa_ref.fasta")
+        nuc_ref_fp = Path("resources/references/sars-cov-2/nuc_ref.fasta")
+        aa_ref_fp = Path("resources/references/sars-cov-2/aa_ref.fasta")
 
     nuc_align_to_silo_njson(
         input_file=input_file,

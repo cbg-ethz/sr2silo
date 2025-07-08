@@ -43,27 +43,30 @@ def test_process_from_vpipe_missing_required():
 
 def test_process_from_vpipe_with_real_files(real_sample_files_import_to_loculus):
     """Test process-from-vpipe with real sample files."""
+    from unittest.mock import patch
 
-    result = runner.invoke(
-        app,
-        [
-            "process-from-vpipe",
-            "--input-file",
-            str(real_sample_files_import_to_loculus["input_file"]),
-            "--sample-id",
-            real_sample_files_import_to_loculus["sample_id"],
-            "--batch-id",
-            real_sample_files_import_to_loculus["batch_id"],
-            "--timeline-file",
-            str(real_sample_files_import_to_loculus["timeline_file"]),
-            "--primer-file",
-            str(real_sample_files_import_to_loculus["primer_file"]),
-            "--output-fp",
-            str(real_sample_files_import_to_loculus["output_file"]),
-            "--reference",
-            real_sample_files_import_to_loculus["reference"],
-        ],
-    )
+    # Mock is_ci_environment to return True for this test
+    with patch("sr2silo.main.is_ci_environment", return_value=True):
+        result = runner.invoke(
+            app,
+            [
+                "process-from-vpipe",
+                "--input-file",
+                str(real_sample_files_import_to_loculus["input_file"]),
+                "--sample-id",
+                real_sample_files_import_to_loculus["sample_id"],
+                "--timeline-file",
+                str(real_sample_files_import_to_loculus["timeline_file"]),
+                "--primer-file",
+                str(real_sample_files_import_to_loculus["primer_file"]),
+                "--lapis-url",
+                real_sample_files_import_to_loculus["lapis_url"],
+                "--output-fp",
+                str(real_sample_files_import_to_loculus["output_file"]),
+                "--batch-id",
+                real_sample_files_import_to_loculus["batch_id"],
+            ],
+        )
 
     assert result.exit_code == 0
     assert "Starting V-PIPE to SILO conversion" in result.stdout

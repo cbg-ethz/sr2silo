@@ -157,7 +157,7 @@ def dummy_alignment(monkeypatch):
 @pytest.fixture
 def primers():
     """Return the primers file path."""
-    return Path("./resources/sars-cov-2/primers/primers.yaml")
+    return Path("./resources/references/sars-cov-2/primers/primers.yaml")
 
 
 @pytest.fixture
@@ -187,11 +187,11 @@ def real_sample_files_import_to_loculus(tmp_path, primers, timeline, sample):
         "output_file": tmp_path / "silo_input.ndjson.zst",
         "sample_id": "A1_05_2024_10_08",
         "batch_id": "20241024_2411515907",
-        "reference": "sars-cov-2",
+        "lapis_url": "https://lapis.example.com",
     }
 
 
 @pytest.fixture
 def reference_genome_covid_fp():
     """Return the reference genome file path."""
-    return Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
+    return Path("resources/references/sars-cov-2/nuc_ref.fasta")

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from sr2silo.loculus.lapis import referenceGenomeToFasta
+from sr2silo.loculus.lapis import LapisClient
 
 
 class TestReferenceJsonToFasta:
@@ -46,7 +46,7 @@ class TestReferenceJsonToFasta:
             json_string = json.dumps(sample_reference_json)
 
             # Call the function
-            referenceGenomeToFasta(
+            LapisClient.referenceGenomeToFasta(
                 reference_json_string=json_string,
                 nucleotide_out_fp=nuc_output,
                 amino_acid_out_fp=aa_output,
@@ -79,7 +79,7 @@ class TestReferenceJsonToFasta:
 
             json_string = json.dumps(sample_reference_json)
 
-            referenceGenomeToFasta(
+            LapisClient.referenceGenomeToFasta(
                 reference_json_string=json_string,
                 nucleotide_out_fp=nuc_output,
                 amino_acid_out_fp=aa_output,
@@ -109,7 +109,7 @@ class TestReferenceJsonToFasta:
             invalid_json = "{ invalid json }"
 
             with pytest.raises(json.JSONDecodeError):
-                referenceGenomeToFasta(
+                LapisClient.referenceGenomeToFasta(
                     reference_json_string=invalid_json,
                     nucleotide_out_fp=nuc_output,
                     amino_acid_out_fp=aa_output,
@@ -130,7 +130,7 @@ class TestReferenceJsonToFasta:
             # Read the actual reference file
             json_content = reference_file.read_text()
 
-            referenceGenomeToFasta(
+            LapisClient.referenceGenomeToFasta(
                 reference_json_string=json_content,
                 nucleotide_out_fp=nuc_output,
                 amino_acid_out_fp=aa_output,
