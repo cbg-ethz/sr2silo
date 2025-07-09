@@ -177,7 +177,8 @@ def process_from_vpipe(
         logging.info(f"Fetched references from Lapis: {nuc_ref_fp} and {aa_ref_fp}")
     else:
         logging.info(
-            "Running in CI environment, using default references from resources/references/sars-cov-2/"
+            "Running in CI environment, using default references \
+            from resources/references/sars-cov-2/"
         )
         nuc_ref_fp = Path("resources/references/sars-cov-2/nuc_ref.fasta")
         aa_ref_fp = Path("resources/references/sars-cov-2/aa_ref.fasta")
