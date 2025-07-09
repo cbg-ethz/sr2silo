@@ -9,7 +9,10 @@ from pathlib import Path
 from datetime import datetime
 
 CONFIG = "workflow/config.yaml"
+
+
 configfile: CONFIG
+
 
 # Load configuration
 with open(CONFIG, "r") as file:
