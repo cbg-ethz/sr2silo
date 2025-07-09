@@ -38,7 +38,6 @@ class ReadMetadata(BaseModel):
     flow_cell_serial_number: str  # Can be empty string if no batch_id
     sequencing_well_position: str
     primer_protocol_name: str
-    nextclade_reference: str
     sr2silo_version: str
 
 

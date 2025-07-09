@@ -8,9 +8,7 @@ import csv
 from pathlib import Path
 from datetime import datetime
 
-
 CONFIG = "workflow/config.yaml"
-# CONFIG = "workflow/config_euler.yaml"
 
 
 configfile: CONFIG
@@ -169,8 +167,7 @@ rule process_sample:
         batch_id=lambda wildcards: get_actual_batch_id(wildcards.sample_id),  # Use actual batch_id (can be empty)
         timeline_file=config["TIMELINE_FILE"],
         primers_file=config["PRIMERS_FILE"],
-        nuc_reference=config["NUC_REFERENCE"],
-        aa_reference=config["NUC_REFERENCE"],
+        lapis_url=config.get("LAPIS_URL", ""),
     log:
         "logs/sr2silo/process_sample/sampleId_{sample_id}_batchId_{batch_id}.log",
     conda:
@@ -190,7 +187,7 @@ rule process_sample:
             --timeline-file {params.timeline_file} \
             --primer-file {params.primers_file} \
             --output-fp {output.result_fp} \
-            --reference {params.nuc_reference} > {log} 2>&1
+            --lapis-url {params.lapis_url} > {log} 2>&1
         """
 
 
