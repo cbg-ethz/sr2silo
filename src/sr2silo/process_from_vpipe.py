@@ -78,6 +78,15 @@ def nuc_align_to_silo_njson(
 
     logging.info(f"Processing file: {input_file}")
 
+    # TODO:
+    # Implement new way to import metadata
+    # add data shall come from the timeline file and primers file
+    # and not from the sample_id and batch_id
+    # consider dropping the primers_file argument
+    # just match sample_id into the timeline file and get what info is there
+    # 1) update Sampel class
+    # 2) update metadtat in Wise-Pulse
+
     ##### Get Sample and Batch metadata and write to a file #####
     sample_to_process = Sample(sample_id, batch_id)
     sample_to_process.enrich_metadata(timeline_file, primers_file)
