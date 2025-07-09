@@ -16,7 +16,7 @@ RESULTS_DIR: "results"
 ### Loculus (to submit results to)
 ## URLs for Loculus services
 KEYCLOAK_URL: "https://authentication-wise-files.loculus.org/realms/loculus/protocol/openid-connect/token"
-BACKEND_URL: "https://backend-wise-files.loculus.org"
+SUBMISSION_URL:: "https://backend-wise-files.loculus.org"
 
 ## Authentication credentials
 GROUP_ID: 1
