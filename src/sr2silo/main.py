@@ -165,10 +165,10 @@ def process_from_vpipe(
         # get the domain from the lapis_url
         domain = lapis_url.split("//")[-1].split("/")[0]
         # create the directory if it does not exist
-        Path(f"resources/reference/{domain}").mkdir(parents=True, exist_ok=True)
+        Path(f"resources/references/{domain}").mkdir(parents=True, exist_ok=True)
         # define the paths for the nucleotide and amino acid references
-        nuc_ref_fp = Path(f"resources/reference/{domain}/nuc_ref.fasta")
-        aa_ref_fp = Path(f"resources/reference/{domain}/aa_ref.fasta")
+        nuc_ref_fp = Path(f"resources/references/{domain}/nuc_ref.fasta")
+        aa_ref_fp = Path(f"resources/references/{domain}/aa_ref.fasta")
         lapis.referenceGenomeToFasta(
             reference_json_string=json.dumps(reference),
             nucleotide_out_fp=nuc_ref_fp,
