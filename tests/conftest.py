@@ -188,6 +188,8 @@ def real_sample_files_import_to_loculus(tmp_path, primers, timeline, sample):
         "sample_id": "A1_05_2024_10_08",
         "batch_id": "20241024_2411515907",
         "lapis_url": "https://lapis.example.com",
+        "nuc_ref_fp": "resources/references/sars-cov-2/nuc_ref.fasta",
+        "aa_ref_fp": "resources/references/sars-cov-2/aa_ref.fasta",
     }
 
 
