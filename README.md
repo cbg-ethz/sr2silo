@@ -86,13 +86,9 @@ For the V-Pipe to Silo implementation we carry through the following metadata:
     "sample_id":"A1_05_2024_10_08",
     "batch_id":"20241024_2411515907",
     "sampling_date":"2024-10-08",
-    "sequencing_date":"2024-10-24",
     "location_name":"Lugano (TI)",
     "read_length":"250","primer_protocol":"v532",
-    "location_code":"05",
-    "flow_cell_serial_number":"2411515907"
-    "sequencing_well_position":"A1",
-    "primer_protocol_name":"SARS-CoV-2 ARTIC V5.3.2",
+    "location_code":"5",
     "nextclade_reference":"sars-cov-2"
     }
 ```
@@ -195,7 +191,6 @@ sr2silo process-from-vpipe \
     --sample-id SAMPLE_ID \
     --batch-id BATCH_ID \
     --timeline-file TIMELINE.tsv \
-    --primer-file PRIMERS.yaml \
     --output-fp OUTPUT.ndjson \
     --reference sars-cov-2
 ```
@@ -213,7 +208,6 @@ sr2silo submit-to-loculus \
 - `--sample-id, -s`: Sample ID to use for metadata
 - `--batch-id, -b`: Batch ID to use for metadata
 - `--timeline-file, -t`: Path to the timeline metadata file
-- `--primer-file, -p`: Path to the primers configuration file
 - `--output-fp, -o`: Path for the output file (will be auto-suffixed with .ndjson.zst)
 
 #### Required Arguments for `submit-to-loculus`
@@ -237,7 +231,6 @@ sr2silo process-from-vpipe \
     --sample-id "A1_05_2024_10_08" \
     --batch-id "20241024_2411515907" \
     --timeline-file ./data/timeline.tsv \
-    --primer-file ./data/primers.yaml \
     --output-fp ./results/output.ndjson \
     --reference sars-cov-2
 ```
@@ -266,7 +259,7 @@ sr2silo supports flexible configuration through environment variables, making it
 ```bash
 # Set common configuration via environment variables
 export TIMELINE_FILE=/path/to/timeline.tsv
-export PRIMER_FILE=/path/to/primers.yaml
+# Note: PRIMER_FILE is deprecated - all metadata now comes from timeline file
 export NEXTCLADE_REFERENCE=sars-cov-2
 
 # Run with minimal CLI arguments

@@ -24,20 +24,18 @@ logging.basicConfig(
 class ReadMetadata(BaseModel):
     """V-Pipe SILO-specific pydantic schema for ReadMetadata JSON format.
     (specific to WISE / run at ETHZ)
+    
+    Simplified metadata schema that only uses timeline.yaml as source of truth.
     """
 
     read_id: str
     sample_id: str
     batch_id: str
     sampling_date: str
-    sequencing_date: str
     location_name: str
     read_length: str
     primer_protocol: str
     location_code: str
-    flow_cell_serial_number: str
-    sequencing_well_position: str
-    primer_protocol_name: str
     nextclade_reference: str
     sr2silo_version: str
 
