@@ -6,20 +6,11 @@ schema:
     - name: batch_id
       type: string
       generateIndex: false
-    - name: sequencing_well_position
-      type: string
-      generateIndex: false
     - name: location_code
       type: string
       generateIndex: false
     - name: sampling_date
       type: date
-      generateIndex: false
-    - name: sequencing_date
-      type: string
-      generateIndex: false
-    - name: flow_cell_serial_number
-      type: string
       generateIndex: false
     - name: read_length
       type: number
@@ -28,9 +19,6 @@ schema:
       type: string
       generateIndex: false
     - name: location_name
-      type: string
-      generateIndex: false
-    - name: primer_protocol_name
       type: string
       generateIndex: false
     - name: nextclade_reference

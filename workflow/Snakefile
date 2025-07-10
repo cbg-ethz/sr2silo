@@ -41,7 +41,7 @@ rule process_sample:
 
     This rule demonstrates the flexible parameter approach:
     - Parameters can be provided via CLI arguments (as shown)
-    - Or via environment variables (TIMELINE_FILE, PRIMER_FILE, NEXTCLADE_REFERENCE)
+    - Or via environment variables (TIMELINE_FILE, NEXTCLADE_REFERENCE)
     - CLI arguments take precedence over environment variables
     """
     input:
@@ -54,7 +54,6 @@ rule process_sample:
         sample_id=lambda wildcards: wildcards.sample_id,
         batch_id=lambda wildcards: wildcards.batch_id,
         timeline_file=config["TIMELINE_FILE"],
-        primers_file=config["PRIMERS_FILE"],
         nuc_reference=config["NUC_REFERENCE"],
         aa_reference=config["NUC_REFERENCE"],
     log:
@@ -68,7 +67,6 @@ rule process_sample:
             --sample-id {params.sample_id} \
             --batch-id {params.batch_id} \
             --timeline-file {params.timeline_file} \
-            --primer-file {params.primers_file} \
             --output-fp {output.result_fp} \
             --reference {params.nuc_reference} > {log} 2>&1
         """

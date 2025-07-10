@@ -156,8 +156,8 @@ def dummy_alignment(monkeypatch):
 
 @pytest.fixture
 def primers():
-    """Return the primers file path."""
-    return Path("./resources/sars-cov-2/primers/primers.yaml")
+    """Return the primers file path - DEPRECATED but kept for backward compatibility."""
+    return None
 
 
 @pytest.fixture

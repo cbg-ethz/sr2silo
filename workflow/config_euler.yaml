@@ -49,6 +49,5 @@ SAMPLE_BATCH_IDS:
   #H3_16_2025_02_20 : "20250307_2418539124"
   H3_16_2025_03_08 : "20250321_2429695737"
 TIMELINE_FILE: "/cluster/project/pangolin/work-vp-test/variants/timeline.tsv"
-PRIMERS_FILE: "/cluster/project/pangolin/work-new-variants/references/primers.yaml"
 NUC_REFERENCE: "sars-cov-2"
 RESULTS_DIR: "/cluster/project/pangolin/gordon_samples/new_protocol_20250210-202503"

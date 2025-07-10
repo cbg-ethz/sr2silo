@@ -25,11 +25,11 @@ def nuc_align_to_silo_njson(
     sample_id: str,
     batch_id: str,
     timeline_file: Path,
-    primers_file: Path,
     output_fp: Path,
     reference: str = "sars-cov-2",
     skip_merge: bool = False,
     version_info: str | None = None,
+    primers_file: Path | None = None,
 ) -> None:
     """Process a given input file.
 
@@ -38,8 +38,14 @@ def nuc_align_to_silo_njson(
         sample_id (str): Sample ID to use for metadata.
         batch_id (str): Batch ID to use for metadata.
         timeline_file (Path): The timeline file to cross-reference the metadata.
-        primers_file (Path): The primers file to cross-reference the metadata.
         output_fp (Path): Path to the output file.
+        reference (str): The nucleotide / amino acid reference from
+                    the resources folder.
+        skip_merge (bool): Whether to skip merging of paired-end reads.
+                           Default is False.
+        version_info (str | None): Version information to include in metadata.
+                           Default is None.
+        primers_file (Path | None): DEPRECATED - no longer used, kept for backward compatibility.
         reference (str): The nucleotide / amino acid reference from
                     the resources folder.
         skip_merge (bool): Whether to skip merging of paired-end reads.

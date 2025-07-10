@@ -28,7 +28,13 @@ def test_process_sample():
         shutil.copytree(data_path, workdir)
 
         # Copy the config file to the workdir.
-        shutil.copytree(config_path.parent, workdir / "workflow")
+        config_dir = workdir / "workflow"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy(config_path, config_dir / "config.yaml")
+        
+        # Copy the main Snakefile from the workflow directory
+        main_workflow_dir = Path("workflow")
+        shutil.copy(main_workflow_dir / "Snakefile", config_dir / "Snakefile")
 
         # Copy the "resources" folder to the workdir.
         shutil.copytree("resources", workdir / "resources")

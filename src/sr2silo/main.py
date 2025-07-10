@@ -102,8 +102,9 @@ def process_from_vpipe(
         typer.Option(
             "--primer-file",
             "-p",
-            help="Path to the primers file. Falls back to PRIMER_FILE "
-            "environment variable.",
+            help="DEPRECATED: Path to the primers file. This parameter is "
+            "deprecated and will be ignored. All metadata is now "
+            "sourced from timeline file only.",
         ),
     ] = None,
     reference: Annotated[
@@ -139,15 +140,21 @@ def process_from_vpipe(
             )
             raise typer.Exit(1)
 
-    # Resolve primer_file with environment fallback
-    if primer_file is None:
-        primer_file = get_primer_file()
-        if primer_file is None:
-            logging.error(
-                "Primer file must be provided via --primer-file or "
-                "PRIMER_FILE environment variable"
+    # Handle deprecated primer_file parameter
+    if primer_file is not None:
+        logging.warning(
+            "The --primer-file parameter is deprecated and will be ignored. "
+            "All metadata is now sourced from timeline file only."
+        )
+    else:
+        # Check if PRIMER_FILE environment variable is set and warn
+        env_primer_file = get_primer_file()
+        if env_primer_file is not None:
+            logging.warning(
+                "The PRIMER_FILE environment variable is deprecated and will be ignored. "
+                "All metadata is now sourced from timeline file only."
             )
-            raise typer.Exit(1)
+            primer_file = None  # Explicitly set to None
 
     # Resolve reference with environment fallback
     if reference is None:
@@ -155,7 +162,6 @@ def process_from_vpipe(
 
     logging.info(f"Processing input file: {input_file}")
     logging.info(f"Using timeline file: {timeline_file}")
-    logging.info(f"Using primers file: {primer_file}")
     logging.info(f"Using output file: {output_fp}")
     logging.info(f"Using genome reference: {reference}")
     logging.info(f"Using sample_id: {sample_id}")
@@ -184,11 +190,11 @@ def process_from_vpipe(
         sample_id=sample_id,
         batch_id=batch_id,
         timeline_file=timeline_file,
-        primers_file=primer_file,
         output_fp=output_fp,
         reference=reference,
         skip_merge=skip_merge,
         version_info=version_info,
+        primers_file=primer_file,
     )
 
 
