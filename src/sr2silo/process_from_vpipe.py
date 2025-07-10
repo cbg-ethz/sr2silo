@@ -29,7 +29,6 @@ def nuc_align_to_silo_njson(
     reference: str = "sars-cov-2",
     skip_merge: bool = False,
     version_info: str | None = None,
-    primers_file: Path | None = None,
 ) -> None:
     """Process a given input file.
 
@@ -39,13 +38,6 @@ def nuc_align_to_silo_njson(
         batch_id (str): Batch ID to use for metadata.
         timeline_file (Path): The timeline file to cross-reference the metadata.
         output_fp (Path): Path to the output file.
-        reference (str): The nucleotide / amino acid reference from
-                    the resources folder.
-        skip_merge (bool): Whether to skip merging of paired-end reads.
-                           Default is False.
-        version_info (str | None): Version information to include in metadata.
-                           Default is None.
-        primers_file (Path | None): DEPRECATED - no longer used, kept for backward compatibility.
         reference (str): The nucleotide / amino acid reference from
                     the resources folder.
         skip_merge (bool): Whether to skip merging of paired-end reads.
@@ -77,7 +69,7 @@ def nuc_align_to_silo_njson(
 
     ##### Get Sample and Batch metadata and write to a file #####
     sample_to_process = Sample(sample_id, batch_id)
-    sample_to_process.enrich_metadata(timeline_file, primers_file)
+    sample_to_process.enrich_metadata(timeline_file)
     metadata = sample_to_process.get_metadata()
     # add reference name to metadata
     resource_fp = Path("./resources") / reference

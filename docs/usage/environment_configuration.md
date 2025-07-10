@@ -37,7 +37,6 @@ Set environment variables to provide defaults:
 
 ```bash
 export TIMELINE_FILE=/path/to/timeline.tsv
-# Note: PRIMER_FILE is deprecated - all metadata comes from timeline file
 export NEXTCLADE_REFERENCE=sars-cov-2
 
 # Now you can run without specifying these parameters
@@ -55,7 +54,6 @@ You can also use a `.env` file to set environment variables:
 ```bash
 # .env file
 TIMELINE_FILE=/path/to/timeline.tsv
-# PRIMER_FILE is deprecated - all metadata now comes from timeline file
 NEXTCLADE_REFERENCE=sars-cov-2
 KEYCLOAK_TOKEN_URL=https://your-keycloak-url/token
 SUBMISSION_URL=https://your-submission-url

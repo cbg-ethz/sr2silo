@@ -259,7 +259,6 @@ sr2silo supports flexible configuration through environment variables, making it
 ```bash
 # Set common configuration via environment variables
 export TIMELINE_FILE=/path/to/timeline.tsv
-# Note: PRIMER_FILE is deprecated - all metadata now comes from timeline file
 export NEXTCLADE_REFERENCE=sars-cov-2
 
 # Run with minimal CLI arguments

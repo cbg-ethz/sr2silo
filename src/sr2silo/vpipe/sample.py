@@ -25,15 +25,13 @@ class Sample:
     def __str__(self) -> str:
         return f"Sample(sample_id={self.sample_id}, batch_id={self.batch_id})"
 
-    def enrich_metadata(self, timeline: Path, primers: Path = None) -> None:
+    def enrich_metadata(self, timeline: Path) -> None:
         """Enrich the sample metadata with additional information.
 
         Args:
             timeline (Path): The path to the timeline file.
-            primers (Path, optional): Kept for backward compatibility, no longer used.
         """
         self.timeline = timeline
-        self.primers = primers  # Keep for backward compatibility
 
         self.set_metadata()
 
@@ -47,7 +45,6 @@ class Sample:
             sample_id=self.sample_id,
             batch_id=self.batch_id,
             timeline=self.timeline,
-            primers=self.primers,  # Will be ignored but kept for backward compatibility
         )
 
     def get_metadata(self) -> dict[str, str]:

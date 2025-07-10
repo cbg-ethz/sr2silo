@@ -84,27 +84,18 @@ def get_metadata_from_timeline(
 
 
 def get_metadata(
-    sample_id: str, batch_id: str, timeline: Path, primers: Path = None
+    sample_id: str, batch_id: str, timeline: Path
 ) -> dict[str, str]:
     """
     Get metadata for a given sample and batch from timeline file only.
-    
-    Note: primers parameter is kept for backward compatibility but is no longer used.
 
     Args:
         sample_id (str): The sample ID to use for metadata.
         batch_id (str): The batch ID to use for metadata.
         timeline (Path): The timeline file to get the metadata from.
-        primers (Path, optional): Kept for backward compatibility, no longer used.
 
     Returns:
         dict: A dictionary containing the metadata.
 
     """
-    if primers is not None:
-        logging.warning(
-            "primers parameter is deprecated and will be ignored. "
-            "All metadata is now sourced from timeline file only."
-        )
-    
     return get_metadata_from_timeline(sample_id, batch_id, timeline)

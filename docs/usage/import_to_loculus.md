@@ -32,7 +32,6 @@ sr2silo process-from-vpipe \
 
 - `--reference, -r`: The nucleotide/amino acid reference from the resources folder. Default is `sars-cov-2`.
 - `--skip-merge/--no-skip-merge`: Whether to skip merging of paired-end reads. Default is `--no-skip-merge`.
-- `--primer-file, -p`: **DEPRECATED** - This parameter is ignored. All metadata is now sourced from the timeline file only.
 
 ## Example Usage
 

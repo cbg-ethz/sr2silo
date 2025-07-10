@@ -12,7 +12,6 @@ import typer
 from sr2silo.config import (
     get_keycloak_token_url,
     get_nextclade_reference,
-    get_primer_file,
     get_submission_url,
     get_timeline_file,
     get_version,
@@ -97,16 +96,7 @@ def process_from_vpipe(
             "environment variable.",
         ),
     ] = None,
-    primer_file: Annotated[
-        Path | None,
-        typer.Option(
-            "--primer-file",
-            "-p",
-            help="DEPRECATED: Path to the primers file. This parameter is "
-            "deprecated and will be ignored. All metadata is now "
-            "sourced from timeline file only.",
-        ),
-    ] = None,
+
     reference: Annotated[
         str | None,
         typer.Option(
@@ -140,21 +130,6 @@ def process_from_vpipe(
             )
             raise typer.Exit(1)
 
-    # Handle deprecated primer_file parameter
-    if primer_file is not None:
-        logging.warning(
-            "The --primer-file parameter is deprecated and will be ignored. "
-            "All metadata is now sourced from timeline file only."
-        )
-    else:
-        # Check if PRIMER_FILE environment variable is set and warn
-        env_primer_file = get_primer_file()
-        if env_primer_file is not None:
-            logging.warning(
-                "The PRIMER_FILE environment variable is deprecated and will be ignored. "
-                "All metadata is now sourced from timeline file only."
-            )
-            primer_file = None  # Explicitly set to None
 
     # Resolve reference with environment fallback
     if reference is None:
@@ -194,7 +169,6 @@ def process_from_vpipe(
         reference=reference,
         skip_merge=skip_merge,
         version_info=version_info,
-        primers_file=primer_file,
     )
 
 

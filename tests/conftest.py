@@ -154,11 +154,6 @@ def dummy_alignment(monkeypatch):
     return Path("dummy.bam")
 
 
-@pytest.fixture
-def primers():
-    """Return the primers file path - DEPRECATED but kept for backward compatibility."""
-    return None
-
 
 @pytest.fixture
 def timeline():

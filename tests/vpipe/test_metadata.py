@@ -29,13 +29,12 @@ def test_get_metadata_from_timeline(timeline: Path):
 
 
 def test_get_metadata(timeline: Path):
-    """Test the get_metadata function with backward compatibility."""
-    # Test with None primer file (new behavior)
+    """Test the get_metadata function."""
+    # Test with timeline file
     metadata = get_metadata(
         sample_id="A1_05_2024_10_08",
         batch_id="20241024_2411515907",
         timeline=timeline,
-        primers=None,
     )
 
     expected_metadata = {
