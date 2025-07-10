@@ -15,6 +15,7 @@ from sr2silo.config import (
     get_keycloak_token_url,
     get_password,
     get_submission_url,
+    get_timeline_file,
     get_username,
     get_version,
     is_ci_environment,
@@ -79,6 +80,7 @@ def process_from_vpipe(
             "-t",
             help="Path to the timeline file.",
         ),
+    ],
     lapis_url: Annotated[
         str,
         typer.Option(
