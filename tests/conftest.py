@@ -172,13 +172,12 @@ def sample():
 
 
 @pytest.fixture
-def real_sample_files_import_to_loculus(tmp_path, primers, timeline, sample):
+def real_sample_files_import_to_loculus(tmp_path, timeline, sample):
     """Get real sample files from the test data directory for
     `sr2silo import-to-loculus`."""
     return {
         "input_file": sample,
         "timeline_file": timeline,
-        "primer_file": primers,
         "output_file": tmp_path / "silo_input.ndjson.zst",
         "sample_id": "A1_05_2024_10_08",
         "batch_id": "20241024_2411515907",
