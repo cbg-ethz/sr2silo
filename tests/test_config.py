@@ -11,7 +11,6 @@ from unittest.mock import patch
 
 from sr2silo.config import (
     get_keycloak_token_url,
-    get_nextclade_reference,
     get_submission_url,
     get_timeline_file,
     get_version,
@@ -122,24 +121,6 @@ def test_get_timeline_file():
     with patch.dict(os.environ, {}, clear=True):
         result = get_timeline_file(Path("/path/default.tsv"))
         assert result == Path("/path/default.tsv")
-
-
-def test_get_nextclade_reference():
-    """Test get_nextclade_reference function."""
-    # Test with environment variable set
-    with patch.dict(os.environ, {"NEXTCLADE_REFERENCE": "custom-ref"}):
-        result = get_nextclade_reference()
-        assert result == "custom-ref"
-
-    # Test with environment variable not set, uses default
-    with patch.dict(os.environ, {}, clear=True):
-        result = get_nextclade_reference()
-        assert result == "sars-cov-2"
-
-    # Test with custom default
-    with patch.dict(os.environ, {}, clear=True):
-        result = get_nextclade_reference("custom-default")
-        assert result == "custom-default"
 
 
 def test_get_keycloak_token_url():

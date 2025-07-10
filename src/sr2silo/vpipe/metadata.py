@@ -7,7 +7,6 @@ import datetime
 import logging
 from pathlib import Path
 
-
 def convert_to_iso_date(date: str) -> str:
     """Convert a date string to ISO 8601 format (date only)."""
     # Parse the date string
@@ -39,7 +38,7 @@ def get_metadata_from_timeline(
             sample_id_match = row[0] == sample_id
             batch_id_match = row[1] == batch_id
 
-            if sample_id_match and batch_id_match:
+            if sample_id_match:
                 logging.info(
                     "Found metadata in timeline for sample_id %s and batch_id %s",
                     sample_id, batch_id
@@ -76,7 +75,7 @@ def get_metadata(
 
     Args:
         sample_id (str): The sample ID to use for metadata.
-        batch_id (str): The batch ID to use for metadata.
+        batch_id (str | None): The batch ID to use for metadata. Can be None or empty.
         timeline (Path): The timeline file to cross-reference the metadata.
 
     Returns:

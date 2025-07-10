@@ -12,12 +12,12 @@ class Sample:
 
     Args:
         sample_id (str): The sample ID.
-        batch_id (str): The batch ID.
+        batch_id (str | None): The batch ID. Can be None or empty string.
     """
 
-    def __init__(self, sample_id: str, batch_id: str) -> None:
+    def __init__(self, sample_id: str, batch_id: str | None = None) -> None:
         self.sample_id = sample_id
-        self.batch_id = batch_id
+        self.batch_id = batch_id or ""  # Convert None to empty string
         self.metadata: dict[str, str] | None = None
         self.timeline: Path | None = None
 

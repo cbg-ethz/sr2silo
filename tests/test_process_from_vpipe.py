@@ -69,7 +69,8 @@ def test_skip_merge_option(
             timeline_file=sample_files["timeline_file"],
             primers_file=sample_files["primer_file"],
             output_fp=output_fp,
-            reference=sample_files["reference"],
+            nuc_ref_fp=sample_files["nuc_ref_fp"],
+            aa_ref_fp=sample_files["aa_ref_fp"],
             skip_merge=skip_merge,
         )
 
@@ -127,7 +128,8 @@ def test_skip_merge_file_handling(
                 timeline_file=sample_files["timeline_file"],
                 primers_file=sample_files["primer_file"],
                 output_fp=output_fp,
-                reference=sample_files["reference"],
+                nuc_ref_fp=sample_files["nuc_ref_fp"],
+                aa_ref_fp=sample_files["aa_ref_fp"],
                 skip_merge=True,
             )
 
@@ -144,7 +146,8 @@ def test_skip_merge_file_handling(
                 timeline_file=sample_files["timeline_file"],
                 primers_file=sample_files["primer_file"],
                 output_fp=output_fp,
-                reference=sample_files["reference"],
+                nuc_ref_fp=sample_files["nuc_ref_fp"],
+                aa_ref_fp=sample_files["aa_ref_fp"],
                 skip_merge=True,
             )
 

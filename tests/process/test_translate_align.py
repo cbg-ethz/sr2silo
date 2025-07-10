@@ -54,10 +54,6 @@ def test_parse_translate_align(aligned_reads):
             act_attr = actual.to_dict()[attr]
             exp_attr = expected.to_dict()[attr]
 
-            # skip the checks for the sr2silo_version in the metadata
-            if attr == "metadata":
-                print("Hi")
-
             print(f"act_attr: {act_attr}")
             print(f"exp_attr: {exp_attr}")
             assert str(act_attr) == str(exp_attr), (

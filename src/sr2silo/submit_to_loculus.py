@@ -7,15 +7,16 @@ import logging
 from pathlib import Path
 
 from sr2silo.config import (
-    get_frontend_url,
+    get_group_id,
     get_keycloak_token_url,
     get_mock_urls,
     get_organism,
+    get_password,
     get_submission_url,
+    get_username,
     is_ci_environment,
 )
-from sr2silo.silo import LapisClient, Submission
-from sr2silo.storage import upload_file_to_s3
+from sr2silo.loculus import LoculusClient, Submission
 
 
 def load_config(config_file: Path) -> dict:
@@ -31,52 +32,14 @@ def load_config(config_file: Path) -> dict:
         raise
 
 
-def make_submission_file(result_dir: Path, srLink: str) -> Path:
-    """Create a submission file with the given S3 link.
-
-    Args:
-        result_dir (Path): The directory to save the submission file.
-        srLink (str): The S3 link to include in the submission file.
-
-    Returns:
-        Path: The path to the created submission file.
-    """
-    result_dir_submission = result_dir / "submission"
-    result_dir_submission.mkdir(parents=True, exist_ok=True)
-
-    submission_metadata_fp = result_dir_submission / "metadata.tsv"
-    with submission_metadata_fp.open("w") as f:
-        f.write("submissionId\ts3Link\tversionComment\n")
-        f.write(f"001\t{srLink}\t\n")
-    logging.info(f"Submission metadata saved to: {submission_metadata_fp}")
-
-    return submission_metadata_fp
-
-
-def upload_to_s3(aligned_reads_fp: Path, sample_id: str) -> str:
-    """Upload a file to S3 bucket.
-
-    Args:
-        aligned_reads_fp (Path): The file to upload.
-        sample_id (str): Sample ID used in the S3 filename.
-
-    Returns:
-        str: The S3 link to the uploaded file.
-    """
-    logging.info(f"Uploading to S3: {aligned_reads_fp}")
-    suffix = aligned_reads_fp.suffix
-    s3_file_name = f"{sample_id}.{suffix}"
-    s3_bucket = "sr2silo01"  # TODO : Make this configurable
-    s3_link = f"s3://{s3_bucket}/{s3_file_name}"
-    upload_file_to_s3(aligned_reads_fp, s3_bucket, s3_file_name)
-    return s3_link
-
-
 def submit_to_silo(
     result_dir: Path,
     processed_file: Path,
     keycloak_token_url: str | None = None,
     submission_url: str | None = None,
+    group_id: int | None = None,
+    username: str | None = None,
+    password: str | None = None,
 ) -> bool:
     """Submit data to SILO using the new pre-signed upload approach.
 
@@ -85,6 +48,9 @@ def submit_to_silo(
         processed_file (Path): Path to the processed .ndjson.zst file to upload.
         keycloak_token_url (str | None): Keycloak token URL. If None, uses environment.
         submission_url (str | None): Submission URL. If None, uses environment.
+        group_id (int | None): Group ID for submission. If None, uses environment.
+        username (str | None): Username for authentication. If None, uses environment.
+        password (str | None): Password for authentication. If None, uses environment.
 
     Returns:
         bool: True if submission was successful, False otherwise.
@@ -107,18 +73,25 @@ def submit_to_silo(
         logging.info(f"Using Keycloak URL: {KEYCLOAK_TOKEN_URL}")
         logging.info(f"Using submission URL: {SUBMISSION_URL}")
 
+    # Resolve authentication parameters with environment fallback
+    resolved_group_id = group_id if group_id is not None else get_group_id()
+    resolved_username = username or get_username()
+    resolved_password = password or get_password()
+
     # Get organism configuration
     organism = get_organism()
     logging.info(f"Using organism: {organism}")
+    logging.info(f"Using group ID: {resolved_group_id}")
+    logging.info(f"Using username: {resolved_username}")
 
     try:
         # Create client with organism parameter
-        client = LapisClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL, organism)
-        client.authenticate(username="testuser", password="testuser")
+        client = LoculusClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL, organism)
+        client.authenticate(username=resolved_username, password=resolved_password)
 
         # Submit using new API with both metadata and processed file
         response = client.submit(
-            group_id=1,
+            group_id=resolved_group_id,
             metadata_file_path=metadata_fp,
             processed_file_path=processed_file,
             submission_id=submission_id,
@@ -126,13 +99,6 @@ def submit_to_silo(
 
         if response["status"] == "success":
             logging.info(response["message"])
-
-            # Get the frontend URL from config
-            frontend_url = get_frontend_url()
-            logging.info(
-                f"You can approve the upload for release at: "
-                f"{frontend_url}/{organism}/submission/1/review"
-            )
             return True
         else:
             logging.error(f"Submission failed: {response}")

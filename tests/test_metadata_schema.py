@@ -17,20 +17,19 @@ VALID_METADATA = {
     "read_length": "250",
     "primer_protocol": "v532",
     "location_code": "05",
-    "nextclade_reference": "sars-cov-2",
     "sr2silo_version": "v1.0.0",
 }
 
 
 def test_valid_metadata():
-    # Validate that a valid metadata dictionary creates a ReadMetadata instance
+    """Test that a valid metadata dictionary creates a ReadMetadata instance."""
     metadata = ReadMetadata(**VALID_METADATA)
     for key, value in VALID_METADATA.items():
         assert getattr(metadata, key) == value
 
 
 def test_invalid_metadata_missing_field():
-    # Remove a required field to simulate an invalid record
+    """Test that missing required fields raises a ValidationError."""
     invalid_metadata = dict(VALID_METADATA)
     invalid_metadata.pop("read_id")
     with pytest.raises(ValidationError):

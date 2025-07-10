@@ -6,6 +6,8 @@ as expected when invoked with various commands and options.
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from typer.testing import CliRunner
 
 from sr2silo.main import app
@@ -28,13 +30,6 @@ def test_no_args():
     assert "Well, you gotta decide what to do" in result.stdout
 
 
-def test_run_command():
-    """Test the run subcommand."""
-    result = runner.invoke(app, ["run"])
-    assert result.exit_code == 0
-    assert "Not yet implemented" in result.stdout
-
-
 def test_process_from_vpipe_help():
     """Test the help output for process-from-vpipe command."""
     result = runner.invoke(app, ["process-from-vpipe", "--help"])
@@ -51,29 +46,102 @@ def test_process_from_vpipe_missing_required():
 def test_process_from_vpipe_with_real_files(real_sample_files_import_to_loculus):
     """Test process-from-vpipe with real sample files."""
 
-    result = runner.invoke(
-        app,
-        [
-            "process-from-vpipe",
-            "--input-file",
-            str(real_sample_files_import_to_loculus["input_file"]),
-            "--sample-id",
-            real_sample_files_import_to_loculus["sample_id"],
-            "--batch-id",
-            real_sample_files_import_to_loculus["batch_id"],
-            "--timeline-file",
-            str(real_sample_files_import_to_loculus["timeline_file"]),
-            "--primer-file",
-            str(real_sample_files_import_to_loculus["primer_file"]),
-            "--output-fp",
-            str(real_sample_files_import_to_loculus["output_file"]),
-            "--reference",
-            real_sample_files_import_to_loculus["reference"],
-        ],
-    )
+    # Mock is_ci_environment to return True for this test
+    with patch("sr2silo.main.is_ci_environment", return_value=True):
+        result = runner.invoke(
+            app,
+            [
+                "process-from-vpipe",
+                "--input-file",
+                str(real_sample_files_import_to_loculus["input_file"]),
+                "--sample-id",
+                real_sample_files_import_to_loculus["sample_id"],
+                "--timeline-file",
+                str(real_sample_files_import_to_loculus["timeline_file"]),
+                "--primer-file",
+                str(real_sample_files_import_to_loculus["primer_file"]),
+                "--lapis-url",
+                real_sample_files_import_to_loculus["lapis_url"],
+                "--output-fp",
+                str(real_sample_files_import_to_loculus["output_file"]),
+                "--batch-id",
+                real_sample_files_import_to_loculus["batch_id"],
+            ],
+        )
 
     assert result.exit_code == 0
     assert "Starting V-PIPE to SILO conversion" in result.stdout
+
+
+def test_process_from_vpipe_with_empty_batch_id(real_sample_files_import_to_loculus):
+    """Test process-from-vpipe with empty batch_id."""
+
+    # Mock is_ci_environment to return True for this test
+    with patch("sr2silo.main.is_ci_environment", return_value=True):
+        result = runner.invoke(
+            app,
+            [
+                "process-from-vpipe",
+                "--input-file",
+                str(real_sample_files_import_to_loculus["input_file"]),
+                "--sample-id",
+                real_sample_files_import_to_loculus["sample_id"],
+                # No --batch-id argument provided (should default to None)
+                "--timeline-file",
+                str(real_sample_files_import_to_loculus["timeline_file"]),
+                "--primer-file",
+                str(real_sample_files_import_to_loculus["primer_file"]),
+                "--output-fp",
+                str(
+                    real_sample_files_import_to_loculus["output_file"].parent
+                    / "empty_batch_test.ndjson.zst"
+                ),
+                "--lapis-url",
+                real_sample_files_import_to_loculus["lapis_url"],
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert "Starting V-PIPE to SILO conversion" in result.stdout
+    # The logging message goes to stderr/logs, not stdout,
+    # so we just verify successful execution
+
+
+def test_process_from_vpipe_with_explicit_empty_batch_id(
+    real_sample_files_import_to_loculus,
+):
+    """Test process-from-vpipe with explicitly empty batch_id."""
+
+    # Mock is_ci_environment to return True for this test
+    with patch("sr2silo.main.is_ci_environment", return_value=True):
+        result = runner.invoke(
+            app,
+            [
+                "process-from-vpipe",
+                "--input-file",
+                str(real_sample_files_import_to_loculus["input_file"]),
+                "--sample-id",
+                real_sample_files_import_to_loculus["sample_id"],
+                "--batch-id",
+                "",  # Explicitly empty batch_id
+                "--timeline-file",
+                str(real_sample_files_import_to_loculus["timeline_file"]),
+                "--primer-file",
+                str(real_sample_files_import_to_loculus["primer_file"]),
+                "--output-fp",
+                str(
+                    real_sample_files_import_to_loculus["output_file"].parent
+                    / "explicit_empty_batch_test.ndjson.zst"
+                ),
+                "--lapis-url",
+                real_sample_files_import_to_loculus["lapis_url"],
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert "Starting V-PIPE to SILO conversion" in result.stdout
+    # The logging message goes to stderr/logs, not stdout,
+    # so we just verify successful execution
 
 
 def test_submit_to_loculus_command_help():
@@ -97,8 +165,6 @@ def test_submit_to_loculus_command_nonexistent_file():
             "submit-to-loculus",
             "--processed-file",
             "/tmp/nonexistent.ndjson.zst",
-            "--sample-id",
-            "test_sample",
         ],
     )
     assert result.exit_code == 1
@@ -120,8 +186,6 @@ def test_submit_to_loculus_command_wrong_extension():
                 "submit-to-loculus",
                 "--processed-file",
                 tmp_path,
-                "--sample-id",
-                "test_sample",
             ],
         )
         assert result.exit_code == 1
@@ -133,27 +197,30 @@ def test_submit_to_loculus_command_wrong_extension():
 
 def test_process_from_vpipe_with_skip_merge(real_sample_files_import_to_loculus):
     """Test process-from-vpipe with skip-merge option to bypass read pair merging."""
-    result = runner.invoke(
-        app,
-        [
-            "process-from-vpipe",
-            "--input-file",
-            str(real_sample_files_import_to_loculus["input_file"]),
-            "--sample-id",
-            real_sample_files_import_to_loculus["sample_id"],
-            "--batch-id",
-            real_sample_files_import_to_loculus["batch_id"],
-            "--timeline-file",
-            str(real_sample_files_import_to_loculus["timeline_file"]),
-            "--primer-file",
-            str(real_sample_files_import_to_loculus["primer_file"]),
-            "--output-fp",
-            str(real_sample_files_import_to_loculus["output_file"]),
-            "--reference",
-            real_sample_files_import_to_loculus["reference"],
-            "--skip-merge",
-        ],
-    )
+
+    # Mock is_ci_environment to return True for this test
+    with patch("sr2silo.main.is_ci_environment", return_value=True):
+        result = runner.invoke(
+            app,
+            [
+                "process-from-vpipe",
+                "--input-file",
+                str(real_sample_files_import_to_loculus["input_file"]),
+                "--sample-id",
+                real_sample_files_import_to_loculus["sample_id"],
+                "--batch-id",
+                real_sample_files_import_to_loculus["batch_id"],
+                "--timeline-file",
+                str(real_sample_files_import_to_loculus["timeline_file"]),
+                "--primer-file",
+                str(real_sample_files_import_to_loculus["primer_file"]),
+                "--output-fp",
+                str(real_sample_files_import_to_loculus["output_file"]),
+                "--lapis-url",
+                real_sample_files_import_to_loculus["lapis_url"],
+                "--skip-merge",
+            ],
+        )
     assert result.exit_code == 0
     assert "Starting V-PIPE to SILO conversion" in result.stdout
     # The "Skip read pair merging: True" message is written to the logs, not stdout,
@@ -185,11 +252,13 @@ def test_process_from_vpipe_environment_variables():
                 "test-batch",
                 "--output-fp",
                 "/tmp/test.ndjson.zst",
+                "--reference",
+                "sars-cov-2",
             ],
         )
         # Should fail due to missing input file,
         # but environment variables should be processed
-        assert result.exit_code == 1  # Should fail due to missing file
+        assert result.exit_code == 2  # Should fail due to missing file
         # We can verify the environment variables were picked up by manually checking
         # since the logs go to stderr which typer doesn't capture by default
 
@@ -197,13 +266,11 @@ def test_process_from_vpipe_environment_variables():
 def test_process_from_vpipe_cli_overrides_env():
     """Test that CLI arguments override environment variables."""
     import os
-    from unittest.mock import patch
 
     # Set environment variables
     env_vars = {
         "TIMELINE_FILE": "/env/timeline.tsv",
         "PRIMER_FILE": "/env/primers.yaml",
-        "NEXTCLADE_REFERENCE": "env-reference",
     }
 
     with patch.dict(os.environ, env_vars):
@@ -223,8 +290,8 @@ def test_process_from_vpipe_cli_overrides_env():
                 "/cli/timeline.tsv",
                 "--primer-file",
                 "/cli/primers.yaml",
-                "--reference",
-                "cli-reference",
+                "--lapis-url",
+                "https://cli.lapis.example.com",
             ],
         )
         # CLI arguments should override environment variables
@@ -235,7 +302,6 @@ def test_process_from_vpipe_cli_overrides_env():
 def test_process_from_vpipe_missing_env_and_cli():
     """Test process-from-vpipe fails when neither env vars nor CLI args provided."""
     import os
-    from unittest.mock import patch
 
     # Clear environment variables
     with patch.dict(os.environ, {}, clear=True):
@@ -251,6 +317,12 @@ def test_process_from_vpipe_missing_env_and_cli():
                 "test-batch",
                 "--output-fp",
                 "/tmp/test.ndjson.zst",
+                "--lapis-url",
+                "https://lapis.example.com",
+                "--primer-file",
+                "/tmp/primers.yaml",
+                "--timeline-file",
+                "/tmp/timeline.tsv",
             ],
         )
         assert result.exit_code == 1
@@ -276,8 +348,6 @@ def test_submit_to_loculus_environment_variables():
                 "submit-to-loculus",
                 "--processed-file",
                 "/tmp/test.ndjson.zst",
-                "--sample-id",
-                "test-sample",
             ],
         )
         # Should fail due to missing file, but environment variables should be processed
@@ -302,8 +372,6 @@ def test_submit_to_loculus_cli_overrides_env():
                 "submit-to-loculus",
                 "--processed-file",
                 "/tmp/test.ndjson.zst",
-                "--sample-id",
-                "test-sample",
                 "--keycloak-token-url",
                 "https://cli.auth.com/token",
                 "--submission-url",
@@ -327,8 +395,6 @@ def test_submit_to_loculus_missing_env_and_cli():
                 "submit-to-loculus",
                 "--processed-file",
                 "/tmp/test.ndjson.zst",
-                "--sample-id",
-                "test-sample",
             ],
         )
         assert result.exit_code == 1

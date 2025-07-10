@@ -133,46 +133,74 @@ def get_timeline_file(default: Path | str | None = None) -> Path | None:
     return None
 
 
-def get_nextclade_reference(default: str = "sars-cov-2") -> str:
-    """Get the Nextclade reference from environment, or return default if not set.
+def get_group_id(default: int | None = None) -> int:
+    """Get the group ID from environment, or return default if not set.
 
     Args:
-        default: Default reference to use if environment variable is not set
+        default: Optional default group ID to use if environment variable is not set
 
     Returns:
-        str: The Nextclade reference identifier
-    """
-    return os.getenv("NEXTCLADE_REFERENCE", default)
-
-
-def get_frontend_url() -> str:
-    """Get the frontend URL by deriving it from the submission URL.
-
-    Returns:
-        str: The frontend URL (removes 'backend-' prefix from submission URL)
+        int: The group ID for submissions
 
     Raises:
-        ValueError: If the submission URL doesn't contain 'backend-' prefix
+        SystemExit: If no group ID is available from environment or default
     """
-    submission_url = get_submission_url()
+    group_id_str = os.getenv("GROUP_ID")
+    if group_id_str is None:
+        if default is None:
+            logging.error(
+                "GROUP_ID environment variable is not set and no default provided"
+            )
+            sys.exit(1)
+        return default
 
-    # Extract the base URL and remove 'backend-' prefix
-    # Example: https://backend-wise-seqs.loculus.org/... -> https://wise-seqs.loculus.org/...
-    if "backend-" not in submission_url:
-        raise ValueError(
-            """
-            Cannot derive frontend URL:
-            submission URL doesn't contain 'backend-' prefix
-            """
+    try:
+        return int(group_id_str)
+    except ValueError:
+        logging.error(f"Invalid GROUP_ID value '{group_id_str}', must be an integer")
+        sys.exit(1)
+
+
+def get_username(default: str | None = None) -> str:
+    """Get the username from environment, or return default if not set.
+
+    Args:
+        default: Optional default username to use if environment variable is not set
+
+    Returns:
+        str: The username for authentication
+
+    Raises:
+        SystemExit: If no username is available from environment or default
+    """
+    username = os.getenv("USERNAME", default)
+    if username is None:
+        logging.error(
+            "USERNAME environment variable is not set and no default provided"
         )
+        sys.exit(1)
+    return username
 
-    frontend_url = submission_url.replace("backend-", "")
-    # Remove the path part and just keep the domain
-    if "//" not in frontend_url:
-        raise ValueError("Cannot derive frontend URL: invalid URL format")
 
-    protocol_and_domain = frontend_url.split("//")[1].split("/")[0]
-    return f"https://{protocol_and_domain}"
+def get_password(default: str | None = None) -> str:
+    """Get the password from environment, or return default if not set.
+
+    Args:
+        default: Optional default password to use if environment variable is not set
+
+    Returns:
+        str: The password for authentication
+
+    Raises:
+        SystemExit: If no password is available from environment or default
+    """
+    password = os.getenv("PASSWORD", default)
+    if password is None:
+        logging.error(
+            "PASSWORD environment variable is not set and no default provided"
+        )
+        sys.exit(1)
+    return password
 
 
 def get_mock_urls() -> tuple[str, str]:

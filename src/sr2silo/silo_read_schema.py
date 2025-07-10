@@ -28,13 +28,12 @@ class ReadMetadata(BaseModel):
 
     read_id: str
     sample_id: str
-    batch_id: str
+    batch_id: str  # Can be empty string for samples without batch_id
     sampling_date: str
     location_name: str
     read_length: str
     primer_protocol: str
     location_code: str
-    nextclade_reference: str
     sr2silo_version: str
 
 
