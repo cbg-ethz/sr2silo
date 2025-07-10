@@ -30,14 +30,10 @@ class ReadMetadata(BaseModel):
     sample_id: str
     batch_id: str
     sampling_date: str
-    sequencing_date: str
     location_name: str
     read_length: str
     primer_protocol: str
     location_code: str
-    flow_cell_serial_number: str
-    sequencing_well_position: str
-    primer_protocol_name: str
     nextclade_reference: str
     sr2silo_version: str
 

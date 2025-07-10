@@ -20,34 +20,29 @@ class Sample:
         self.batch_id = batch_id
         self.metadata: dict[str, str] | None = None
         self.timeline: Path | None = None
-        self.primers: Path | None = None
 
     def __str__(self) -> str:
         return f"Sample(sample_id={self.sample_id}, batch_id={self.batch_id})"
 
-    def enrich_metadata(self, timeline: Path, primers: Path) -> None:
+    def enrich_metadata(self, timeline: Path) -> None:
         """Enrich the sample metadata with additional information.
 
         Args:
             timeline (Path): The path to the timeline file.
-            primers (Path): The path to the primers file.
         """
         self.timeline = timeline
-        self.primers = primers
-
         self.set_metadata()
 
     def set_metadata(self) -> None:
         """Get the metadata for the sample."""
-        if not self.timeline or not self.primers:
+        if not self.timeline:
             raise ValueError(
-                "Timeline and primers must be set before calling get_metadata"
+                "Timeline must be set before calling get_metadata"
             )
         self.metadata = metadata.get_metadata(
             sample_id=self.sample_id,
             batch_id=self.batch_id,
             timeline=self.timeline,
-            primers=self.primers,
         )
 
     def get_metadata(self) -> dict[str, str]:

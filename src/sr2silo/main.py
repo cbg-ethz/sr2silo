@@ -12,7 +12,6 @@ import typer
 from sr2silo.config import (
     get_keycloak_token_url,
     get_nextclade_reference,
-    get_primer_file,
     get_submission_url,
     get_timeline_file,
     get_version,
@@ -97,15 +96,6 @@ def process_from_vpipe(
             "environment variable.",
         ),
     ] = None,
-    primer_file: Annotated[
-        Path | None,
-        typer.Option(
-            "--primer-file",
-            "-p",
-            help="Path to the primers file. Falls back to PRIMER_FILE "
-            "environment variable.",
-        ),
-    ] = None,
     reference: Annotated[
         str | None,
         typer.Option(
@@ -139,23 +129,12 @@ def process_from_vpipe(
             )
             raise typer.Exit(1)
 
-    # Resolve primer_file with environment fallback
-    if primer_file is None:
-        primer_file = get_primer_file()
-        if primer_file is None:
-            logging.error(
-                "Primer file must be provided via --primer-file or "
-                "PRIMER_FILE environment variable"
-            )
-            raise typer.Exit(1)
-
     # Resolve reference with environment fallback
     if reference is None:
         reference = get_nextclade_reference()
 
     logging.info(f"Processing input file: {input_file}")
     logging.info(f"Using timeline file: {timeline_file}")
-    logging.info(f"Using primers file: {primer_file}")
     logging.info(f"Using output file: {output_fp}")
     logging.info(f"Using genome reference: {reference}")
     logging.info(f"Using sample_id: {sample_id}")
@@ -184,7 +163,6 @@ def process_from_vpipe(
         sample_id=sample_id,
         batch_id=batch_id,
         timeline_file=timeline_file,
-        primers_file=primer_file,
         output_fp=output_fp,
         reference=reference,
         skip_merge=skip_merge,
