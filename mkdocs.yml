@@ -46,7 +46,6 @@ nav:
   - Usage:
       - Resource Requirements: usage/resource_requirements.md
       - Import to Loculus: usage/import_to_loculus.md
-  - API: api/silo.md
 
 watch:
   - src/sr2silo
