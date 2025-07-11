@@ -36,9 +36,7 @@ class Sample:
     def set_metadata(self) -> None:
         """Get the metadata for the sample."""
         if not self.timeline:
-            raise ValueError(
-                "Timeline must be set before calling get_metadata"
-            )
+            raise ValueError("Timeline must be set before calling get_metadata")
         self.metadata = metadata.get_metadata(
             sample_id=self.sample_id,
             batch_id=self.batch_id,

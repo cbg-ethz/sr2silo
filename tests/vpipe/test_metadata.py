@@ -98,17 +98,16 @@ def test_get_metadata_none_batch_id(timeline: Path):
     assert metadata == expected_metadata
 
 
-
 def test_get_metadata_empty_sample_id_error(timeline: Path):
     """Test that empty sample_id raises ValueError."""
-    
+
     with pytest.raises(ValueError, match="Sample ID cannot be empty"):
         get_metadata(
             sample_id="",
             batch_id="20241024_2411515907",
             timeline=timeline,
         )
-    
+
     with pytest.raises(ValueError, match="Sample ID cannot be empty"):
         get_metadata(
             sample_id="  ",  # whitespace only
@@ -119,15 +118,19 @@ def test_get_metadata_empty_sample_id_error(timeline: Path):
 
 def test_get_metadata_missing_location_error():
     """Test that missing location_name raises ValueError."""
-    
+
     # Create a temporary timeline file with missing location
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.tsv', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:
         f.write("sample\tbatch\treads\tproto\tlocation_code\tdate\tlocation\n")
-        f.write("A1_05_2024_10_08\t20241024_2411515907\t250\tv532\t5\t2024-10-08\t\n")  # empty location
+        f.write(
+            "A1_05_2024_10_08\t20241024_2411515907\t250\tv532\t5\t2024-10-08\t\n"
+        )  # empty location
         temp_timeline = Path(f.name)
-    
+
     try:
-        with pytest.raises(ValueError, match="Location name is missing for sample A1_05_2024_10_08"):
+        with pytest.raises(
+            ValueError, match="Location name is missing for sample A1_05_2024_10_08"
+        ):
             get_metadata(
                 sample_id="A1_05_2024_10_08",
                 batch_id="20241024_2411515907",
@@ -139,15 +142,19 @@ def test_get_metadata_missing_location_error():
 
 def test_get_metadata_missing_date_error():
     """Test that missing sampling_date raises ValueError."""
-    
+
     # Create a temporary timeline file with missing date
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.tsv', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:
         f.write("sample\tbatch\treads\tproto\tlocation_code\tdate\tlocation\n")
-        f.write("A1_05_2024_10_08\t20241024_2411515907\t250\tv532\t5\t\tLugano (TI)\n")  # empty date
+        f.write(
+            "A1_05_2024_10_08\t20241024_2411515907\t250\tv532\t5\t\tLugano (TI)\n"
+        )  # empty date
         temp_timeline = Path(f.name)
-    
+
     try:
-        with pytest.raises(ValueError, match="Sampling date is missing for sample A1_05_2024_10_08"):
+        with pytest.raises(
+            ValueError, match="Sampling date is missing for sample A1_05_2024_10_08"
+        ):
             get_metadata(
                 sample_id="A1_05_2024_10_08",
                 batch_id="20241024_2411515907",
@@ -159,15 +166,19 @@ def test_get_metadata_missing_date_error():
 
 def test_get_metadata_invalid_date_error():
     """Test that invalid sampling_date raises ValueError."""
-    
+
     # Create a temporary timeline file with invalid date
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.tsv', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:
         f.write("sample\tbatch\treads\tproto\tlocation_code\tdate\tlocation\n")
-        f.write("A1_05_2024_10_08\t20241024_2411515907\t250\tv532\t5\tinvalid-date\tLugano (TI)\n")
+        f.write(
+            "A1_05_2024_10_08\t20241024_2411515907\t250\tv532\t5\tinvalid-date\tLugano (TI)\n"
+        )
         temp_timeline = Path(f.name)
-    
+
     try:
-        with pytest.raises(ValueError, match="Invalid sampling date for sample A1_05_2024_10_08"):
+        with pytest.raises(
+            ValueError, match="Invalid sampling date for sample A1_05_2024_10_08"
+        ):
             get_metadata(
                 sample_id="A1_05_2024_10_08",
                 batch_id="20241024_2411515907",
@@ -179,20 +190,22 @@ def test_get_metadata_invalid_date_error():
 
 def test_get_metadata_graceful_empty_fields():
     """Test that non-critical empty fields are handled gracefully."""
-    
+
     # Create a temporary timeline file with some empty non-critical fields
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.tsv', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:
         f.write("sample\tbatch\treads\tproto\tlocation_code\tdate\tlocation\n")
-        f.write("A1_05_2024_10_08\t\t\t\t\t2024-10-08\tLugano (TI)\n")  # empty batch, reads, proto, location_code
+        f.write(
+            "A1_05_2024_10_08\t\t\t\t\t2024-10-08\tLugano (TI)\n"
+        )  # empty batch, reads, proto, location_code
         temp_timeline = Path(f.name)
-    
+
     try:
         metadata = get_metadata(
             sample_id="A1_05_2024_10_08",
             batch_id="",  # empty batch_id should match
             timeline=temp_timeline,
         )
-        
+
         expected_metadata = {
             "sample_id": "A1_05_2024_10_08",
             "batch_id": None,  # empty in timeline
@@ -202,7 +215,7 @@ def test_get_metadata_graceful_empty_fields():
             "sampling_date": "2024-10-08",
             "location_name": "Lugano (TI)",
         }
-        
+
         assert metadata == expected_metadata
     finally:
         temp_timeline.unlink()
@@ -210,21 +223,25 @@ def test_get_metadata_graceful_empty_fields():
 
 def test_get_metadata_malformed_row_skipped():
     """Test that malformed rows (too few columns) are skipped."""
-    
+
     # Create a temporary timeline file with malformed row
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.tsv', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:
         f.write("sample\tbatch\treads\tproto\tlocation_code\tdate\tlocation\n")
-        f.write("A1_05_2024_10_08\t20241024_2411515907\t250\n")  # only 3 columns - malformed
-        f.write("A1_05_2024_10_08\t20241024_2411515907\t250\tv532\t5\t2024-10-08\tLugano (TI)\n")  # correct row
+        f.write(
+            "A1_05_2024_10_08\t20241024_2411515907\t250\n"
+        )  # only 3 columns - malformed
+        f.write(
+            "A1_05_2024_10_08\t20241024_2411515907\t250\tv532\t5\t2024-10-08\tLugano (TI)\n"
+        )  # correct row
         temp_timeline = Path(f.name)
-    
+
     try:
         metadata = get_metadata(
             sample_id="A1_05_2024_10_08",
             batch_id="20241024_2411515907",
             timeline=temp_timeline,
         )
-        
+
         expected_metadata = {
             "sample_id": "A1_05_2024_10_08",
             "batch_id": "20241024_2411515907",
@@ -234,7 +251,7 @@ def test_get_metadata_malformed_row_skipped():
             "sampling_date": "2024-10-08",
             "location_name": "Lugano (TI)",
         }
-        
+
         assert metadata == expected_metadata
     finally:
         temp_timeline.unlink()
