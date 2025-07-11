@@ -4,4 +4,4 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - sr2silo=1.0.1
+  - sr2silo=1.1.0
