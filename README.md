@@ -89,8 +89,7 @@ For the V-Pipe to Silo implementation we carry through the following metadata:
     "location_name":"Lugano (TI)",
     "read_length":"250",
     "primer_protocol":"v532",
-    "location_code":"5",
-    "nextclade_reference":"sars-cov-2"
+    "location_code":"5"
     }
 ```
 
