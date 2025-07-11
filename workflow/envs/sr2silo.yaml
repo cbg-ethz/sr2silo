@@ -5,5 +5,3 @@ channels:
   - defaults
 dependencies:
   - sr2silo=1.0.1
-  - pandas>=2.0
-  - pyyaml>=6.0
