@@ -52,36 +52,51 @@ def get_metadata_from_timeline(sample_id: str, timeline: Path) -> dict[str, str]
         raise FileNotFoundError(f"Timeline file not found or is not a file: {timeline}")
 
     with timeline.open() as f:
-        reader = csv.reader(f, delimiter="\t")
+        reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
-            # Check if row has enough columns
-            if len(row) < 7:
+            # Check if row has all required columns with non-None values
+            # DictReader may return empty strings for missing columns in malformed rows
+            required_columns = {
+                "sample",
+                "batch",
+                "reads",
+                "proto",
+                "location_code",
+                "date",
+                "location",
+            }
+            if not required_columns.issubset(row.keys()) or any(
+                row[col] is None for col in required_columns
+            ):
+                missing_or_none_columns = (required_columns - row.keys()) | {
+                    col for col in required_columns if row.get(col) is None
+                }
                 logging.warning(
-                    f"Skipping malformed row with {len(row)} columns: {row}"
+                    f"Skipping malformed row missing/None columns {missing_or_none_columns}: {row}"
                 )
                 continue
 
-            if row[0] == sample_id:
+            if row["sample"] == sample_id:
                 logging.info(
                     "Found metadata in timeline for sample_id %s",
                     sample_id,
                 )
 
                 # Validate critical fields before processing
-                # Critical fields: sample_id, location_name (row[6]), sampling_date
+                # Critical fields: sample_id, location_name, sampling_date
                 if not sample_id or not sample_id.strip():
                     raise ValueError("Sample ID cannot be empty")
 
-                if not row[6] or not row[6].strip():
+                if not row["location"] or not row["location"].strip():
                     raise ValueError(f"Location name is missing for sample {sample_id}")
 
-                if not row[5] or not row[5].strip():
+                if not row["date"] or not row["date"].strip():
                     raise ValueError(f"Sampling date is missing for sample {sample_id}")
 
                 # Extract metadata from timeline row
                 # Timeline format: sample	batch	reads	proto	location_code	date	location
                 try:
-                    sampling_date = convert_to_iso_date(row[5])
+                    sampling_date = convert_to_iso_date(row["date"])
                 except ValueError as e:
                     raise ValueError(
                         f"Invalid sampling date for sample {sample_id}: {e}"
@@ -89,12 +104,22 @@ def get_metadata_from_timeline(sample_id: str, timeline: Path) -> dict[str, str]
 
                 metadata = {
                     "sample_id": sample_id,
-                    "batch_id": row[1] if row[1] and row[1].strip() else None,
-                    "read_length": row[2] if row[2] and row[2].strip() else None,
-                    "primer_protocol": row[3] if row[3] and row[3].strip() else None,
-                    "location_code": row[4] if row[4] and row[4].strip() else None,
+                    "batch_id": (
+                        row["batch"] if row["batch"] and row["batch"].strip() else None
+                    ),
+                    "read_length": (
+                        row["reads"] if row["reads"] and row["reads"].strip() else None
+                    ),
+                    "primer_protocol": (
+                        row["proto"] if row["proto"] and row["proto"].strip() else None
+                    ),
+                    "location_code": (
+                        row["location_code"]
+                        if row["location_code"] and row["location_code"].strip()
+                        else None
+                    ),
                     "sampling_date": sampling_date,
-                    "location_name": row[6].strip(),
+                    "location_name": row["location"].strip(),
                 }
 
                 logging.info("Extracted metadata from timeline: %s", metadata)
