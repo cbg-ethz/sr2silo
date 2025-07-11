@@ -90,15 +90,6 @@ def process_from_vpipe(
             "Used to fetch the nucleotide / amino acid reference.",
         ),
     ],
-    batch_id: Annotated[
-        str | None,
-        typer.Option(
-            "--batch-id",
-            "-b",
-            help="Batch ID to use for metadata. Optional - if "
-            "not provided, will be set to empty string.",
-        ),
-    ] = None,
     skip_merge: Annotated[
         bool,
         typer.Option(
@@ -123,20 +114,11 @@ def process_from_vpipe(
             )
             raise typer.Exit(1)
 
-    # Handle empty or None batch_id
-    if batch_id is None:
-        batch_id = ""
-        logging.info("No batch_id provided, using empty string")
-    elif batch_id.strip() == "":
-        batch_id = ""
-        logging.info("Empty batch_id provided, using empty string")
-
     logging.info(f"Processing input file: {input_file}")
     logging.info(f"Using timeline file: {timeline_file}")
     logging.info(f"Using output file: {output_fp}")
     logging.info(f"Using Lapis URL: {lapis_url}")
     logging.info(f"Using sample_id: {sample_id}")
-    logging.info(f"Using batch_id: '{batch_id}'")
     logging.info(f"Skip read pair merging: {skip_merge}")
 
     # check if $TMPDIR is set, if not use /tmp
@@ -188,7 +170,6 @@ def process_from_vpipe(
     nuc_align_to_silo_njson(
         input_file=input_file,
         sample_id=sample_id,
-        batch_id=batch_id,
         timeline_file=timeline_file,
         output_fp=output_fp,
         nuc_ref_fp=nuc_ref_fp,

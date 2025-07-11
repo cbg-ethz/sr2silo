@@ -12,17 +12,15 @@ class Sample:
 
     Args:
         sample_id (str): The sample ID.
-        batch_id (str | None): The batch ID. Can be None or empty string.
     """
 
-    def __init__(self, sample_id: str, batch_id: str | None = None) -> None:
+    def __init__(self, sample_id: str) -> None:
         self.sample_id = sample_id
-        self.batch_id = batch_id or ""  # Convert None to empty string
         self.metadata: dict[str, str] | None = None
         self.timeline: Path | None = None
 
     def __str__(self) -> str:
-        return f"Sample(sample_id={self.sample_id}, batch_id={self.batch_id})"
+        return f"Sample(sample_id={self.sample_id})"
 
     def enrich_metadata(self, timeline: Path) -> None:
         """Enrich the sample metadata with additional information.
@@ -39,7 +37,6 @@ class Sample:
             raise ValueError("Timeline must be set before calling get_metadata")
         self.metadata = metadata.get_metadata(
             sample_id=self.sample_id,
-            batch_id=self.batch_id,
             timeline=self.timeline,
         )
 

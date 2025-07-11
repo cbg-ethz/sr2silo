@@ -32,14 +32,11 @@ def convert_to_iso_date(date: str) -> str:
         raise ValueError(f"Invalid date format '{date}': {e}") from e
 
 
-def get_metadata_from_timeline(
-    sample_id: str, batch_id: str, timeline: Path
-) -> dict[str, str] | None:
+def get_metadata_from_timeline(sample_id: str, timeline: Path) -> dict[str, str] | None:
     """Get metadata from the timeline file.
 
     Args:
         sample_id (str): The sample ID to search for.
-        batch_id (str): The batch ID to search for (can be empty).
         timeline (Path): The timeline file to search in.
 
     Returns:
@@ -64,19 +61,10 @@ def get_metadata_from_timeline(
                 )
                 continue
 
-            sample_id_match = row[0] == sample_id
-            # Handle empty batch_id gracefully - if batch_id is empty/None, match the
-            # first entry for the sample
-            if not batch_id or not batch_id.strip():
-                batch_id_match = sample_id_match  # Just match on sample_id if empty
-            else:
-                batch_id_match = row[1] == batch_id
-
-            if sample_id_match and batch_id_match:
+            if row[0] == sample_id:
                 logging.info(
-                    "Found metadata in timeline for sample_id %s and batch_id %s",
+                    "Found metadata in timeline for sample_id %s",
                     sample_id,
-                    batch_id,
                 )
 
                 # Validate critical fields before processing
@@ -114,20 +102,18 @@ def get_metadata_from_timeline(
 
         # No matching entry found
         logging.warning(
-            "No matching entry found in timeline for sample_id %s and batch_id %s",
+            "No matching entry found in timeline for sample_id %s",
             sample_id,
-            batch_id,
         )
         return None
 
 
-def get_metadata(sample_id: str, batch_id: str, timeline: Path) -> dict[str, str]:
+def get_metadata(sample_id: str, timeline: Path) -> dict[str, str]:
     """
-    Get metadata for a given sample and batch from timeline file only.
+    Get metadata for a given sample from timeline file only.
 
     Args:
         sample_id (str): The sample ID to use for metadata.
-        batch_id (str | None): The batch ID to use for metadata. Can be None or empty.
         timeline (Path): The timeline file to cross-reference the metadata.
 
     Returns:
@@ -141,19 +127,18 @@ def get_metadata(sample_id: str, batch_id: str, timeline: Path) -> dict[str, str
     if not sample_id or not sample_id.strip():
         raise ValueError("Sample ID cannot be empty")
 
-    metadata = get_metadata_from_timeline(sample_id, batch_id, timeline)
+    metadata = get_metadata_from_timeline(sample_id, timeline)
 
     if metadata is None:
         # Return basic metadata structure if not found in timeline
         logging.warning(
-            "Timeline entry not found for sample_id %s and batch_id %s. "
+            "Timeline entry not found for sample_id %s. "
             "Returning basic metadata structure with None values.",
             sample_id,
-            batch_id,
         )
         metadata = {
             "sample_id": sample_id,
-            "batch_id": batch_id if batch_id and batch_id.strip() else None,
+            "batch_id": None,
             "read_length": None,
             "primer_protocol": None,
             "location_code": None,

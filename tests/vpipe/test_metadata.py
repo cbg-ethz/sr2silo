@@ -15,7 +15,6 @@ def test_get_metadata(timeline: Path):
 
     metadata = get_metadata(
         sample_id="A1_05_2024_10_08",
-        batch_id="20241024_2411515907",
         timeline=timeline,
     )
 
@@ -37,13 +36,12 @@ def test_get_metadata_not_found(timeline: Path):
 
     metadata = get_metadata(
         sample_id="NONEXISTENT",
-        batch_id="NONEXISTENT",
         timeline=timeline,
     )
 
     expected_metadata = {
         "sample_id": "NONEXISTENT",
-        "batch_id": "NONEXISTENT",
+        "batch_id": None,
         "read_length": None,
         "primer_protocol": None,
         "location_code": None,
@@ -54,12 +52,11 @@ def test_get_metadata_not_found(timeline: Path):
     assert metadata == expected_metadata
 
 
-def test_get_metadata_empty_batch_id(timeline: Path):
-    """Test the get_metadata function with empty batch_id."""
+def test_get_metadata_finds_sample(timeline: Path):
+    """Test the get_metadata function finds sample correctly."""
 
     metadata = get_metadata(
         sample_id="A1_05_2024_10_08",
-        batch_id="",  # Empty batch_id should be handled gracefully
         timeline=timeline,
     )
 
@@ -76,12 +73,11 @@ def test_get_metadata_empty_batch_id(timeline: Path):
     assert metadata == expected_metadata
 
 
-def test_get_metadata_none_batch_id(timeline: Path):
-    """Test the get_metadata function with None batch_id."""
+def test_get_metadata_single_lookup(timeline: Path):
+    """Test the get_metadata function works with sample-only lookup."""
 
     metadata = get_metadata(
         sample_id="A1_05_2024_10_08",
-        batch_id=None,  # None batch_id should be handled gracefully
         timeline=timeline,
     )
 
@@ -104,14 +100,12 @@ def test_get_metadata_empty_sample_id_error(timeline: Path):
     with pytest.raises(ValueError, match="Sample ID cannot be empty"):
         get_metadata(
             sample_id="",
-            batch_id="20241024_2411515907",
             timeline=timeline,
         )
 
     with pytest.raises(ValueError, match="Sample ID cannot be empty"):
         get_metadata(
             sample_id="  ",  # whitespace only
-            batch_id="20241024_2411515907",
             timeline=timeline,
         )
 
@@ -133,7 +127,6 @@ def test_get_metadata_missing_location_error():
         ):
             get_metadata(
                 sample_id="A1_05_2024_10_08",
-                batch_id="20241024_2411515907",
                 timeline=temp_timeline,
             )
     finally:
@@ -157,7 +150,6 @@ def test_get_metadata_missing_date_error():
         ):
             get_metadata(
                 sample_id="A1_05_2024_10_08",
-                batch_id="20241024_2411515907",
                 timeline=temp_timeline,
             )
     finally:
@@ -181,7 +173,6 @@ def test_get_metadata_invalid_date_error():
         ):
             get_metadata(
                 sample_id="A1_05_2024_10_08",
-                batch_id="20241024_2411515907",
                 timeline=temp_timeline,
             )
     finally:
@@ -202,7 +193,6 @@ def test_get_metadata_graceful_empty_fields():
     try:
         metadata = get_metadata(
             sample_id="A1_05_2024_10_08",
-            batch_id="",  # empty batch_id should match
             timeline=temp_timeline,
         )
 
@@ -238,7 +228,6 @@ def test_get_metadata_malformed_row_skipped():
     try:
         metadata = get_metadata(
             sample_id="A1_05_2024_10_08",
-            batch_id="20241024_2411515907",
             timeline=temp_timeline,
         )
 

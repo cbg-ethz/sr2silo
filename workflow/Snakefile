@@ -19,11 +19,11 @@ with open(CONFIG, "r") as file:
     config = yaml.safe_load(file)
 
 
-def get_sample_batch_mapping():
+def get_sample_list():
     """Read timeline file and filter by date range and location codes."""
 
     # Read the timeline file
-    sample_batch_mapping = {}
+    sample_list = []
 
     with open(config["TIMELINE_FILE"], "r") as f:
         reader = csv.reader(f, delimiter="\t")
@@ -52,7 +52,7 @@ def get_sample_batch_mapping():
                         start_date <= sample_date <= end_date
                         and location_code_int in config["LOCATIONS"]
                     ):
-                        sample_batch_mapping[sample] = batch
+                        sample_list.append(sample)
                 except (ValueError, TypeError):
                     pass  # Skip invalid rows
 
@@ -86,42 +86,54 @@ def get_sample_batch_mapping():
             if location_code_int not in config["LOCATIONS"]:
                 continue
 
-            # Add to mapping (batch can be empty)
-            sample_batch_mapping[sample] = batch if batch else ""
+            # Add to sample list (avoid duplicates)
+            if sample not in sample_list:
+                sample_list.append(sample)
 
-    return sample_batch_mapping
-
-
-def get_batch_id(sample_id):
-    """Get the batch id from the filtered sample batch mapping."""
-    sample_batch_mapping = get_sample_batch_mapping()
-    batch_id = sample_batch_mapping.get(sample_id, "")
-    # Handle empty batch_id by returning "nobatch" for file naming
-    return batch_id if batch_id else "nobatch"
-
-
-def get_actual_batch_id(sample_id):
-    """Get the actual batch id (can be empty) for processing."""
-    sample_batch_mapping = get_sample_batch_mapping()
-    return sample_batch_mapping.get(sample_id, "")
+    return sample_list
 
 
 def get_input_file_path(sample_id):
-    """Get the correct input file path based on whether batch_id exists."""
-    batch_id = get_actual_batch_id(sample_id)
-    if batch_id:
-        # If batch_id exists, use the standard path with batch_id
-        return f"{config['BASE_SAMPLE_DIR']}/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam"
-    else:
-        # If no batch_id, assume the file is directly under the sample directory
-        return f"{config['BASE_SAMPLE_DIR']}/{sample_id}/alignments/REF_aln_trim.bam"
+    """Get the input file path for the sample, trying both with and without batch structure."""
+    # First try without batch_id structure
+    simple_path = f"{config['BASE_SAMPLE_DIR']}/{sample_id}/alignments/REF_aln_trim.bam"
+    if Path(simple_path).exists():
+        return simple_path
+    
+    # If that doesn't exist, we need to find the batch_id by checking the timeline
+    with open(config["TIMELINE_FILE"], "r") as f:
+        reader = csv.reader(f, delimiter="\t")
+        # Skip header row if it exists
+        first_row = next(reader, None)
+        if first_row and first_row[0] == "sample":
+            pass  # Header row
+        else:
+            # Check first row if it's not a header
+            if first_row and len(first_row) >= 2 and first_row[0] == sample_id:
+                batch_id = first_row[1]
+                if batch_id:  # If batch_id exists, try that path
+                    batch_path = f"{config['BASE_SAMPLE_DIR']}/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam"
+                    if Path(batch_path).exists():
+                        return batch_path
+        
+        # Process remaining rows
+        for row in reader:
+            if len(row) >= 2 and row[0] == sample_id:
+                batch_id = row[1]
+                if batch_id:  # If batch_id exists, try that path
+                    batch_path = f"{config['BASE_SAMPLE_DIR']}/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam"
+                    if Path(batch_path).exists():
+                        return batch_path
+    
+    # Default to simple path if nothing else works
+    return simple_path
 
 
-# Get the filtered sample-batch mapping
-SAMPLE_BATCH_IDS = get_sample_batch_mapping()
+# Get the filtered sample list
+SAMPLE_IDS = get_sample_list()
 
 # Warning if no samples found
-if not SAMPLE_BATCH_IDS:
+if not SAMPLE_IDS:
     print("⚠️  WARNING: No samples found matching the filtering criteria!")
     print(f"   Date range: {config['START_DATE']} to {config['END_DATE']}")
     print(f"   Location codes: {config['LOCATIONS']}")
@@ -129,21 +141,21 @@ if not SAMPLE_BATCH_IDS:
     print("   Please check your configuration and timeline file.")
     print("   The workflow will complete with no jobs to execute.")
 else:
-    print(f"✓ Found {len(SAMPLE_BATCH_IDS)} samples matching criteria:")
-    for sample_id, batch_id in SAMPLE_BATCH_IDS.items():
-        print(f"   {sample_id} -> {batch_id}")
+    print(f"✓ Found {len(SAMPLE_IDS)} samples matching criteria:")
+    for sample_id in SAMPLE_IDS:
+        print(f"   {sample_id}")
     print()
 
 
 rule all:
     input:
         [
-            f"{config['RESULTS_DIR']}/sampleId-{sample_id}_batchId-{get_batch_id(sample_id)}.ndjson.zst"
-            for sample_id in SAMPLE_BATCH_IDS.keys()
+            f"{config['RESULTS_DIR']}/sampleId-{sample_id}.ndjson.zst"
+            for sample_id in SAMPLE_IDS
         ],
         [
-            f"{config['RESULTS_DIR']}/uploads/sampleId-{sample_id}_batchId-{get_batch_id(sample_id)}.uploaded"
-            for sample_id in SAMPLE_BATCH_IDS.keys()
+            f"{config['RESULTS_DIR']}/uploads/sampleId-{sample_id}.uploaded"
+            for sample_id in SAMPLE_IDS
         ],
 
 
@@ -161,31 +173,21 @@ rule process_sample:
         sample_fp=lambda wildcards: get_input_file_path(wildcards.sample_id),
     output:
         result_fp=f"{config['RESULTS_DIR']}"
-        + "/sampleId-{sample_id}_batchId-{batch_id}.ndjson.zst",
+        + "/sampleId-{sample_id}.ndjson.zst",
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
-        batch_id=lambda wildcards: get_actual_batch_id(wildcards.sample_id),  # Use actual batch_id (can be empty)
         timeline_file=config["TIMELINE_FILE"],
-        primers_file=config["PRIMERS_FILE"],
         lapis_url=config.get("LAPIS_URL", ""),
     log:
-        "logs/sr2silo/process_sample/sampleId_{sample_id}_batchId_{batch_id}.log",
+        "logs/sr2silo/process_sample/sampleId_{sample_id}.log",
     conda:
         "envs/sr2silo.yaml"
     shell:
         """
-        if [ -n "{params.batch_id}" ]; then
-            BATCH_ID_ARG="--batch-id {params.batch_id}"
-        else
-            BATCH_ID_ARG=""
-        fi
-
         sr2silo process-from-vpipe \
             --input-file {input.sample_fp} \
             --sample-id {params.sample_id} \
-            $BATCH_ID_ARG \
             --timeline-file {params.timeline_file} \
-            --primer-file {params.primers_file} \
             --output-fp {output.result_fp} \
             --lapis-url {params.lapis_url} > {log} 2>&1
         """
@@ -211,9 +213,9 @@ rule submit_to_loculus:
     """
     input:
         result_fp=f"{config['RESULTS_DIR']}"
-        + "/sampleId-{sample_id}_batchId-{batch_id}.ndjson.zst",
+        + "/sampleId-{sample_id}.ndjson.zst",
     output:
-        flag=f"{config['RESULTS_DIR']}/uploads/sampleId-{{sample_id}}_batchId-{{batch_id}}.uploaded",
+        flag=f"{config['RESULTS_DIR']}/uploads/sampleId-{{sample_id}}.uploaded",
     params:
         keycloak_url=config.get("KEYCLOAK_TOKEN_URL", ""),
         submission_url=config.get("SUBMISSION_URL", ""),
@@ -221,7 +223,7 @@ rule submit_to_loculus:
         username=config.get("USERNAME", ""),
         password=config.get("PASSWORD", ""),
     log:
-        "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}_batchId_{batch_id}.log",
+        "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}.log",
     conda:
         "envs/sr2silo.yaml"
     shell:
