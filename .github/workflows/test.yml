@@ -5,7 +5,7 @@ name: CI/CD (Poetry + Conda)
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main ]
   pull_request:
     branches: [ main, dev ]
 
