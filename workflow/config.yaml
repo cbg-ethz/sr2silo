@@ -9,7 +9,6 @@ END_DATE: "2024-10-30"
 ### Input Files
 BASE_SAMPLE_DIR: "tests/data/samples_large"
 TIMELINE_FILE: "tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
-PRIMERS_FILE: "resources/sars-cov-2/primers/primers.yaml"
 ### Output Files
 RESULTS_DIR: "results"
 

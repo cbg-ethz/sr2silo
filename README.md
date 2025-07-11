@@ -86,14 +86,10 @@ For the V-Pipe to Silo implementation we carry through the following metadata:
     "sample_id":"A1_05_2024_10_08",
     "batch_id":"20241024_2411515907",
     "sampling_date":"2024-10-08",
-    "sequencing_date":"2024-10-24",
     "location_name":"Lugano (TI)",
-    "read_length":"250","primer_protocol":"v532",
-    "location_code":"05",
-    "flow_cell_serial_number":"2411515907"
-    "sequencing_well_position":"A1",
-    "primer_protocol_name":"SARS-CoV-2 ARTIC V5.3.2",
-    "nextclade_reference":"sars-cov-2"
+    "read_length":"250",
+    "primer_protocol":"v532",
+    "location_code":"5"
     }
 ```
 
@@ -188,11 +184,9 @@ sr2silo follows a two-step workflow:
 sr2silo process-from-vpipe \
     --input-file input.bam \
     --sample-id SAMPLE_001 \
-    --batch-id BATCH_001 \
     --timeline-file timeline.tsv \
-    --primer-file primers.yaml \
-    --output-fp output.ndjson \
-    --reference sars-cov-2
+    --lapis-url https://lapis.cov-spectrum.org/open/v2 \
+    --output-fp output.ndjson
 
 # Example: Submit to Loculus (use environment variables for credentials)
 export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
@@ -223,15 +217,13 @@ export GROUP_ID=123
 export USERNAME=your-username
 export PASSWORD=your-password
 
-# Run with required CLI arguments (timeline and primer files must be specified)
+# Run with required CLI arguments (timeline file must be specified)
 sr2silo process-from-vpipe \
     --input-file input.bam \
     --sample-id SAMPLE_001 \
-    --batch-id BATCH_001 \
     --timeline-file /path/to/timeline.tsv \
-    --primer-file /path/to/primers.yaml \
-    --output-fp output.ndjson \
-    --reference sars-cov-2
+    --lapis-url https://lapis.cov-spectrum.org/open/v2 \
+    --output-fp output.ndjson
 
 # Submission using environment variables for credentials
 sr2silo submit-to-loculus \

@@ -1,4 +1,4 @@
-"""Extract metadata from V-Pipe Filenaming Conventions."""
+"""Extract metadata from Timeline file only."""
 
 from __future__ import annotations
 
@@ -7,230 +7,169 @@ import datetime
 import logging
 from pathlib import Path
 
-import yaml
-
-
-def sample_id_decoder(sample_id: str) -> dict:
-    """Decode the sample ID into individual components.
-
-    Args:
-        sample_id (str): The sample ID to decode.
-
-    Returns:
-        dict: A dictionary containing the decoded components.
-              containing the following keys:
-                - sequencing_well_position (str : sequencing well position)
-                - location_code (int : code of the location)
-                - sampling_date (str : date of the sampling)
-    """
-    components = sample_id.split("_")
-    # Assign components to meaningful variable names
-    well_position = components[0]  # A1
-    location_code = components[1]  # 10
-    sampling_date = f"{components[2]}-{components[3]}-{components[4]}"  # 2024-09-30
-    return {
-        "sequencing_well_position": well_position,
-        "location_code": location_code,
-        "sampling_date": sampling_date,
-    }
-
-
-def batch_id_decoder(batch_id: str) -> dict:
-    """Decode the batch ID into individual components.
-
-    Args:
-        batch_id (str): The batch ID to decode. Can be empty string.
-
-    Returns:
-        dict: A dictionary contains the decoded components.
-            - sequencing_date (str): date of the sequencing or empty
-            - flow_cell_serial_number (str): serial number of the flow
-                                            cell or empty
-    """
-    if not batch_id or batch_id.strip() == "":
-        return {
-            "sequencing_date": "",
-            "flow_cell_serial_number": "",
-        }
-
-    components = batch_id.split("_")
-    if len(components) < 2:
-        # Handle malformed batch_id
-        logging.warning(
-            f"Malformed batch_id '{batch_id}': expected format "
-            "'YYYYMMDD_SERIAL', but got insufficient components"
-        )
-        return {
-            "sequencing_date": "",
-            "flow_cell_serial_number": "",
-        }
-
-    try:
-        # Assign components to meaningful variable names
-        date_component = components[0]
-        sequencing_date = (
-            f"{date_component[:4]}-{date_component[4:6]}-{date_component[6:]}"
-        )
-        flow_cell_serial_number = components[1]
-
-        # Validate the date component has the right length
-        if len(date_component) != 8:
-            raise ValueError(
-                f"Date component '{date_component}' should be 8 digits (YYYYMMDD)"
-            )
-
-        return {
-            "sequencing_date": sequencing_date,
-            "flow_cell_serial_number": flow_cell_serial_number,
-        }
-    except (IndexError, ValueError) as e:
-        # Handle any parsing errors gracefully
-        logging.warning(
-            f"Failed to parse batch_id '{batch_id}': {e}. "
-            "Leaving sequencing_date and flow_cell_serial_number empty."
-        )
-        return {
-            "sequencing_date": "",
-            "flow_cell_serial_number": "",
-        }
-
 
 def convert_to_iso_date(date: str) -> str:
-    """Convert a date string to ISO 8601 format (date only)."""
-    # Parse the date string
-    date_obj = datetime.datetime.strptime(date, "%Y-%m-%d")
-    # Format the date as ISO 8601 (date only)
-    return date_obj.date().isoformat()
+    """Convert a date string to ISO 8601 format (date only).
+
+    Args:
+        date (str): Date string in YYYY-MM-DD format.
+
+    Returns:
+        str: ISO 8601 formatted date string.
+
+    Raises:
+        ValueError: If date string cannot be parsed or is empty.
+    """
+    if not date or not date.strip():
+        raise ValueError("Date string cannot be empty")
+
+    try:
+        # Parse the date string
+        date_obj = datetime.datetime.strptime(date.strip(), "%Y-%m-%d")
+        # Format the date as ISO 8601 (date only)
+        return date_obj.date().isoformat()
+    except ValueError as e:
+        raise ValueError(f"Invalid date format '{date}': {e}") from e
 
 
-def enrich_metadata_from_timeline(metadata: dict[str, str], timeline: Path) -> None:
-    """Enrich metadata from the timeline file."""
+def get_metadata_from_timeline(sample_id: str, timeline: Path) -> dict[str, str] | None:
+    """Get metadata from the timeline file.
+
+    Args:
+        sample_id (str): The sample ID to search for.
+        timeline (Path): The timeline file to search in.
+
+    Returns:
+        dict[str, str] | None: The metadata if found, None otherwise.
+
+    Raises:
+        ValueError: If critical fields (sample_id, location_name, sampling_date) are
+                   missing or invalid.
+        FileNotFoundError: If timeline file is not found.
+    """
     if not timeline.is_file():
         logging.error(f"Timeline file not found or is not a file: {timeline}")
         raise FileNotFoundError(f"Timeline file not found or is not a file: {timeline}")
 
     with timeline.open() as f:
-        reader = csv.reader(f, delimiter="\t")
+        reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
-            sample_id_match = row[0] == metadata["sample_id"]
+            # Check if row has all required columns with non-None values
+            # DictReader may return empty strings for missing columns in malformed rows
+            required_columns = {
+                "sample",
+                "batch",
+                "reads",
+                "proto",
+                "location_code",
+                "date",
+                "location",
+            }
+            if not required_columns.issubset(row.keys()) or any(
+                row[col] is None for col in required_columns
+            ):
+                missing_or_none_columns = (required_columns - row.keys()) | {
+                    col for col in required_columns if row.get(col) is None
+                }
+                logging.warning(
+                    f"Skipping malformed row missing/None columns \
+                        {missing_or_none_columns}: {row}"
+                )
+                continue
 
-            if sample_id_match:
+            if row["sample"] == sample_id:
                 logging.info(
-                    "Enriching metadata with timeline data e.g. read_length, "
-                    "primer_protocol, location_name"
-                )
-                metadata["read_length"] = row[2]
-                metadata["primer_protocol"] = row[3]
-                metadata["location_name"] = row[6]
-
-                # Convert sampling_date to ISO format for comparison
-                timeline_sampling_date = convert_to_iso_date(row[5])
-
-                location_code_mismatch = int(metadata["location_code"]) != int(row[4])
-                sampling_date_mismatch = (
-                    metadata["sampling_date"] != timeline_sampling_date
+                    "Found metadata in timeline for sample_id %s",
+                    sample_id,
                 )
 
-                if location_code_mismatch:
-                    logging.warning(
-                        f"Mismatch in location code for sample_id "
-                        f"{metadata['sample_id']}"
-                    )
-                    logging.debug(
-                        f"Location code mismatch: {metadata['location_code']} "
-                        f"(sample_id) vs {row[4]} (timeline)"
-                    )
-                    logging.debug(
-                        f"Location code types: {type(metadata['location_code'])} "
-                        f"(sample_id) vs {type(row[4])} (timeline)"
-                    )
+                # Validate critical fields before processing
+                # Critical fields: sample_id, location_name, sampling_date
+                if not sample_id or not sample_id.strip():
+                    raise ValueError("Sample ID cannot be empty")
 
-                if sampling_date_mismatch:
-                    logging.warning(
-                        f"Mismatch in sampling date for sample_id "
-                        f"{metadata['sample_id']}"
-                    )
-                    logging.debug(
-                        f"Sampling date mismatch: {metadata['sampling_date']} "
-                        f"(sample_id) vs {timeline_sampling_date} (timeline)"
-                    )
-                    logging.debug(
-                        f"Sampling date types: {type(metadata['sampling_date'])} "
-                        f"(sample_id) vs {type(timeline_sampling_date)} (timeline)"
-                    )
-                break
-        else:
-            raise ValueError(
-                f"No matching entry found in timeline for sample_id "
-                f"{metadata['sample_id']}"
-            )
+                if not row["location"] or not row["location"].strip():
+                    raise ValueError(f"Location name is missing for sample {sample_id}")
+
+                if not row["date"] or not row["date"].strip():
+                    raise ValueError(f"Sampling date is missing for sample {sample_id}")
+
+                # Extract metadata from timeline row
+                # Timeline format: sample	batch	reads	proto	location_code	date	location
+                try:
+                    sampling_date = convert_to_iso_date(row["date"])
+                except ValueError as e:
+                    raise ValueError(
+                        f"Invalid sampling date for sample {sample_id}: {e}"
+                    ) from e
+
+                metadata = {
+                    "sample_id": sample_id,
+                    "batch_id": (
+                        row["batch"] if row["batch"] and row["batch"].strip() else None
+                    ),
+                    "read_length": (
+                        row["reads"] if row["reads"] and row["reads"].strip() else None
+                    ),
+                    "primer_protocol": (
+                        row["proto"] if row["proto"] and row["proto"].strip() else None
+                    ),
+                    "location_code": (
+                        row["location_code"]
+                        if row["location_code"] and row["location_code"].strip()
+                        else None
+                    ),
+                    "sampling_date": sampling_date,
+                    "location_name": row["location"].strip(),
+                }
+
+                logging.info("Extracted metadata from timeline: %s", metadata)
+                return metadata
+
+        # No matching entry found
+        logging.warning(
+            "No matching entry found in timeline for sample_id %s",
+            sample_id,
+        )
+        return None
 
 
-def get_primer_protocol_name(primer_protocol: str, primers: Path) -> str:
-    """Get the name of the primer protocol from the primers file.
-
-    Args:
-        primer_protocol (str): The primer protocol short name.
-        primers (Path): The primers file to with the long, canonical name
-
-    Returns:
-        str: The long name of the primer protocol.
+def get_metadata(sample_id: str, timeline: Path) -> dict[str, str]:
     """
-    if not primers.is_file():
-        logging.error(f"Primers file not found or is not a file: {primers}")
-        raise FileNotFoundError(f"Primers file not found or is not a file: {primers}")
-
-    # Load YAML file
-    with primers.open() as f:
-        primers_conf = yaml.safe_load(f)
-
-    for primer in primers_conf.keys():
-        if primer == primer_protocol:
-            return primers_conf[primer]["name"]
-
-    raise ValueError(
-        f"No matching entry found in primers for primer_protocol {primer_protocol}"
-    )
-
-
-def get_metadata(
-    sample_id: str, batch_id: str | None, timeline: Path, primers: Path
-) -> dict[str, str]:
-    """
-    Get metadata for a given sample and batch directory.
-    Cross-references the directory with the timeline file to get the metadata.
+    Get metadata for a given sample from timeline file only.
 
     Args:
         sample_id (str): The sample ID to use for metadata.
-        batch_id (str | None): The batch ID to use for metadata. Can be None or empty.
         timeline (Path): The timeline file to cross-reference the metadata.
-        primers (Path): The primers file to cross-reference the metadata.
 
     Returns:
-        dict: A dictionary containing the metadata.
+        dict: A dictionary containing the metadata, or empty dict if not found.
 
+    Raises:
+        ValueError: If critical fields (sample_id, location_name, sampling_date) are
+                   missing or invalid when found in timeline.
     """
+    # Validate critical input
+    if not sample_id or not sample_id.strip():
+        raise ValueError("Sample ID cannot be empty")
 
-    metadata = {}
-    metadata["sample_id"] = sample_id
+    metadata = get_metadata_from_timeline(sample_id, timeline)
 
-    # Handle None or empty batch_id
-    if batch_id is None:
-        batch_id = ""
-    metadata["batch_id"] = batch_id
-
-    # Decompose the ids into individual components
-    logging.info(f"Decoding sample_id: {metadata['sample_id']}")
-    sample_id = metadata["sample_id"]
-    metadata.update(sample_id_decoder(sample_id))
-    logging.info(f"Decoding batch_id: '{metadata['batch_id']}'")
-    batch_id = metadata["batch_id"]
-    metadata.update(batch_id_decoder(batch_id))
-
-    enrich_metadata_from_timeline(metadata, timeline)
-
-    metadata["primer_protocol_name"] = get_primer_protocol_name(
-        metadata["primer_protocol"], primers
-    )
+    if metadata is None:
+        # Return basic metadata structure if not found in timeline
+        logging.warning(
+            "Timeline entry not found for sample_id %s. "
+            "Returning basic metadata structure with None values.",
+            sample_id,
+        )
+        metadata = {
+            "sample_id": sample_id,
+            "batch_id": None,
+            "read_length": None,
+            "primer_protocol": None,
+            "location_code": None,
+            "sampling_date": None,
+            "location_name": None,
+        }
 
     return metadata

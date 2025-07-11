@@ -22,9 +22,7 @@ from sr2silo.vpipe import Sample
 def nuc_align_to_silo_njson(
     input_file: Path,
     sample_id: str,
-    batch_id: str | None,
     timeline_file: Path,
-    primers_file: Path,
     output_fp: Path,
     nuc_ref_fp: Path,
     aa_ref_fp: Path,
@@ -36,10 +34,7 @@ def nuc_align_to_silo_njson(
     Args:
         input_file (Path): The file to process.
         sample_id (str): Sample ID to use for metadata.
-        batch_id (str | None): Batch ID to use for metadata.
-                    Can be None or empty string.
         timeline_file (Path): The timeline file to cross-reference the metadata.
-        primers_file (Path): The primers file to cross-reference the metadata.
         output_fp (Path): Path to the output file.
         nuc_ref_fp (str): Filepath to the nucleotide reference i.e. .fasta.
         aa_ref_fp (str): Filepath to the amino acid reference i.e. .fasta.
@@ -52,14 +47,6 @@ def nuc_align_to_silo_njson(
         None (writes results to the result_dir)
     """
     logging.info(f"Current working directory: {os.getcwd()}")
-
-    # Handle empty or None batch_id
-    if batch_id is None:
-        batch_id = ""
-        logging.info("No batch_id provided, using empty string")
-    elif batch_id.strip() == "":
-        batch_id = ""
-        logging.info("Empty batch_id provided, using empty string")
 
     # check that the file exists
     if not input_file.exists():
@@ -79,8 +66,8 @@ def nuc_align_to_silo_njson(
     logging.info(f"Processing file: {input_file}")
 
     ##### Get Sample and Batch metadata and write to a file #####
-    sample_to_process = Sample(sample_id, batch_id)
-    sample_to_process.enrich_metadata(timeline_file, primers_file)
+    sample_to_process = Sample(sample_id)
+    sample_to_process.enrich_metadata(timeline_file)
     metadata = sample_to_process.get_metadata()
 
     # Add version information to metadata if provided

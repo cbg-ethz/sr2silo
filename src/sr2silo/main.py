@@ -15,6 +15,7 @@ from sr2silo.config import (
     get_keycloak_token_url,
     get_password,
     get_submission_url,
+    get_timeline_file,
     get_username,
     get_version,
     is_ci_environment,
@@ -80,14 +81,6 @@ def process_from_vpipe(
             help="Path to the timeline file.",
         ),
     ],
-    primer_file: Annotated[
-        Path,
-        typer.Option(
-            "--primer-file",
-            "-p",
-            help="Path to the primers file.",
-        ),
-    ],
     lapis_url: Annotated[
         str,
         typer.Option(
@@ -97,15 +90,6 @@ def process_from_vpipe(
             "Used to fetch the nucleotide / amino acid reference.",
         ),
     ],
-    batch_id: Annotated[
-        str | None,
-        typer.Option(
-            "--batch-id",
-            "-b",
-            help="Batch ID to use for metadata. Optional - if "
-            "not provided, will be set to empty string.",
-        ),
-    ] = None,
     skip_merge: Annotated[
         bool,
         typer.Option(
@@ -120,21 +104,21 @@ def process_from_vpipe(
     """
     typer.echo("Starting V-PIPE to SILO conversion.")
 
-    # Handle empty or None batch_id
-    if batch_id is None:
-        batch_id = ""
-        logging.info("No batch_id provided, using empty string")
-    elif batch_id.strip() == "":
-        batch_id = ""
-        logging.info("Empty batch_id provided, using empty string")
+    # Resolve timeline_file with environment fallback
+    if timeline_file is None:
+        timeline_file = get_timeline_file()
+        if timeline_file is None:
+            logging.error(
+                "Timeline file must be provided via --timeline-file "
+                "or TIMELINE_FILE environment variable"
+            )
+            raise typer.Exit(1)
 
     logging.info(f"Processing input file: {input_file}")
     logging.info(f"Using timeline file: {timeline_file}")
-    logging.info(f"Using primers file: {primer_file}")
     logging.info(f"Using output file: {output_fp}")
     logging.info(f"Using Lapis URL: {lapis_url}")
     logging.info(f"Using sample_id: {sample_id}")
-    logging.info(f"Using batch_id: '{batch_id}'")
     logging.info(f"Skip read pair merging: {skip_merge}")
 
     # check if $TMPDIR is set, if not use /tmp
@@ -186,9 +170,7 @@ def process_from_vpipe(
     nuc_align_to_silo_njson(
         input_file=input_file,
         sample_id=sample_id,
-        batch_id=batch_id,
         timeline_file=timeline_file,
-        primers_file=primer_file,
         output_fp=output_fp,
         nuc_ref_fp=nuc_ref_fp,
         aa_ref_fp=aa_ref_fp,

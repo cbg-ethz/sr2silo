@@ -30,14 +30,10 @@ class ReadMetadata(BaseModel):
     sample_id: str
     batch_id: str  # Can be empty string for samples without batch_id
     sampling_date: str
-    sequencing_date: str  # Can be empty string if no batch_id
     location_name: str
     read_length: str
     primer_protocol: str
     location_code: str
-    flow_cell_serial_number: str  # Can be empty string if no batch_id
-    sequencing_well_position: str
-    primer_protocol_name: str
     sr2silo_version: str
 
 

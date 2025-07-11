@@ -133,23 +133,6 @@ def get_timeline_file(default: Path | str | None = None) -> Path | None:
     return None
 
 
-def get_primer_file(default: Path | str | None = None) -> Path | None:
-    """Get the primer file path from environment, or return default if not set.
-
-    Args:
-        default: Optional default path to use if environment variable is not set
-
-    Returns:
-        Path | None: The primer file path, or None if not available
-    """
-    primer_file = os.getenv("PRIMER_FILE")
-    if primer_file:
-        return Path(primer_file)
-    elif default:
-        return Path(default) if isinstance(default, str) else default
-    return None
-
-
 def get_group_id(default: int | None = None) -> int:
     """Get the group ID from environment, or return default if not set.
 

@@ -4,8 +4,7 @@ LOCATIONS:
 START_DATE: "2024-10-01"
 END_DATE: "2024-10-31"
 TIMELINE_FILE: "timeline_A1_05_2024_10_08.tsv"
-PRIMERS_FILE: "resources/sars-cov-2/primers/primers.yaml"
-NUC_REFERENCE: "sars-cov-2"
+LAPIS_URL: "https://lapis.cov-spectrum.org/open/v2"
 RESULTS_DIR: "results"
 
 # Environment variables for submit_to_loculus rule

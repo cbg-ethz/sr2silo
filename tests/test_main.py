@@ -58,14 +58,10 @@ def test_process_from_vpipe_with_real_files(real_sample_files_import_to_loculus)
                 real_sample_files_import_to_loculus["sample_id"],
                 "--timeline-file",
                 str(real_sample_files_import_to_loculus["timeline_file"]),
-                "--primer-file",
-                str(real_sample_files_import_to_loculus["primer_file"]),
                 "--lapis-url",
                 real_sample_files_import_to_loculus["lapis_url"],
                 "--output-fp",
                 str(real_sample_files_import_to_loculus["output_file"]),
-                "--batch-id",
-                real_sample_files_import_to_loculus["batch_id"],
             ],
         )
 
@@ -74,7 +70,7 @@ def test_process_from_vpipe_with_real_files(real_sample_files_import_to_loculus)
 
 
 def test_process_from_vpipe_with_empty_batch_id(real_sample_files_import_to_loculus):
-    """Test process-from-vpipe with empty batch_id."""
+    """Test process-from-vpipe without batch_id parameter."""
 
     # Mock is_ci_environment to return True for this test
     with patch("sr2silo.main.is_ci_environment", return_value=True):
@@ -86,11 +82,8 @@ def test_process_from_vpipe_with_empty_batch_id(real_sample_files_import_to_locu
                 str(real_sample_files_import_to_loculus["input_file"]),
                 "--sample-id",
                 real_sample_files_import_to_loculus["sample_id"],
-                # No --batch-id argument provided (should default to None)
                 "--timeline-file",
                 str(real_sample_files_import_to_loculus["timeline_file"]),
-                "--primer-file",
-                str(real_sample_files_import_to_loculus["primer_file"]),
                 "--output-fp",
                 str(
                     real_sample_files_import_to_loculus["output_file"].parent
@@ -110,7 +103,7 @@ def test_process_from_vpipe_with_empty_batch_id(real_sample_files_import_to_locu
 def test_process_from_vpipe_with_explicit_empty_batch_id(
     real_sample_files_import_to_loculus,
 ):
-    """Test process-from-vpipe with explicitly empty batch_id."""
+    """Test process-from-vpipe without batch_id parameter (simplified)."""
 
     # Mock is_ci_environment to return True for this test
     with patch("sr2silo.main.is_ci_environment", return_value=True):
@@ -122,12 +115,8 @@ def test_process_from_vpipe_with_explicit_empty_batch_id(
                 str(real_sample_files_import_to_loculus["input_file"]),
                 "--sample-id",
                 real_sample_files_import_to_loculus["sample_id"],
-                "--batch-id",
-                "",  # Explicitly empty batch_id
                 "--timeline-file",
                 str(real_sample_files_import_to_loculus["timeline_file"]),
-                "--primer-file",
-                str(real_sample_files_import_to_loculus["primer_file"]),
                 "--output-fp",
                 str(
                     real_sample_files_import_to_loculus["output_file"].parent
@@ -208,12 +197,8 @@ def test_process_from_vpipe_with_skip_merge(real_sample_files_import_to_loculus)
                 str(real_sample_files_import_to_loculus["input_file"]),
                 "--sample-id",
                 real_sample_files_import_to_loculus["sample_id"],
-                "--batch-id",
-                real_sample_files_import_to_loculus["batch_id"],
                 "--timeline-file",
                 str(real_sample_files_import_to_loculus["timeline_file"]),
-                "--primer-file",
-                str(real_sample_files_import_to_loculus["primer_file"]),
                 "--output-fp",
                 str(real_sample_files_import_to_loculus["output_file"]),
                 "--lapis-url",
@@ -235,8 +220,6 @@ def test_process_from_vpipe_environment_variables():
     # Test with environment variables set
     env_vars = {
         "TIMELINE_FILE": "/path/to/timeline.tsv",
-        "PRIMER_FILE": "/path/to/primers.yaml",
-        "NEXTCLADE_REFERENCE": "env-reference",
     }
 
     with patch.dict(os.environ, env_vars):
@@ -248,12 +231,10 @@ def test_process_from_vpipe_environment_variables():
                 "/tmp/test.bam",
                 "--sample-id",
                 "test-sample",
-                "--batch-id",
-                "test-batch",
                 "--output-fp",
                 "/tmp/test.ndjson.zst",
-                "--reference",
-                "sars-cov-2",
+                "--lapis-url",
+                "https://lapis.example.com",
             ],
         )
         # Should fail due to missing input file,
@@ -270,7 +251,6 @@ def test_process_from_vpipe_cli_overrides_env():
     # Set environment variables
     env_vars = {
         "TIMELINE_FILE": "/env/timeline.tsv",
-        "PRIMER_FILE": "/env/primers.yaml",
     }
 
     with patch.dict(os.environ, env_vars):
@@ -282,14 +262,10 @@ def test_process_from_vpipe_cli_overrides_env():
                 "/tmp/test.bam",
                 "--sample-id",
                 "test-sample",
-                "--batch-id",
-                "test-batch",
                 "--output-fp",
                 "/tmp/test.ndjson.zst",
                 "--timeline-file",
                 "/cli/timeline.tsv",
-                "--primer-file",
-                "/cli/primers.yaml",
                 "--lapis-url",
                 "https://cli.lapis.example.com",
             ],
@@ -313,14 +289,10 @@ def test_process_from_vpipe_missing_env_and_cli():
                 "/tmp/test.bam",
                 "--sample-id",
                 "test-sample",
-                "--batch-id",
-                "test-batch",
                 "--output-fp",
                 "/tmp/test.ndjson.zst",
                 "--lapis-url",
                 "https://lapis.example.com",
-                "--primer-file",
-                "/tmp/primers.yaml",
                 "--timeline-file",
                 "/tmp/timeline.tsv",
             ],
