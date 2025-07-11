@@ -44,7 +44,7 @@ def test_process_sample_dry_run():
             "python",
             "-m",
             "snakemake",
-            "results/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.ndjson.zst",
+            "results/sampleId-A1_05_2024_10_08.ndjson.zst",
             "-n",  # dry-run
             "-j1",
             "--target-files-omit-workdir-adjustment",
