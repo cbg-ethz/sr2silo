@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from pathlib import Path
@@ -10,16 +11,17 @@ from typing import Annotated
 import typer
 
 from sr2silo.config import (
+    get_group_id,
     get_keycloak_token_url,
-    get_nextclade_reference,
-    get_primer_file,
+    get_password,
     get_submission_url,
     get_timeline_file,
+    get_username,
     get_version,
     is_ci_environment,
 )
+from sr2silo.loculus.lapis import LapisClient
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
-
 from sr2silo.submit_to_loculus import submit_to_silo
 
 # Use force=True to override any existing logging configuration
@@ -46,15 +48,6 @@ def callback(ctx: typer.Context):
 
 
 @app.command()
-def run():
-    """
-    Wrangel short-reads into cleartext alignments,
-    optionally translation and align in amino acids.
-    """
-    typer.echo("Not yet implemented.")
-
-
-@app.command()
 def process_from_vpipe(
     input_file: Annotated[
         Path,
@@ -72,14 +65,6 @@ def process_from_vpipe(
             help="Sample ID to use for metadata.",
         ),
     ],
-    batch_id: Annotated[
-        str,
-        typer.Option(
-            "--batch-id",
-            "-b",
-            help="Batch ID to use for metadata.",
-        ),
-    ],
     output_fp: Annotated[
         Path,
         typer.Option(
@@ -89,32 +74,22 @@ def process_from_vpipe(
         ),
     ],
     timeline_file: Annotated[
-        Path | None,
+        Path,
         typer.Option(
             "--timeline-file",
             "-t",
-            help="Path to the timeline file. Falls back to TIMELINE_FILE "
-            "environment variable.",
+            help="Path to the timeline file.",
         ),
-    ] = None,
-    primer_file: Annotated[
-        Path | None,
+    ],
+    lapis_url: Annotated[
+        str,
         typer.Option(
-            "--primer-file",
-            "-p",
-            help="Path to the primers file. Falls back to PRIMER_FILE "
-            "environment variable.",
-        ),
-    ] = None,
-    reference: Annotated[
-        str | None,
-        typer.Option(
-            "--reference",
+            "--lapis-url",
             "-r",
-            help="See folder names in resources/. Falls back to "
-            "NEXTCLADE_REFERENCE environment variable.",
+            help="URL of LAPIS instance, hosting SILO database."
+            "Used to fetch the nucleotide / amino acid reference.",
         ),
-    ] = None,
+    ],
     skip_merge: Annotated[
         bool,
         typer.Option(
@@ -139,27 +114,11 @@ def process_from_vpipe(
             )
             raise typer.Exit(1)
 
-    # Resolve primer_file with environment fallback
-    if primer_file is None:
-        primer_file = get_primer_file()
-        if primer_file is None:
-            logging.error(
-                "Primer file must be provided via --primer-file or "
-                "PRIMER_FILE environment variable"
-            )
-            raise typer.Exit(1)
-
-    # Resolve reference with environment fallback
-    if reference is None:
-        reference = get_nextclade_reference()
-
     logging.info(f"Processing input file: {input_file}")
     logging.info(f"Using timeline file: {timeline_file}")
-    logging.info(f"Using primers file: {primer_file}")
     logging.info(f"Using output file: {output_fp}")
-    logging.info(f"Using genome reference: {reference}")
+    logging.info(f"Using Lapis URL: {lapis_url}")
     logging.info(f"Using sample_id: {sample_id}")
-    logging.info(f"Using batch_id: {batch_id}")
     logging.info(f"Skip read pair merging: {skip_merge}")
 
     # check if $TMPDIR is set, if not use /tmp
@@ -179,14 +138,42 @@ def process_from_vpipe(
 
     logging.info(f"Running version: {version_info}")
 
+    # if not CI envrionement, get the nucleotide and amino acid references, from Lapis
+    if not ci_env:
+        # make LapisClient
+        lapis = LapisClient(lapis_url)
+        # fetch references
+        reference = lapis.referenceGenome()
+        # convert references to FASTA files
+        logging.info("Fetching references from Lapis...")
+        # get the domain from the lapis_url
+        domain = lapis_url.split("//")[-1].split("/")[0]
+        # create the directory if it does not exist
+        Path(f"resources/references/{domain}").mkdir(parents=True, exist_ok=True)
+        # define the paths for the nucleotide and amino acid references
+        nuc_ref_fp = Path(f"resources/references/{domain}/nuc_ref.fasta")
+        aa_ref_fp = Path(f"resources/references/{domain}/aa_ref.fasta")
+        lapis.referenceGenomeToFasta(
+            reference_json_string=json.dumps(reference),
+            nucleotide_out_fp=nuc_ref_fp,
+            amino_acid_out_fp=aa_ref_fp,
+        )
+        logging.info(f"Fetched references from Lapis: {nuc_ref_fp} and {aa_ref_fp}")
+    else:
+        logging.info(
+            "Running in CI environment, using default references \
+            from resources/references/sars-cov-2/"
+        )
+        nuc_ref_fp = Path("resources/references/sars-cov-2/nuc_ref.fasta")
+        aa_ref_fp = Path("resources/references/sars-cov-2/aa_ref.fasta")
+
     nuc_align_to_silo_njson(
         input_file=input_file,
         sample_id=sample_id,
-        batch_id=batch_id,
         timeline_file=timeline_file,
-        primers_file=primer_file,
         output_fp=output_fp,
-        reference=reference,
+        nuc_ref_fp=nuc_ref_fp,
+        aa_ref_fp=aa_ref_fp,
         skip_merge=skip_merge,
         version_info=version_info,
     )
@@ -200,14 +187,6 @@ def submit_to_loculus(
             "--processed-file",
             "-f",
             help="Path to the processed .ndjson.zst file to upload and submit.",
-        ),
-    ],
-    sample_id: Annotated[
-        str,
-        typer.Option(
-            "--sample-id",
-            "-s",
-            help="Sample ID for the processed file.",
         ),
     ],
     keycloak_token_url: Annotated[
@@ -226,6 +205,30 @@ def submit_to_loculus(
             "SUBMISSION_URL environment variable.",
         ),
     ] = None,
+    group_id: Annotated[
+        int | None,
+        typer.Option(
+            "--group-id",
+            help="Group ID for submission. Falls back to "
+            "GROUP_ID environment variable.",
+        ),
+    ] = None,
+    username: Annotated[
+        str | None,
+        typer.Option(
+            "--username",
+            help="Username for authentication. Falls back to "
+            "USERNAME environment variable.",
+        ),
+    ] = None,
+    password: Annotated[
+        str | None,
+        typer.Option(
+            "--password",
+            help="Password for authentication. Falls back to "
+            "PASSWORD environment variable.",
+        ),
+    ] = None,
 ) -> None:
     """
     Upload processed file to S3 and submit to SILO/Loculus.
@@ -240,10 +243,23 @@ def submit_to_loculus(
     if submission_url is None:
         submission_url = get_submission_url()
 
+    # Resolve group_id with environment fallback
+    if group_id is None:
+        group_id = get_group_id()
+
+    # Resolve username with environment fallback
+    if username is None:
+        username = get_username()
+
+    # Resolve password with environment fallback
+    if password is None:
+        password = get_password()
+
     logging.info(f"Processing file: {processed_file}")
-    logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Using Keycloak token URL: {keycloak_token_url}")
     logging.info(f"Using submission URL: {submission_url}")
+    logging.info(f"Using group ID: {group_id}")
+    logging.info(f"Using username: {username}")
 
     # Check if the processed file exists
     if not processed_file.exists():
@@ -275,6 +291,9 @@ def submit_to_loculus(
         processed_file,
         keycloak_token_url=keycloak_token_url,
         submission_url=submission_url,
+        group_id=group_id,
+        username=username,
+        password=password,
     )
 
     if success:

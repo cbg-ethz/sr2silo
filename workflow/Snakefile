@@ -4,11 +4,11 @@
 
 import yaml
 import os
+import csv
 from pathlib import Path
-
+from datetime import datetime
 
 CONFIG = "workflow/config.yaml"
-# CONFIG = "workflow/config_euler.yaml"
 
 
 configfile: CONFIG
@@ -19,21 +19,144 @@ with open(CONFIG, "r") as file:
     config = yaml.safe_load(file)
 
 
-def get_batch_id(sample_id):
-    """Get the batch ids from the sample batch ids."""
-    return config["SAMPLE_BATCH_IDS"][sample_id]
+def get_sample_list():
+    """Read timeline file and filter by date range and location codes."""
+
+    # Read the timeline file
+    sample_list = []
+
+    with open(config["TIMELINE_FILE"], "r") as f:
+        reader = csv.reader(f, delimiter="\t")
+        # Skip header row if it exists
+        first_row = next(reader, None)
+        if first_row and first_row[0] == "sample":
+            # This is a header row, continue with the next rows
+            pass
+        else:
+            # This is data, process it
+            if first_row and len(first_row) >= 7:
+                sample, batch, reads, proto, location_code, date_str, location = (
+                    first_row
+                )
+
+                # Convert date string to datetime for comparison
+                try:
+                    sample_date = datetime.strptime(date_str, "%Y-%m-%d")
+                    location_code_int = int(location_code)
+
+                    # Filter by date range
+                    start_date = datetime.strptime(config["START_DATE"], "%Y-%m-%d")
+                    end_date = datetime.strptime(config["END_DATE"], "%Y-%m-%d")
+
+                    if (
+                        start_date <= sample_date <= end_date
+                        and location_code_int in config["LOCATIONS"]
+                    ):
+                        sample_list.append(sample)
+                except (ValueError, TypeError):
+                    pass  # Skip invalid rows
+
+        # Process remaining rows
+        for row in reader:
+            if len(row) < 7:  # Skip invalid rows
+                continue
+
+            sample, batch, reads, proto, location_code, date_str, location = row
+
+            # Convert date string to datetime for comparison
+            try:
+                sample_date = datetime.strptime(date_str, "%Y-%m-%d")
+            except ValueError:
+                continue  # Skip rows with invalid date format
+
+            # Convert location_code to int for comparison
+            try:
+                location_code_int = int(location_code)
+            except ValueError:
+                continue  # Skip rows with invalid location code
+
+            # Filter by date range
+            start_date = datetime.strptime(config["START_DATE"], "%Y-%m-%d")
+            end_date = datetime.strptime(config["END_DATE"], "%Y-%m-%d")
+
+            if not (start_date <= sample_date <= end_date):
+                continue
+
+            # Filter by location codes
+            if location_code_int not in config["LOCATIONS"]:
+                continue
+
+            # Add to sample list (avoid duplicates)
+            if sample not in sample_list:
+                sample_list.append(sample)
+
+    return sample_list
+
+
+def get_input_file_path(sample_id):
+    """Get the input file path for the sample, trying both with and without batch structure."""
+    # First try without batch_id structure
+    simple_path = f"{config['BASE_SAMPLE_DIR']}/{sample_id}/alignments/REF_aln_trim.bam"
+    if Path(simple_path).exists():
+        return simple_path
+    
+    # If that doesn't exist, we need to find the batch_id by checking the timeline
+    with open(config["TIMELINE_FILE"], "r") as f:
+        reader = csv.reader(f, delimiter="\t")
+        # Skip header row if it exists
+        first_row = next(reader, None)
+        if first_row and first_row[0] == "sample":
+            pass  # Header row
+        else:
+            # Check first row if it's not a header
+            if first_row and len(first_row) >= 2 and first_row[0] == sample_id:
+                batch_id = first_row[1]
+                if batch_id:  # If batch_id exists, try that path
+                    batch_path = f"{config['BASE_SAMPLE_DIR']}/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam"
+                    if Path(batch_path).exists():
+                        return batch_path
+        
+        # Process remaining rows
+        for row in reader:
+            if len(row) >= 2 and row[0] == sample_id:
+                batch_id = row[1]
+                if batch_id:  # If batch_id exists, try that path
+                    batch_path = f"{config['BASE_SAMPLE_DIR']}/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam"
+                    if Path(batch_path).exists():
+                        return batch_path
+    
+    # Default to simple path if nothing else works
+    return simple_path
+
+
+# Get the filtered sample list
+SAMPLE_IDS = get_sample_list()
+
+# Warning if no samples found
+if not SAMPLE_IDS:
+    print("⚠️  WARNING: No samples found matching the filtering criteria!")
+    print(f"   Date range: {config['START_DATE']} to {config['END_DATE']}")
+    print(f"   Location codes: {config['LOCATIONS']}")
+    print(f"   Timeline file: {config['TIMELINE_FILE']}")
+    print("   Please check your configuration and timeline file.")
+    print("   The workflow will complete with no jobs to execute.")
+else:
+    print(f"✓ Found {len(SAMPLE_IDS)} samples matching criteria:")
+    for sample_id in SAMPLE_IDS:
+        print(f"   {sample_id}")
+    print()
 
 
 rule all:
     input:
         [
-            f"{config['RESULTS_DIR']}/sampleId-{sample_id}_batchId-{get_batch_id(sample_id)}.ndjson.zst"
-            for sample_id in config["SAMPLE_BATCH_IDS"].keys()
+            f"{config['RESULTS_DIR']}/sampleId-{sample_id}.ndjson.zst"
+            for sample_id in SAMPLE_IDS
         ],
         [
-            f"{config['RESULTS_DIR']}/uploads/sampleId-{sample_id}_batchId-{get_batch_id(sample_id)}.uploaded"
-            for sample_id in config["SAMPLE_BATCH_IDS"].keys()
-        ]
+            f"{config['RESULTS_DIR']}/uploads/sampleId-{sample_id}.uploaded"
+            for sample_id in SAMPLE_IDS
+        ],
 
 
 rule process_sample:
@@ -43,22 +166,20 @@ rule process_sample:
     - Parameters can be provided via CLI arguments (as shown)
     - Or via environment variables (TIMELINE_FILE, PRIMER_FILE, NEXTCLADE_REFERENCE)
     - CLI arguments take precedence over environment variables
+
+    Note: On ETH cluster, internet access is provided by eth_proxy module loaded at job level.
     """
     input:
-        sample_fp=f"{config['BASE_SAMPLE_DIR']}"
-        + "/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam",
+        sample_fp=lambda wildcards: get_input_file_path(wildcards.sample_id),
     output:
         result_fp=f"{config['RESULTS_DIR']}"
-        + "/sampleId-{sample_id}_batchId-{batch_id}.ndjson.zst",
+        + "/sampleId-{sample_id}.ndjson.zst",
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
-        batch_id=lambda wildcards: wildcards.batch_id,
         timeline_file=config["TIMELINE_FILE"],
-        primers_file=config["PRIMERS_FILE"],
-        nuc_reference=config["NUC_REFERENCE"],
-        aa_reference=config["NUC_REFERENCE"],
+        lapis_url=config.get("LAPIS_URL", ""),
     log:
-        "logs/sr2silo/process_sample/sampleId_{sample_id}_batchId_{batch_id}.log",  # Clearer wildcard separation
+        "logs/sr2silo/process_sample/sampleId_{sample_id}.log",
     conda:
         "envs/sr2silo.yaml"
     shell:
@@ -66,11 +187,9 @@ rule process_sample:
         sr2silo process-from-vpipe \
             --input-file {input.sample_fp} \
             --sample-id {params.sample_id} \
-            --batch-id {params.batch_id} \
             --timeline-file {params.timeline_file} \
-            --primer-file {params.primers_file} \
             --output-fp {output.result_fp} \
-            --reference {params.nuc_reference} > {log} 2>&1
+            --lapis-url {params.lapis_url} > {log} 2>&1
         """
 
 
@@ -84,29 +203,38 @@ rule submit_to_loculus:
     Required configuration (via config file or environment variables):
         - KEYCLOAK_TOKEN_URL
         - SUBMISSION_URL
+        - GROUP_ID
+        - USERNAME
+        - PASSWORD
 
     CLI parameters take precedence over environment variables.
+
+    Note: On ETH cluster, internet access is provided by eth_proxy module loaded at job level.
     """
     input:
         result_fp=f"{config['RESULTS_DIR']}"
-        + "/sampleId-{sample_id}_batchId-{batch_id}.ndjson.zst",
+        + "/sampleId-{sample_id}.ndjson.zst",
     output:
-        flag=f"{config['RESULTS_DIR']}/uploads/sampleId-{{sample_id}}_batchId-{{batch_id}}.uploaded",
+        flag=f"{config['RESULTS_DIR']}/uploads/sampleId-{{sample_id}}.uploaded",
     params:
-        sample_id=lambda wildcards: wildcards.sample_id,
         keycloak_url=config.get("KEYCLOAK_TOKEN_URL", ""),
         submission_url=config.get("SUBMISSION_URL", ""),
+        group_id=config.get("GROUP_ID", ""),
+        username=config.get("USERNAME", ""),
+        password=config.get("PASSWORD", ""),
     log:
-        "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}_batchId_{batch_id}.log",
+        "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}.log",
     conda:
         "envs/sr2silo.yaml"
     shell:
         """
         sr2silo submit-to-loculus \
             --processed-file {input.result_fp} \
-            --sample-id {params.sample_id} \
             --keycloak-token-url "{params.keycloak_url}" \
-            --submission-url "{params.submission_url}" > {log} 2>&1 && \
+            --submission-url "{params.submission_url}" \
+            --group-id {params.group_id} \
+            --username {params.username} \
+            --password {params.password} > {log} 2>&1 && \
         mkdir -p $(dirname {output.flag}) && \
         touch {output.flag}
         """

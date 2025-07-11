@@ -16,18 +16,16 @@ from sr2silo.process import (
     sam_to_bam,
     sort_bam_file,
 )
-
 from sr2silo.vpipe import Sample
 
 
 def nuc_align_to_silo_njson(
     input_file: Path,
     sample_id: str,
-    batch_id: str,
     timeline_file: Path,
-    primers_file: Path,
     output_fp: Path,
-    reference: str = "sars-cov-2",
+    nuc_ref_fp: Path,
+    aa_ref_fp: Path,
     skip_merge: bool = False,
     version_info: str | None = None,
 ) -> None:
@@ -36,12 +34,10 @@ def nuc_align_to_silo_njson(
     Args:
         input_file (Path): The file to process.
         sample_id (str): Sample ID to use for metadata.
-        batch_id (str): Batch ID to use for metadata.
         timeline_file (Path): The timeline file to cross-reference the metadata.
-        primers_file (Path): The primers file to cross-reference the metadata.
         output_fp (Path): Path to the output file.
-        reference (str): The nucleotide / amino acid reference from
-                    the resources folder.
+        nuc_ref_fp (str): Filepath to the nucleotide reference i.e. .fasta.
+        aa_ref_fp (str): Filepath to the amino acid reference i.e. .fasta.
         skip_merge (bool): Whether to skip merging of paired-end reads.
                            Default is False.
         version_info (str | None): Version information to include in metadata.
@@ -70,17 +66,9 @@ def nuc_align_to_silo_njson(
     logging.info(f"Processing file: {input_file}")
 
     ##### Get Sample and Batch metadata and write to a file #####
-    sample_to_process = Sample(sample_id, batch_id)
-    sample_to_process.enrich_metadata(timeline_file, primers_file)
+    sample_to_process = Sample(sample_id)
+    sample_to_process.enrich_metadata(timeline_file)
     metadata = sample_to_process.get_metadata()
-    # add reference name to metadata
-    resource_fp = Path("./resources") / reference
-    nuc_reference_fp = resource_fp / "nuc_reference_genomes.fasta"
-    aa_reference_fp = resource_fp / "aa_reference_genomes.fasta"
-
-    metadata["nextclade_reference"] = reference
-    # metadata["nuc_reference"] = nuc_reference
-    # metadata["aa_reference"] = aa_reference
 
     # Add version information to metadata if provided
     if version_info is not None:
@@ -126,7 +114,7 @@ def nuc_align_to_silo_njson(
             logging.debug("Starting to merge paired-end reads")
             paired_end_read_merger(
                 nuc_align_sam_fp=input_sam_fp,
-                ref_genome_fasta_fp=nuc_reference_fp,
+                ref_genome_fasta_fp=nuc_ref_fp,
                 output_merged_sam_fp=merged_reads_sam_fp,
             )
             logging.debug(
@@ -144,8 +132,8 @@ def nuc_align_to_silo_njson(
     aligned_reads_fp = output_fp
     try:
         aligned_reads_fp = parse_translate_align_in_batches(
-            nuc_reference_fp=nuc_reference_fp,
-            aa_reference_fp=aa_reference_fp,
+            nuc_reference_fp=nuc_ref_fp,
+            aa_reference_fp=aa_ref_fp,
             nuc_alignment_fp=merged_reads_fp,
             metadata_fp=metadata_file,
             output_fp=aligned_reads_fp,

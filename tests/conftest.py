@@ -155,12 +155,6 @@ def dummy_alignment(monkeypatch):
 
 
 @pytest.fixture
-def primers():
-    """Return the primers file path."""
-    return Path("./resources/sars-cov-2/primers/primers.yaml")
-
-
-@pytest.fixture
 def timeline():
     """Return the timeline file path.
 
@@ -177,21 +171,30 @@ def sample():
 
 
 @pytest.fixture
-def real_sample_files_import_to_loculus(tmp_path, primers, timeline, sample):
+def real_sample_files_import_to_loculus(
+    tmp_path, timeline, sample, nuc_ref_sarscov2_fp, aa_ref_sarscov2_fp
+):
     """Get real sample files from the test data directory for
     `sr2silo import-to-loculus`."""
     return {
         "input_file": sample,
         "timeline_file": timeline,
-        "primer_file": primers,
         "output_file": tmp_path / "silo_input.ndjson.zst",
         "sample_id": "A1_05_2024_10_08",
         "batch_id": "20241024_2411515907",
-        "reference": "sars-cov-2",
+        "lapis_url": "https://lapis.example.com",
+        "nuc_ref_fp": nuc_ref_sarscov2_fp,
+        "aa_ref_fp": aa_ref_sarscov2_fp,
     }
 
 
 @pytest.fixture
-def reference_genome_covid_fp():
+def nuc_ref_sarscov2_fp():
     """Return the reference genome file path."""
-    return Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
+    return Path("resources/references/sars-cov-2/nuc_ref.fasta")
+
+
+@pytest.fixture
+def aa_ref_sarscov2_fp():
+    """Return the reference genome file path."""
+    return Path("resources/references/sars-cov-2/aa_ref.fasta")

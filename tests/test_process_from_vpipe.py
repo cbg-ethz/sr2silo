@@ -65,11 +65,10 @@ def test_skip_merge_option(
         nuc_align_to_silo_njson(
             input_file=sample_files["input_file"],
             sample_id=sample_files["sample_id"],
-            batch_id=sample_files["batch_id"],
             timeline_file=sample_files["timeline_file"],
-            primers_file=sample_files["primer_file"],
             output_fp=output_fp,
-            reference=sample_files["reference"],
+            nuc_ref_fp=sample_files["nuc_ref_fp"],
+            aa_ref_fp=sample_files["aa_ref_fp"],
             skip_merge=skip_merge,
         )
 
@@ -123,11 +122,10 @@ def test_skip_merge_file_handling(
             nuc_align_to_silo_njson(
                 input_file=sample_files["input_file"],  # This is a BAM file
                 sample_id=sample_files["sample_id"],
-                batch_id=sample_files["batch_id"],
                 timeline_file=sample_files["timeline_file"],
-                primers_file=sample_files["primer_file"],
                 output_fp=output_fp,
-                reference=sample_files["reference"],
+                nuc_ref_fp=sample_files["nuc_ref_fp"],
+                aa_ref_fp=sample_files["aa_ref_fp"],
                 skip_merge=True,
             )
 
@@ -140,11 +138,10 @@ def test_skip_merge_file_handling(
             nuc_align_to_silo_njson(
                 input_file=test_sam_path,  # This is a SAM file
                 sample_id=sample_files["sample_id"],
-                batch_id=sample_files["batch_id"],
                 timeline_file=sample_files["timeline_file"],
-                primers_file=sample_files["primer_file"],
                 output_fp=output_fp,
-                reference=sample_files["reference"],
+                nuc_ref_fp=sample_files["nuc_ref_fp"],
+                aa_ref_fp=sample_files["aa_ref_fp"],
                 skip_merge=True,
             )
 

@@ -16,15 +16,15 @@ from sr2silo.process.interface import AlignedRead
 
 
 @pytest.fixture
-def aligned_reads() -> Dict[str, AlignedRead]:
+def aligned_reads(aa_ref_sarscov2_fp, nuc_ref_sarscov2_fp) -> Dict[str, AlignedRead]:
     """
     Small mock data with 42 real reads from the combined.bam file.
 
     Current dataset misses Amino Acid Insertions - i.e. not tested here.
     """
 
-    nuc_ref_fp = Path("resources/sars-cov-2/nuc_reference_genomes.fasta")
-    aa_ref_fp = Path("resources/sars-cov-2/aa_reference_genomes.fasta")
+    nuc_ref_fp = nuc_ref_sarscov2_fp
+    aa_ref_fp = aa_ref_sarscov2_fp
     nuc_alignment_fp = Path("tests/data/bam/combined.bam")
 
     aligned_reads = translate_align.parse_translate_align(
@@ -38,15 +38,10 @@ def aligned_reads() -> Dict[str, AlignedRead]:
         "sample_id": "",
         "batch_id": "",
         "sampling_date": "",
-        "sequencing_date": "",
         "location_name": "",
         "read_length": "",
         "primer_protocol": "",
         "location_code": "",
-        "flow_cell_serial_number": "",
-        "sequencing_well_position": "",
-        "primer_protocol_name": "",
-        "nextclade_reference": "",
         "sr2silo_version": "",
     }
 
