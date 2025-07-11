@@ -122,9 +122,8 @@ def test_get_metadata_missing_location_error():
         temp_timeline = Path(f.name)
 
     try:
-        with pytest.raises(
-            ValueError, match="Location name is missing for sample A1_05_2024_10_08"
-        ):
+        error_msg = "Location name is missing for sample A1_05_2024_10_08"
+        with pytest.raises(ValueError, match=error_msg):
             get_metadata(
                 sample_id="A1_05_2024_10_08",
                 timeline=temp_timeline,
@@ -163,14 +162,14 @@ def test_get_metadata_invalid_date_error():
     with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:
         f.write("sample\tbatch\treads\tproto\tlocation_code\tdate\tlocation\n")
         f.write(
-            "A1_05_2024_10_08\t20241024_2411515907\t250\tv532\t5\tinvalid-date\tLugano (TI)\n"
+            "A1_05_2024_10_08\t20241024_2411515907\t250\tv532\t5\t"
+            "invalid-date\tLugano (TI)\n"
         )
         temp_timeline = Path(f.name)
 
     try:
-        with pytest.raises(
-            ValueError, match="Invalid sampling date for sample A1_05_2024_10_08"
-        ):
+        error_msg = "Invalid sampling date for sample A1_05_2024_10_08"
+        with pytest.raises(ValueError, match=error_msg):
             get_metadata(
                 sample_id="A1_05_2024_10_08",
                 timeline=temp_timeline,
@@ -220,9 +219,11 @@ def test_get_metadata_malformed_row_skipped():
         f.write(
             "A1_05_2024_10_08\t20241024_2411515907\t250\n"
         )  # only 3 columns - malformed
+        # correct row with all required fields
         f.write(
-            "A1_05_2024_10_08\t20241024_2411515907\t250\tv532\t5\t2024-10-08\tLugano (TI)\n"
-        )  # correct row
+            "A1_05_2024_10_08\t20241024_2411515907\t250\tv532\t5\t"
+            "2024-10-08\tLugano (TI)\n"
+        )
         temp_timeline = Path(f.name)
 
     try:

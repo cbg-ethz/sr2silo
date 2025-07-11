@@ -72,7 +72,8 @@ def get_metadata_from_timeline(sample_id: str, timeline: Path) -> dict[str, str]
                     col for col in required_columns if row.get(col) is None
                 }
                 logging.warning(
-                    f"Skipping malformed row missing/None columns {missing_or_none_columns}: {row}"
+                    f"Skipping malformed row missing/None columns \
+                        {missing_or_none_columns}: {row}"
                 )
                 continue
 
