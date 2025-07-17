@@ -7,4 +7,4 @@ dependencies:
   - python>=3.11
   - poetry>=1.8.3
   - diamond>=2.1.0
-  - smallgenomeutilities>=0.5.1
+  - smallgenomeutilities>=0.5.2

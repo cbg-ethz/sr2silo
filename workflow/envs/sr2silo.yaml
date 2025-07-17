@@ -5,3 +5,6 @@ channels:
   - defaults
 dependencies:
   - sr2silo=1.1.0
+  - snakemake=8.18  # fixed as snakemake unit tests fail with 8.19
+  - diamond>=2.1.0
+  - smallgenomeutilities>=0.5.2
