@@ -1,4 +1,4 @@
-name: sr2silo-env
+name: sr2silo-workflow
 channels:
   - bioconda
   - conda-forge
