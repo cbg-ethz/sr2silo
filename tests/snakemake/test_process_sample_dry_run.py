@@ -32,6 +32,11 @@ def test_process_sample_dry_run():
         if main_snakefile.exists():
             shutil.copy2(main_snakefile, workdir / "workflow" / "Snakefile")
 
+        # Copy the conda environment files
+        envs_dir = Path("workflow/envs")
+        if envs_dir.exists():
+            shutil.copytree(envs_dir, workdir / "workflow" / "envs")
+
         # Copy the resources folder to the workdir
         if Path("resources").exists():
             shutil.copytree("resources", workdir / "resources")
@@ -47,6 +52,9 @@ def test_process_sample_dry_run():
             "results/sampleId-A1_05_2024_10_08.ndjson.zst",
             "-n",  # dry-run
             "-j1",
+            "--use-conda",  # Force use of conda environments
+            "--conda-frontend",
+            "conda",  # Use conda instead of mamba
             "--target-files-omit-workdir-adjustment",
             "--directory",
             str(workdir),
