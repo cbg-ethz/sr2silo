@@ -37,7 +37,7 @@
 # =============================================================================
 
 # Number of cores to use (should match --cpus-per-task above)
-CORES=10
+CORES=20
 
 # Use existing conda environment (true) or workflow-defined conda envs (false)
 USE_EXISTING_ENV=false
@@ -92,13 +92,13 @@ mkdir -p "$LOG_DIR"
 if [ "$USE_EXISTING_ENV" = true ]; then
     # Use the active conda environment
     echo "Using existing conda environment"
-    echo "Running: snakemake -c $CORES"
+    echo "Running: snakemake -c $CORES" --rerun-incomplete
     snakemake -c $CORES
 else
     # Use the conda environments defined in the workflow
     echo "Using workflow-defined conda environments"
     echo "Running: snakemake --use-conda --conda-frontend conda -c $CORES"
-    snakemake --use-conda --conda-frontend conda -c $CORES
+    snakemake --use-conda --conda-frontend conda -c $CORES --rerun-incomplete
 fi
 
 SNAKEMAKE_EXIT_CODE=$?
