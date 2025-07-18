@@ -22,10 +22,10 @@ create-dev-env:
 create-workflow-env:
 	@if conda info --envs | awk '{print $$1}' | grep -wq sr2silo-workflow; then \
 		echo "Conda environment sr2silo-workflow already exists. Updating environment..."; \
-		conda env update -f environments/workflow-environment.yml --prune; \
+		conda env update -f workflow/envs/sr2silo.yaml --prune; \
 	else \
 		echo "Creating workflow Conda environment..."; \
-		conda env create -f environments/workflow-environment.yml; \
+		conda env create -f workflow/envs/sr2silo.yaml; \
 	fi
 
 .PHONY: activate-env

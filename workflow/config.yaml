@@ -3,19 +3,24 @@
 ### Sample Selection
 LOCATIONS:
   - 5   # Lugano (TI)
-START_DATE: "2024-10-05"
-END_DATE: "2024-10-30"
+  - 15  # Basel (BS)
+  - 17  # Chur (GR)
+  - 10  # Zürich (ZH)
+  - 16  # Geneva (GE)
+  - 25  # Laupen (BE)
+START_DATE: "2025-06-15"
+END_DATE: "2025-07-15"
 
 ### Input Files
-BASE_SAMPLE_DIR: "tests/data/samples_large"
-TIMELINE_FILE: "tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
+BASE_SAMPLE_DIR: "../results"
+TIMELINE_FILE: "../../work-vp-test/variants/timeline.tsv" 
 ### Output Files
-RESULTS_DIR: "results"
+RESULTS_DIR: "../silo-inputs"
 
 ### Loculus (to submit results to)
 ## URLs for Loculus services
-KEYCLOAK_URL: "https://authentication-wise-files.loculus.org/realms/loculus/protocol/openid-connect/token"
-SUBMISSION_URL:: "https://backend-wise-files.loculus.org"
+KEYCLOAK_TOKEN_URL: "https://authentication-wise-files.loculus.org/realms/loculus/protocol/openid-connect/token"
+SUBMISSION_URL: "https://backend-wise-files.loculus.org"
 
 ## Authentication credentials
 GROUP_ID: 1

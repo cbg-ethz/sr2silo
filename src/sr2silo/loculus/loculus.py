@@ -190,7 +190,7 @@ class LoculusClient:
         # Create files for form data - no sequence file for sc2 organism
         files = {
             "metadataFile": (
-                "metadata.tsv",
+                metadata_file_path.name,
                 open(metadata_file_path, "rb"),
                 "text/tab-separated-values",
             ),
@@ -366,7 +366,7 @@ class Submission:
         result_dir_submission.mkdir(parents=True, exist_ok=True)
 
         submission_id = str(uuid.uuid4())
-        metadata_fp = result_dir_submission / "metadata.tsv"
+        metadata_fp = result_dir_submission / f"metadata_{submission_id}.tsv"
         with metadata_fp.open("w") as f:
             # Write header with required submissionId field and optional date field
             f.write("submissionId\tdate\n")

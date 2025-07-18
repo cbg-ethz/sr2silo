@@ -6,6 +6,11 @@
 # This version allows easy customization of parameters
 # Copy this file and modify the parameters as needed
 #
+# PREREQUISITES:
+# --------------
+# - The sr2silo-workflow conda environment must be created first:
+#   make create-workflow-env
+#
 # HOW TO USE:
 # -----------
 # 1. Copy this file: cp sr2silo_workflow_template.sbatch my_workflow.sbatch
@@ -38,6 +43,9 @@ USE_EXISTING_ENV=USE_ENV_PLACEHOLDER
 # Log directory (should match --output and --error paths above)
 LOG_DIR="LOG_DIR_PLACEHOLDER"
 
+# Conda environment name (change this if you want to use a different environment)
+CONDA_ENV="sr2silo-workflow"
+
 # =============================================================================
 # Script Execution - Usually no need to modify below this line
 # =============================================================================
@@ -49,12 +57,31 @@ echo "Node: $SLURM_NODELIST"
 echo "Cores: $CORES"
 echo "Use existing env: $USE_EXISTING_ENV"
 echo "Log directory: $LOG_DIR"
+echo "Conda environment: $CONDA_ENV"
 echo "=============================================="
 
 # Load eth_proxy module for internet access on ETH cluster
 echo "Loading eth_proxy module..."
 module load eth_proxy
 echo "Proxy loaded: ${https_proxy}"
+
+# Initialize conda for bash shell
+echo "Initializing conda..."
+eval "$(conda shell.bash hook)"
+
+# Check if the conda environment exists
+if ! conda env list | grep -q "^${CONDA_ENV} "; then
+    echo "ERROR: Conda environment '${CONDA_ENV}' not found!"
+    echo "Please create it first with: make create-workflow-env"
+    exit 1
+fi
+
+# Activate the conda environment that contains snakemake
+echo "Activating conda environment: $CONDA_ENV"
+conda activate "$CONDA_ENV"
+
+# Verify snakemake is available
+echo "Snakemake version: $(snakemake --version)"
 
 # Create log directory if it doesn't exist
 mkdir -p "$LOG_DIR"

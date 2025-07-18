@@ -29,6 +29,16 @@ def test_process_sample():
         # Copy the config file to the workdir.
         shutil.copytree(config_path.parent, workdir / "workflow")
 
+        # Copy the main Snakefile if it exists
+        main_snakefile = Path("workflow/Snakefile")
+        if main_snakefile.exists():
+            shutil.copy2(main_snakefile, workdir / "workflow" / "Snakefile")
+
+        # Copy the conda environment files
+        envs_dir = Path("workflow/envs")
+        if envs_dir.exists():
+            shutil.copytree(envs_dir, workdir / "workflow" / "envs")
+
         # Copy the "resources" folder to the workdir.
         shutil.copytree("resources", workdir / "resources")
 
@@ -43,6 +53,9 @@ def test_process_sample():
             "results/sampleId-A1_05_2024_10_08.ndjson.zst",
             "-f",
             "-j1",
+            "--use-conda",  # Force use of conda environments
+            "--conda-frontend",
+            "conda",  # Use conda instead of mamba
             "--target-files-omit-workdir-adjustment",
             "--directory",
             str(workdir),  # Convert Path to string
