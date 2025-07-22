@@ -4,6 +4,7 @@
 
 import yaml
 import os
+import sys
 import csv
 from pathlib import Path
 from datetime import datetime
@@ -140,6 +141,35 @@ def get_processing_input_path(sample_id):
 # Get the filtered sample list
 SAMPLE_IDS = get_sample_list()
 
+# Validate subsampling configuration
+if config.get("ENABLE_SUBSAMPLING", False):
+    fraction = config.get("SUBSAMPLE_FRACTION")
+    max_reads = config.get("SUBSAMPLE_MAX_READS")
+
+    # Check if at least one subsampling parameter is set
+    fraction_set = fraction is not None and fraction != "" and fraction != 0
+    max_reads_set = max_reads is not None and max_reads != ""
+
+    if not fraction_set and not max_reads_set:
+        print(
+            "❌ ERROR: ENABLE_SUBSAMPLING is true but neither SUBSAMPLE_FRACTION nor SUBSAMPLE_MAX_READS is set!"
+        )
+        print("   Please set at least one of:")
+        print("   - SUBSAMPLE_FRACTION (e.g., 0.1 for 10%)")
+        print("   - SUBSAMPLE_MAX_READS (e.g., 1000 for max 1000 reads)")
+        print("   Or set ENABLE_SUBSAMPLING: false to disable subsampling")
+        sys.exit(1)
+
+    # Log the subsampling mode that will be used
+    if fraction_set and max_reads_set:
+        print(
+            f"🎯 Subsampling Mode 3: {fraction*100:.1f}% of reads, capped at {max_reads:,} reads"
+        )
+    elif max_reads_set:
+        print(f"🎯 Subsampling Mode 2: Maximum {max_reads:,} reads")
+    elif fraction_set:
+        print(f"🎯 Subsampling Mode 1: {fraction*100:.1f}% of reads")
+
 # Warning if no samples found
 if not SAMPLE_IDS:
     print("⚠️  WARNING: No samples found matching the filtering criteria!")
@@ -193,8 +223,8 @@ rule subsample_bam:
         ),
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
-        subsample_fraction=config.get("SUBSAMPLE_FRACTION", 0.1),
-        subsample_max_reads=config.get("SUBSAMPLE_MAX_READS", None),
+        subsample_fraction=config.get("SUBSAMPLE_FRACTION", "None"),
+        subsample_max_reads=config.get("SUBSAMPLE_MAX_READS", "None"),
     log:
         "logs/sr2silo/subsample/sampleId_{sample_id}.log",
     conda:
@@ -209,26 +239,70 @@ rule subsample_bam:
         ORIGINAL_READS=$(samtools view -c {input.bam})
         echo "Original reads: $ORIGINAL_READS" > {log}
 
-        # Determine subsampling method and fraction
-        if [ -n "{params.subsample_max_reads}" ] && [ "{params.subsample_max_reads}" != "None" ]; then
-            # Use max reads approach
-            MAX_READS={params.subsample_max_reads}
-            if [ $ORIGINAL_READS -gt $MAX_READS ]; then
-                FRACTION=$(echo "scale=6; $MAX_READS / $ORIGINAL_READS" | bc -l)
-                echo "Using max reads: $MAX_READS, calculated fraction: $FRACTION" >> {log}
-            else
-                FRACTION=1.0
-                echo "Original reads ($ORIGINAL_READS) <= max reads ($MAX_READS), keeping all reads" >> {log}
-            fi
+        # Determine subsampling mode and calculate final fraction
+        SUBSAMPLE_FRACTION="{params.subsample_fraction}"
+        SUBSAMPLE_MAX_READS="{params.subsample_max_reads}"
+
+        # Check if fraction is set (not None, not empty, not "None")
+        if [ "$SUBSAMPLE_FRACTION" != "None" ] && [ "$SUBSAMPLE_FRACTION" != "" ] && [ "$SUBSAMPLE_FRACTION" != "0" ]; then
+            HAS_FRACTION=true
         else
-            # Use fraction approach
-            FRACTION={params.subsample_fraction}
-            echo "Using fraction: $FRACTION" >> {log}
+            HAS_FRACTION=false
+        fi
+
+        # Check if max_reads is set
+        if [ "$SUBSAMPLE_MAX_READS" != "None" ] && [ "$SUBSAMPLE_MAX_READS" != "" ]; then
+            HAS_MAX_READS=true
+        else
+            HAS_MAX_READS=false
+        fi
+
+        # Determine mode and calculate final fraction
+        if [ "$HAS_FRACTION" = true ] && [ "$HAS_MAX_READS" = true ]; then
+            # Mode 3: Fraction with max reads cap
+            echo "MODE 3: Fraction ($SUBSAMPLE_FRACTION) with max reads cap ($SUBSAMPLE_MAX_READS)" >> {log}
+            FRACTION_READS=$(echo "scale=0; $ORIGINAL_READS * $SUBSAMPLE_FRACTION / 1" | bc -l)
+            if [ $FRACTION_READS -gt $SUBSAMPLE_MAX_READS ]; then
+                FINAL_READS=$SUBSAMPLE_MAX_READS
+                ACTUAL_FRACTION=$(echo "scale=6; $FINAL_READS / $ORIGINAL_READS" | bc -l)
+                echo "Fraction would give $FRACTION_READS reads, capped to $FINAL_READS reads" >> {log}
+                echo "Using capped fraction: $ACTUAL_FRACTION" >> {log}
+            else
+                FINAL_READS=$FRACTION_READS
+                ACTUAL_FRACTION=$SUBSAMPLE_FRACTION
+                echo "Fraction gives $FINAL_READS reads, under max limit" >> {log}
+                echo "Using requested fraction: $ACTUAL_FRACTION" >> {log}
+            fi
+
+        elif [ "$HAS_MAX_READS" = true ] && [ "$HAS_FRACTION" = false ]; then
+            # Mode 2: Max reads only
+            echo "MODE 2: Max reads only ($SUBSAMPLE_MAX_READS)" >> {log}
+            if [ $ORIGINAL_READS -gt $SUBSAMPLE_MAX_READS ]; then
+                ACTUAL_FRACTION=$(echo "scale=6; $SUBSAMPLE_MAX_READS / $ORIGINAL_READS" | bc -l)
+                echo "Original reads ($ORIGINAL_READS) > max reads ($SUBSAMPLE_MAX_READS)" >> {log}
+                echo "Using calculated fraction: $ACTUAL_FRACTION" >> {log}
+            else
+                ACTUAL_FRACTION=1.0
+                echo "Original reads ($ORIGINAL_READS) <= max reads ($SUBSAMPLE_MAX_READS), keeping all reads" >> {log}
+                echo "Using fraction: $ACTUAL_FRACTION" >> {log}
+            fi
+
+        elif [ "$HAS_FRACTION" = true ] && [ "$HAS_MAX_READS" = false ]; then
+            # Mode 1: Fraction only
+            echo "MODE 1: Fraction only ($SUBSAMPLE_FRACTION)" >> {log}
+            ACTUAL_FRACTION=$SUBSAMPLE_FRACTION
+            echo "Using requested fraction: $ACTUAL_FRACTION" >> {log}
+
+        else
+            # Error: neither set
+            echo "ERROR: Neither SUBSAMPLE_FRACTION nor SUBSAMPLE_MAX_READS is set!" >> {log}
+            echo "This should not happen if ENABLE_SUBSAMPLING is true." >> {log}
+            exit 1
         fi
 
         # Subsample the BAM file - samtools -s expects seed.fraction format
         # We use a fixed seed (1234) and append the fraction
-        SEED_FRACTION="1234$FRACTION"
+        SEED_FRACTION="1234$ACTUAL_FRACTION"
         echo "Samtools seed.fraction parameter: $SEED_FRACTION" >> {log}
         samtools view -s $SEED_FRACTION -b {input.bam} > {output.bam} 2>> {log}
 
@@ -239,7 +313,7 @@ rule subsample_bam:
         # Create log entry for aggregation
         DATE=$(date +%Y-%m-%d)
         WEEK=$(date +%Y-W%U)
-        echo -e "{params.sample_id}\t$DATE\t$ORIGINAL_READS\t$SUBSAMPLED_READS\t$FRACTION\t$WEEK" > {output.log_entry}
+        echo -e "{params.sample_id}\t$DATE\t$ORIGINAL_READS\t$SUBSAMPLED_READS\t$ACTUAL_FRACTION\t$WEEK" > {output.log_entry}
 
         echo "Subsampling completed successfully" >> {log}
         """
