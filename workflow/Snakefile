@@ -226,8 +226,11 @@ rule subsample_bam:
             echo "Using fraction: $FRACTION" >> {log}
         fi
 
-        # Subsample the BAM file
-        samtools view -s $FRACTION -b {input.bam} > {output.bam} 2>> {log}
+        # Subsample the BAM file - samtools -s expects seed.fraction format
+        # We use a fixed seed (1234) and append the fraction
+        SEED_FRACTION="1234$FRACTION"
+        echo "Samtools seed.fraction parameter: $SEED_FRACTION" >> {log}
+        samtools view -s $SEED_FRACTION -b {input.bam} > {output.bam} 2>> {log}
 
         # Count subsampled reads
         SUBSAMPLED_READS=$(samtools view -c {output.bam})

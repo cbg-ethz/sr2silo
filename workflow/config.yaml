@@ -33,6 +33,6 @@ LAPIS_URL: "http://88.198.54.174"
 
 ### Subsampling Configuration
 ENABLE_SUBSAMPLING: true
-SUBSAMPLE_FRACTION: 0.1  # Keep 10% of reads
+SUBSAMPLE_FRACTION: 0.5  # Keep 10% of reads
 # Alternative: use SUBSAMPLE_MAX_READS instead of fraction
-# SUBSAMPLE_MAX_READS: 100000  # Keep maximum 100k reads
+SUBSAMPLE_MAX_READS: 150  # Keep maximum 100k reads
