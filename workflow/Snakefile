@@ -99,7 +99,7 @@ def get_input_file_path(sample_id):
     simple_path = f"{config['BASE_SAMPLE_DIR']}/{sample_id}/alignments/REF_aln_trim.bam"
     if Path(simple_path).exists():
         return simple_path
-    
+
     # If that doesn't exist, we need to find the batch_id by checking the timeline
     with open(config["TIMELINE_FILE"], "r") as f:
         reader = csv.reader(f, delimiter="\t")
@@ -115,7 +115,7 @@ def get_input_file_path(sample_id):
                     batch_path = f"{config['BASE_SAMPLE_DIR']}/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam"
                     if Path(batch_path).exists():
                         return batch_path
-        
+
         # Process remaining rows
         for row in reader:
             if len(row) >= 2 and row[0] == sample_id:
@@ -124,9 +124,17 @@ def get_input_file_path(sample_id):
                     batch_path = f"{config['BASE_SAMPLE_DIR']}/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam"
                     if Path(batch_path).exists():
                         return batch_path
-    
+
     # Default to simple path if nothing else works
     return simple_path
+
+
+def get_processing_input_path(sample_id):
+    """Get the appropriate input path for processing - subsampled if enabled, original otherwise."""
+    if config.get("ENABLE_SUBSAMPLING", False):
+        return f"{config['RESULTS_DIR']}/subsampled/{sample_id}/REF_aln_trim.bam"
+    else:
+        return get_input_file_path(sample_id)
 
 
 # Get the filtered sample list
@@ -157,6 +165,110 @@ rule all:
             f"{config['RESULTS_DIR']}/uploads/sampleId-{sample_id}.uploaded"
             for sample_id in SAMPLE_IDS
         ],
+        # Add subsampled BAM files if subsampling is enabled
+        [
+            f"{config['RESULTS_DIR']}/subsampled/{sample_id}/REF_aln_trim.bam"
+            for sample_id in SAMPLE_IDS
+        ]
+        if config.get("ENABLE_SUBSAMPLING", False)
+        else [],
+        # Add read count summary if subsampling is enabled
+        ["logs/subsampling/read_counts.tsv"]
+        if config.get("ENABLE_SUBSAMPLING", False)
+        else [],
+
+
+rule subsample_bam:
+    """Subsample BAM files to reduce computational load and standardize input sizes.
+
+    Tracks original and subsampled read counts for downstream analysis.
+    Uses samtools view with -s flag for random subsampling.
+    """
+    input:
+        bam=lambda wildcards: get_input_file_path(wildcards.sample_id),
+    output:
+        bam=f"{config['RESULTS_DIR']}/subsampled/{{sample_id}}/REF_aln_trim.bam",
+        log_entry=temp(
+            f"{config['RESULTS_DIR']}/subsampled/{{sample_id}}/read_count.tmp"
+        ),
+    params:
+        sample_id=lambda wildcards: wildcards.sample_id,
+        subsample_fraction=config.get("SUBSAMPLE_FRACTION", 0.1),
+        subsample_max_reads=config.get("SUBSAMPLE_MAX_READS", None),
+    log:
+        "logs/sr2silo/subsample/sampleId_{sample_id}.log",
+    conda:
+        "envs/subsampling.yaml"
+    shell:
+        """
+        # Create output directory
+        mkdir -p $(dirname {output.bam})
+        mkdir -p logs/subsampling
+
+        # Count original reads
+        ORIGINAL_READS=$(samtools view -c {input.bam})
+        echo "Original reads: $ORIGINAL_READS" > {log}
+
+        # Determine subsampling method and fraction
+        if [ -n "{params.subsample_max_reads}" ] && [ "{params.subsample_max_reads}" != "None" ]; then
+            # Use max reads approach
+            MAX_READS={params.subsample_max_reads}
+            if [ $ORIGINAL_READS -gt $MAX_READS ]; then
+                FRACTION=$(echo "scale=6; $MAX_READS / $ORIGINAL_READS" | bc -l)
+                echo "Using max reads: $MAX_READS, calculated fraction: $FRACTION" >> {log}
+            else
+                FRACTION=1.0
+                echo "Original reads ($ORIGINAL_READS) <= max reads ($MAX_READS), keeping all reads" >> {log}
+            fi
+        else
+            # Use fraction approach
+            FRACTION={params.subsample_fraction}
+            echo "Using fraction: $FRACTION" >> {log}
+        fi
+
+        # Subsample the BAM file
+        samtools view -s $FRACTION -b {input.bam} > {output.bam} 2>> {log}
+
+        # Count subsampled reads
+        SUBSAMPLED_READS=$(samtools view -c {output.bam})
+        echo "Subsampled reads: $SUBSAMPLED_READS" >> {log}
+
+        # Create log entry for aggregation
+        DATE=$(date +%Y-%m-%d)
+        WEEK=$(date +%Y-W%U)
+        echo -e "{params.sample_id}\t$DATE\t$ORIGINAL_READS\t$SUBSAMPLED_READS\t$FRACTION\t$WEEK" > {output.log_entry}
+
+        echo "Subsampling completed successfully" >> {log}
+        """
+
+
+rule aggregate_read_counts:
+    """Aggregate read count statistics from all subsampled files into a single log file."""
+    input:
+        log_entries=(
+            [
+                f"{config['RESULTS_DIR']}/subsampled/{sample_id}/read_count.tmp"
+                for sample_id in SAMPLE_IDS
+            ]
+            if config.get("ENABLE_SUBSAMPLING", False)
+            else []
+        ),
+    output:
+        summary="logs/subsampling/read_counts.tsv",
+    shell:
+        """
+        mkdir -p logs/subsampling
+
+        # Create header
+        echo -e "sample_id\tdate\toriginal_reads\tsubsampled_reads\tsubsample_fraction\tweek_of_year" > {output.summary}
+
+        # Aggregate all log entries
+        if [ "{input.log_entries}" != "" ]; then
+            cat {input.log_entries} >> {output.summary}
+        fi
+
+        echo "Read count summary created: {output.summary}"
+        """
 
 
 rule process_sample:
@@ -170,10 +282,9 @@ rule process_sample:
     Note: On ETH cluster, internet access is provided by eth_proxy module loaded at job level.
     """
     input:
-        sample_fp=lambda wildcards: get_input_file_path(wildcards.sample_id),
+        sample_fp=lambda wildcards: get_processing_input_path(wildcards.sample_id),
     output:
-        result_fp=f"{config['RESULTS_DIR']}"
-        + "/sampleId-{sample_id}.ndjson.zst",
+        result_fp=f"{config['RESULTS_DIR']}" + "/sampleId-{sample_id}.ndjson.zst",
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
         timeline_file=config["TIMELINE_FILE"],
@@ -212,8 +323,7 @@ rule submit_to_loculus:
     Note: On ETH cluster, internet access is provided by eth_proxy module loaded at job level.
     """
     input:
-        result_fp=f"{config['RESULTS_DIR']}"
-        + "/sampleId-{sample_id}.ndjson.zst",
+        result_fp=f"{config['RESULTS_DIR']}" + "/sampleId-{sample_id}.ndjson.zst",
     output:
         flag=f"{config['RESULTS_DIR']}/uploads/sampleId-{{sample_id}}.uploaded",
     params:

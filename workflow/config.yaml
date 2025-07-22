@@ -13,7 +13,7 @@ END_DATE: "2025-07-15"
 
 ### Input Files
 BASE_SAMPLE_DIR: "../results"
-TIMELINE_FILE: "../../work-vp-test/variants/timeline.tsv" 
+TIMELINE_FILE: "../../work-vp-test/variants/timeline.tsv"
 ### Output Files
 RESULTS_DIR: "../silo-inputs"
 
@@ -30,3 +30,9 @@ PASSWORD: "testuser"
 
 ### LAPIS – hosting the SILO database (to query reference from)
 LAPIS_URL: "http://88.198.54.174"
+
+### Subsampling Configuration
+ENABLE_SUBSAMPLING: true
+SUBSAMPLE_FRACTION: 0.1  # Keep 10% of reads
+# Alternative: use SUBSAMPLE_MAX_READS instead of fraction
+# SUBSAMPLE_MAX_READS: 100000  # Keep maximum 100k reads

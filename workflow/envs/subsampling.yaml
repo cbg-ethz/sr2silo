@@ -1,0 +1,10 @@
+name: sr2silo-subsampling
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - samtools>=1.17
+  - pandas>=2.0.0
+  - python>=3.8
+  - bc  # For shell arithmetic calculations
