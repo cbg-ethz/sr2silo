@@ -102,12 +102,12 @@ class AlignedRead:
             raise TypeError(f"read_id must be a str, got {type(self.read_id).__name__}")
         if not isinstance(self.unaligned_nucleotide_sequence, str):
             raise TypeError(
-                f"unaligned_nucleotide_sequences must be a str, got "
+                f"unaligned_nucleotide_sequence must be a str, got "
                 f"{type(self.unaligned_nucleotide_sequence).__name__}"
             )
         if not isinstance(self.aligned_nucleotide_sequence, str):
             raise TypeError(
-                f"aligned_nucleotide_sequences must be a str, got "
+                f"aligned_nucleotide_sequence must be a str, got "
                 f"{type(self.aligned_nucleotide_sequence).__name__}"
             )
         if not all(isinstance(i, NucInsertion) for i in self.nucleotide_insertions):
