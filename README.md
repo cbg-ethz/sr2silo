@@ -23,9 +23,9 @@ alignments to cleartext alignments compatible with LAPIS-SILO v0.8.0+. It gracef
 and deletions. Optionally, sr2silo can translate and align each read using [diamond / blastX](https://github.com/bbuchfink/diamond), handling insertions and deletions in amino acid sequences as well.
 
 Your input `.bam/.sam` with one line as:
-````
-294	163	NC_045512.2	79	60	31S220M	=	197	400	CTCTTGTAGAT	FGGGHHHHLMM	...
-````
+```text
+294 163 NC_045512.2 79  60  31S220M =   197 400 CTCTTGTAGAT FGGGHHHHLMM ...
+```
 
 sr2silo outputs per read a JSON (compatible with LAPIS-SILO v0.8.0+):
 
