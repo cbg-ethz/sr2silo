@@ -181,59 +181,6 @@ class AminoAcidSegment(BaseModel):
         return v
 
 
-# Keep GenomicSegment for backwards compatibility, but it's now deprecated
-class GenomicSegment(BaseModel):
-    """DEPRECATED: Use NucleotideSegment or AminoAcidSegment instead.
-
-    Schema for a genomic segment (main nucleotide or gene amino acid sequence).
-    This class accepts both nucleotide and amino acid sequences but provides
-    less specific validation.
-    """
-
-    sequence: str
-    insertions: List[str]
-    offset: int
-
-    @field_validator("sequence")
-    @classmethod
-    def validate_sequence_format(cls, v: str) -> str:
-        """Validate that sequence contains only valid characters."""
-        # Allow nucleotide sequences (ACGTN-) and amino acid sequences (A-Z*-)
-        nucleotide_pattern = r"^[ACGTN\-]*$"
-        amino_acid_pattern = r"^[A-Z*\-]*$"
-
-        if not (
-            re.match(nucleotide_pattern, v, re.IGNORECASE)
-            or re.match(amino_acid_pattern, v)
-        ):
-            raise ValueError(
-                "Sequence contains invalid characters. "
-                "Expected nucleotides (ACGTN-) or amino acids (A-Z*-)."
-            )
-        return v
-
-    @field_validator("insertions")
-    @classmethod
-    def validate_insertions_format(cls, v: List[str]) -> List[str]:
-        """Validate that insertions have the format 'position:sequence'."""
-        pattern = r"^\d+:[ACGTN*A-Z\-]+$"
-        for insertion in v:
-            if not re.match(pattern, insertion, re.IGNORECASE):
-                raise ValueError(
-                    f"Insertion '{insertion}' is not in the expected format. "
-                    "Expected format: 'position:sequence' (e.g., '123:ACGT' or '45:MYK')"
-                )
-        return v
-
-    @field_validator("offset")
-    @classmethod
-    def validate_offset(cls, v: int) -> int:
-        """Validate that offset is non-negative."""
-        if v < 0:
-            raise ValueError("Offset must be non-negative")
-        return v
-
-
 class AlignedReadSchema(BaseModel):
     """SILO-specific pydantic schema for AlignedRead JSON format.
 
