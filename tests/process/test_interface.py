@@ -51,7 +51,7 @@ def test_aligned_read():
     assert len(read.nucleotide_insertions) == 1
     assert isinstance(read.nucleotide_insertions[0], NucInsertion)
     assert isinstance(read.amino_acid_insertions, AAInsertionSet)
-    assert isinstance(read.aligned_amino_acid_sequence, AASequenceSet)
+    assert isinstance(read.aligned_amino_acid_sequences, AASequenceSet)
 
 
 def test_gene_name():

@@ -100,7 +100,7 @@ def test_enrich_read_with_aa_seq_basic(tmp_path, monkeypatch):
     updated_read = result[read_id]
 
     # Check sequence was set
-    sequences = updated_read.aligned_amino_acid_sequence.to_dict()
+    sequences = updated_read.aligned_amino_acid_sequences.to_dict()
     assert sequences[gene_name] == "MKT"
 
     # Check insertions were set

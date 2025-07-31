@@ -280,7 +280,7 @@ def enrich_read_with_aa_seq(
                 aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(
                     gene_name, aa_insertions
                 )
-                aligned_reads[read_id].aligned_amino_acid_sequence.set_sequence(
+                aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(
                     gene_name, aa_aligned, pos
                 )
                 pbar.update(1)

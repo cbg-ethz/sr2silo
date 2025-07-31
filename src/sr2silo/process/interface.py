@@ -67,7 +67,7 @@ class AlignedRead:
         "aligned_nucleotide_sequence_offset",
         "nucleotide_insertions",
         "amino_acid_insertions",
-        "aligned_amino_acid_sequence",
+        "aligned_amino_acid_sequences",
         "metadata",
     ]
 
@@ -88,7 +88,7 @@ class AlignedRead:
         self.aligned_nucleotide_sequence = aligned_nucleotide_sequence
         self.nucleotide_insertions = nucleotide_insertions
         self.amino_acid_insertions = amino_acid_insertions
-        self.aligned_amino_acid_sequence = aligned_amino_acid_sequences
+        self.aligned_amino_acid_sequences = aligned_amino_acid_sequences
         self.aligned_nucleotide_sequence_offset = aligned_nucleotide_sequence_offset
         if metadata:
             self.set_metadata(metadata)
@@ -119,10 +119,10 @@ class AlignedRead:
                 f"amino_acid_insertions must be an AAInsertionSet, got "
                 f"{type(self.amino_acid_insertions).__name__}"
             )
-        if not isinstance(self.aligned_amino_acid_sequence, AASequenceSet):
+        if not isinstance(self.aligned_amino_acid_sequences, AASequenceSet):
             raise TypeError(
                 f"aligned_amino_acid_sequences must be a dict, got "
-                f"{type(self.aligned_amino_acid_sequence).__name__}"
+                f"{type(self.aligned_amino_acid_sequences).__name__}"
             )
         if self.metadata is not None and not isinstance(
             self.metadata, (dict, ReadMetadata)
@@ -162,7 +162,7 @@ class AlignedRead:
             f"{ins.position}:{ins.sequence}" for ins in self.nucleotide_insertions
         ]
         aln_gene_list = aa_sequence_set_and_insertions_to_aligned_genes(
-            self.aligned_amino_acid_sequence, self.amino_acid_insertions
+            self.aligned_amino_acid_sequences, self.amino_acid_insertions
         )
 
         json_representation = {}
