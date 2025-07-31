@@ -25,50 +25,6 @@ logging.basicConfig(
 )
 
 
-# Nota bene: The output tested against is not validated, yet a failure in test
-# notes a change of output here.
-def test_parse_translate_align(aligned_reads):
-    """Test the parse_translate_align function.
-
-    Current dataset misses Amino Acid Insertions - i.e. not tested here.
-    """
-
-    # load the expected aligned reads
-    expected_aligned_reads = []
-    with open("tests/data/process/aligned_reads.ndjson") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            expected_aligned_reads.append(AlignedRead.from_str(line))
-            print(AlignedRead.from_str(line))
-
-    # Convert actual_aligned_reads from dict to list for comparison.
-    actual_aligned_reads = list(aligned_reads.values())
-
-    # Compare each read attribute using their dictionary representations.
-    for i, (actual, expected) in enumerate(
-        zip(actual_aligned_reads, expected_aligned_reads)
-    ):
-        for attr in actual.to_dict().keys():
-            act_attr = actual.to_dict()[attr]
-            exp_attr = expected.to_dict()[attr]
-
-            print(f"act_attr: {act_attr}")
-            print(f"exp_attr: {exp_attr}")
-            assert str(act_attr) == str(exp_attr), (
-                f"Mismatch at read {i} for attribute {attr}: "
-                f"Expected {exp_attr} but got {act_attr}"
-            )
-
-
-# TODO: Implement the following tests
-@pytest.mark.skip(reason="Not implemented")
-def test_read_in_AligendReads_nuc_seq():
-    """Test the make_read_with_nuc_seq function."""
-    raise NotImplementedError
-
-
 def test_read_in_AligendReads_nuc_ins(aligned_reads):
     """Test the enrich_read_with_nuc_ins function."""
     fasta_nuc_insertions_file = Path("tests/data/process/nuc_insertions.fasta")
