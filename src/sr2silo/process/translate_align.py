@@ -275,17 +275,11 @@ def enrich_read_with_aa_seq(
                     for ins in insertions
                 ]
 
-                padded_aa_alignment = convert.pad_alignment(
-                    aa_aligned,
-                    pos,
-                    gene_set.get_gene_length(gene_name),
-                    unknown_char="X",
-                )
                 aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(
                     gene_name, aa_insertions
                 )
                 aligned_reads[read_id].aligned_amino_acid_sequence.set_sequence(
-                    gene_name, padded_aa_alignment
+                    gene_name, aa_aligned, pos
                 )
                 pbar.update(1)
     return aligned_reads

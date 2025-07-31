@@ -6,9 +6,9 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
-from sr2silo.silo_read_schema import AlignedReadSchema, ReadMetadata
+from sr2silo.silo_read_schema import ReadMetadata
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -214,65 +214,13 @@ class AlignedRead:
         #     )
         # except ValidationError as e:
         #     raise e
-        return json.dumps(self.to_dict(), indent=2 if indent else None, ensure_ascii=False
+        return json.dumps(
+            self.to_dict(), indent=2 if indent else None, ensure_ascii=False
         )
 
     def __str__(self) -> str:
         """toString method as pretty JSON string."""
         return json.dumps(self.to_dict(), indent=2)
-
-    @staticmethod
-    def from_str(data: str) -> AlignedRead:
-        """Create an AlignedRead object from a string."""
-        data = data.strip()  # Remove extra whitespace
-
-        # Parse the json data to a dict
-        json_data = json.loads(data)
-
-        # Extract the data from the dict
-        read_id = json_data["metadata"]["read_id"]
-        metadata = ReadMetadata(**json_data["metadata"])
-
-        unaligned_nucleotide_sequences = json_data["unalignedNucleotideSequences"][
-            "main"
-        ]
-        aligned_nucleotide_sequences = json_data["alignedNucleotideSequences"]["main"]
-        nucleotide_insertions = []
-        if json_data["nucleotideInsertions"]["main"]:
-            nucleotide_insertions = [
-                NucInsertion(int(ins.split(":")[0]), ins.split(":")[1])
-                for ins in json_data["nucleotideInsertions"]["main"]
-            ]
-        amino_acid_insertions = AAInsertionSet.from_dict(
-            json_data["aminoAcidInsertions"]
-        )
-        aligned_amino_acid_sequences = AASequenceSet.from_dict(
-            json_data["alignedAminoAcidSequences"]
-        )
-
-        # validate all the arguments are of the correct type
-        assert isinstance(read_id, str)
-        assert isinstance(unaligned_nucleotide_sequences, str)
-        assert isinstance(aligned_nucleotide_sequences, str)
-        assert all(isinstance(i, NucInsertion) for i in nucleotide_insertions)
-        assert isinstance(amino_acid_insertions, AAInsertionSet)
-        assert isinstance(aligned_amino_acid_sequences, AASequenceSet)
-
-        try:
-            return AlignedRead(
-                read_id,
-                unaligned_nucleotide_sequences,
-                aligned_nucleotide_sequences,
-                nucleotide_insertions,
-                amino_acid_insertions,
-                aligned_amino_acid_sequences,
-                metadata=metadata,
-            )
-        except TypeError as e:
-            logging.error(
-                "Error constructing AlignedRead with data: " + repr(json_data)
-            )
-            raise e
 
 
 class GeneName:
@@ -409,11 +357,13 @@ class AASequenceSet:
     def __init__(self, genes: List[GeneName]):
         """Initialize with an empty sequence for each gene"""
         self.sequences = {gene: "" for gene in genes}
+        self.offsets = {gene: 0 for gene in genes}
         self.genes = genes
 
-    def set_sequence(self, gene_name: GeneName, aa_sequence: str):
+    def set_sequence(self, gene_name: GeneName, aa_sequence: str, offset: int = 0):
         """Set the amino acid sequence for a particular gene."""
         self.sequences[gene_name] = aa_sequence
+        self.offsets[gene_name] = offset
 
     def to_dict(self) -> dict:
         """Return a dictionary with gene names as keys"""
@@ -464,7 +414,8 @@ class AlignedGene:
 
 
 def aa_sequence_set_and_insertions_to_aligned_genes(
-    aa_sequence_set: AASequenceSet, aa_insertion_set: AAInsertionSet, offset: int = 0
+    aa_sequence_set: AASequenceSet,
+    aa_insertion_set: AAInsertionSet,
 ) -> List[AlignedGene]:
     """
     Convert an AASequenceSet and AAInsertionSet to a list of AlignedGene objects.
@@ -472,15 +423,9 @@ def aa_sequence_set_and_insertions_to_aligned_genes(
     Args:
         aa_sequence_set: The amino acid sequences for each gene
         aa_insertion_set: The amino acid insertions for each gene
-        offset: The offset to apply to all genes (default: 0, will be calculated from
-            amino acid sequences in future implementation)
 
     Returns:
         List of AlignedGene objects
-
-    Note:
-        The offset parameter is currently a placeholder. In the future, the offset
-        will be determined from the amino acid sequences themselves.
     """
     aligned_genes = []
 
@@ -495,9 +440,8 @@ def aa_sequence_set_and_insertions_to_aligned_genes(
         # Get insertions for this gene, default to empty list if not found
         insertions = aa_insertion_set.aa_insertions.get(gene_name_str, [])
 
-        # TODO: Calculate offset from amino acid sequence instead of using parameter
-        # The offset will be determined from the sequence analysis in future implementation
-        current_offset = offset
+        # Use per-gene offset from AASequenceSet
+        current_offset = aa_sequence_set.offsets[gene_name_str]
 
         # Create AlignedGene object
         aligned_gene = AlignedGene(
