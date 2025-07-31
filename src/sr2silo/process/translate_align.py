@@ -204,12 +204,11 @@ def make_read_with_nuc_seq(
                         f"Error parsing alignment position for {read_id}: {e}"
                     )
                     continue
-
+                aligned_nuc_seq = convert.pad_alignment(seq, pos, nuc_reference_length)
                 read = AlignedRead(
                     read_id=read_id,
-                    unaligned_nucleotide_sequence=seq,
-                    aligned_nucleotide_sequence=seq,
-                    aligned_nucleotide_sequence_offset=pos,
+                    unaligned_nucleotide_sequences=seq,
+                    aligned_nucleotide_sequences=aligned_nuc_seq,
                     nucleotide_insertions=list(),
                     amino_acid_insertions=AAInsertionSet(gene_set.get_gene_name_list()),
                     aligned_amino_acid_sequences=AASequenceSet(
@@ -270,18 +269,22 @@ def enrich_read_with_aa_seq(
                 ) = convert.sam_to_seq_and_indels(seq, cigar)
 
                 # Convert generic Insertion objects to AAInsertion objects
-                # Note: Insertions without a context sequence are non-sense
-                # If aa_aligned is empty, insertions should be ignored/empty
                 aa_insertions = [
                     AAInsertion(position=ins.position, sequence=ins.sequence)
                     for ins in insertions
                 ]
 
+                padded_aa_alignment = convert.pad_alignment(
+                    aa_aligned,
+                    pos,
+                    gene_set.get_gene_length(gene_name),
+                    unknown_char="X",
+                )
                 aligned_reads[read_id].amino_acid_insertions.set_insertions_for_gene(
                     gene_name, aa_insertions
                 )
                 aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(
-                    gene_name, aa_aligned, pos
+                    gene_name, padded_aa_alignment
                 )
                 pbar.update(1)
     return aligned_reads
