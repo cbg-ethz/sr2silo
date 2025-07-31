@@ -417,7 +417,11 @@ class AlignedGene:
 
     def __str__(self) -> str:
         """String representation of the aligned gene."""
-        return f"AlignedGene(gene_name={self.gene_name}, sequence_length={len(self.sequence)}, offset={self.offset}, insertions_count={len(self.insertions)})"
+        return (
+            f"AlignedGene(gene_name={self.gene_name}, "
+            f"sequence_length={len(self.sequence)}, offset={self.offset}, "
+            f"insertions_count={len(self.insertions)})"
+        )
 
     def __eq__(self, other) -> bool:
         """Compare two AlignedGene objects by their values."""

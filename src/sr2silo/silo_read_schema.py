@@ -118,8 +118,9 @@ class NucleotideSegment(BaseModel):
         for insertion in v:
             if not re.match(pattern, insertion, re.IGNORECASE):
                 raise ValueError(
-                    f"Nucleotide insertion '{insertion}' is not in the expected format. "
-                    "Expected format: 'position:sequence' with nucleotides only (e.g., '123:ACGT')"
+                    f"Nucleotide insertion '{insertion}' is not in the expected "
+                    "format. Expected format: 'position:sequence' with nucleotides "
+                    "only (e.g., '123:ACGT')"
                 )
         return v
 
@@ -160,10 +161,12 @@ class AminoAcidSegment(BaseModel):
         for insertion in v:
             if not re.match(pattern, insertion):
                 raise ValueError(
-                    f"Amino acid insertion '{insertion}' is not in the expected format. "
-                    "Expected format: 'position:sequence' with amino acids only (e.g., '45:MYK')"
+                    f"Amino acid insertion '{insertion}' is not in the expected "
+                    "format. Expected format: 'position:sequence' with amino acids "
+                    "only (e.g., '45:MYK')"
                 )
-            # Additional check: ensure the sequence part contains only amino acids, not nucleotides
+            # Additional check: ensure the sequence part contains only amino acids,
+            # not nucleotides
             position, sequence_part = insertion.split(":", 1)
             if re.match(r"^[ACGTN]+$", sequence_part, re.IGNORECASE):
                 raise ValueError(
@@ -224,8 +227,8 @@ class AlignedReadSchema(BaseModel):
                 nucleotide_pattern = r"^[ACGTN\-]*$"
                 if not re.match(nucleotide_pattern, field_value, re.IGNORECASE):
                     raise ValueError(
-                        f"Unaligned sequence '{field_name}' contains invalid characters. "
-                        f"Expected nucleotides (ACGTN-) only."
+                        f"Unaligned sequence '{field_name}' contains invalid "
+                        f"characters. Expected nucleotides (ACGTN-) only."
                     )
 
             # Allow metadata fields (strings, numbers)
@@ -238,8 +241,9 @@ class AlignedReadSchema(BaseModel):
                     field_value, (str, int, float)
                 ):
                     raise ValueError(
-                        f"Field '{field_name}' should be either an amino acid segment "
-                        f"(with sequence, insertions, offset), None, or metadata (string/number)"
+                        f"Field '{field_name}' should be either an amino acid "
+                        f"segment (with sequence, insertions, offset), None, or "
+                        f"metadata (string/number)"
                     )
 
         return self
