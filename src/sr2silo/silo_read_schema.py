@@ -99,9 +99,20 @@ class AminoAcidInsertions(RootModel):
 class AlignedReadSchema(BaseModel):
     """SILO-specific pydantic schema for AlignedRead JSON format."""
 
-    metadata: Optional[ReadMetadata] = None
-    nucleotideInsertions: NucleotideInsertions
-    aminoAcidInsertions: AminoAcidInsertions
-    alignedNucleotideSequences: AlignedNucleotideSequences
-    unalignedNucleotideSequences: UnalignedNucleotideSequences
-    alignedAminoAcidSequences: AminoAcidSequences
+    pass
+    # arbitrary number of fileds for metatata
+
+    # at least one GenomicSegment
+
+    # at least one UnaligmentSegement
+
+    # at lead one Gene
+
+
+
+    # metadata: Optional[ReadMetadata] = None
+    # nucleotideInsertions: NucleotideInsertions
+    # aminoAcidInsertions: AminoAcidInsertions
+    # alignedNucleotideSequences: AlignedNucleotideSequences
+    # unalignedNucleotideSequences: UnalignedNucleotideSequences
+    # alignedAminoAcidSequences: AminoAcidSequences
