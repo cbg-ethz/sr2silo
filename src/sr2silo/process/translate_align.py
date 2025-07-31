@@ -204,7 +204,7 @@ def make_read_with_nuc_seq(
                         f"Error parsing alignment position for {read_id}: {e}"
                     )
                     continue
-                
+
                 read = AlignedRead(
                     read_id=read_id,
                     unaligned_nucleotide_sequence=seq,
