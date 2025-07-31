@@ -257,7 +257,7 @@ class AlignedReadSchema(BaseModel):
             if field_name == "main":
                 continue
 
-            # Check for gene segments (should be amino acid segments)
+            # Check for gene segments (should be amino acid segments or None)
             if isinstance(field_value, dict) and all(
                 k in field_value for k in ["sequence", "insertions", "offset"]
             ):
@@ -266,6 +266,10 @@ class AlignedReadSchema(BaseModel):
                     AminoAcidSegment(**field_value)
                 except Exception as e:
                     raise ValueError(f"Invalid amino acid segment '{field_name}': {e}")
+
+            # Allow None for empty gene segments
+            elif field_value is None:
+                continue
 
             # Check for unaligned sequences (should be strings with nucleotides)
             elif field_name.startswith("unaligned_") and isinstance(field_value, str):
@@ -288,7 +292,7 @@ class AlignedReadSchema(BaseModel):
                 ):
                     raise ValueError(
                         f"Field '{field_name}' should be either an amino acid segment "
-                        f"(with sequence, insertions, offset) or metadata (string/number)"
+                        f"(with sequence, insertions, offset), None, or metadata (string/number)"
                     )
 
         return self

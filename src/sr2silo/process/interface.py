@@ -193,12 +193,18 @@ class AlignedRead:
 
         # Add each gene to the JSON representation
         for aligned_gene in aln_gene_list:
-            formatted_aa_ins = [str(ins) for ins in aligned_gene.insertions]
-            json_representation[aligned_gene.gene_name.name] = {
-                "sequence": aligned_gene.sequence,
-                "offset": aligned_gene.offset,
-                "insertions": formatted_aa_ins,
-            }
+            # Check if gene has no sequence - if so, represent as null
+            # Note: Insertions without a context sequence are non-sense,
+            # so we only need to check if the sequence is empty
+            if not aligned_gene.sequence:
+                json_representation[aligned_gene.gene_name.name] = None
+            else:
+                formatted_aa_ins = [str(ins) for ins in aligned_gene.insertions]
+                json_representation[aligned_gene.gene_name.name] = {
+                    "sequence": aligned_gene.sequence,
+                    "offset": aligned_gene.offset,
+                    "insertions": formatted_aa_ins,
+                }
 
         return json_representation
 
@@ -218,7 +224,7 @@ class AlignedRead:
             schema = AlignedReadSchema(**data_dict)
 
             return schema.model_dump_json(
-                indent=2 if indent else None, exclude_none=True
+                indent=2 if indent else None, exclude_none=False
             )
         except Exception as e:
             # If validation fails, log the error and return the raw JSON

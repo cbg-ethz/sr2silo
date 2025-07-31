@@ -270,6 +270,8 @@ def enrich_read_with_aa_seq(
                 ) = convert.sam_to_seq_and_indels(seq, cigar)
 
                 # Convert generic Insertion objects to AAInsertion objects
+                # Note: Insertions without a context sequence are non-sense
+                # If aa_aligned is empty, insertions should be ignored/empty
                 aa_insertions = [
                     AAInsertion(position=ins.position, sequence=ins.sequence)
                     for ins in insertions
