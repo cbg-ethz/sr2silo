@@ -161,32 +161,25 @@ class AlignedRead:
         formatted_nuc_ins = [
             f"{ins.position}:{ins.sequence}" for ins in self.nucleotide_insertions
         ]
-        # json_representation = {
-        #     "readId": self.read_id,
-        #     "aminoAcidInsertions": self.amino_acid_insertions.to_dict(),
-        #     "alignedNucleotideSequences": {
-        #         "main": self.aligned_nucleotide_sequence,
-        #     },
-        #     "unalignedNucleotideSequences": {
-        #         "main": self.unaligned_nucleotide_sequence,
-        #     },
-        #     "alignedAminoAcidSequences": self.aligned_amino_acid_sequence.to_dict(),
-        # }
-
         aln_gene_list = aa_sequence_set_and_insertions_to_aligned_genes(
             self.aligned_amino_acid_sequence, self.amino_acid_insertions
         )
-        gene_str = ", ".join([str(aligned_gene) for aligned_gene in aln_gene_list])
-
         json_representation = {
             "main": {
                 "insertions": formatted_nuc_ins,
                 "sequence": self.aligned_nucleotide_sequence,
-                "offset": self.aligned_nucleotide_sequence_offset,  # Assuming offset is 0 for simplicity
+                "offset": self.aligned_nucleotide_sequence_offset,
             },
-            gene_str: None,
-            "unaligedSequence": self.unaligned_nucleotide_sequence,
+            "unaligned_main": self.unaligned_nucleotide_sequence,
         }
+        # Add each gene to the JSON representation
+        for aligned_gene in aln_gene_list:
+            formatted_aa_ins = [str(ins) for ins in aligned_gene.insertions]
+            json_representation[aligned_gene.gene_name.name] = {
+                "sequence": aligned_gene.sequence,
+                "offset": aligned_gene.offset,
+                "insertions": formatted_aa_ins,
+            }
 
         if self.metadata:
             metadata_dict = (
@@ -204,7 +197,6 @@ class AlignedRead:
                         f"Metadata value for {key} is not a string or number: {value}"
                     )
 
-            print(f"JSON representation of AlignedRead: {json_representation}")
         return json_representation
 
     def to_silo_json(self, indent: bool = False) -> str:
@@ -215,13 +207,15 @@ class AlignedRead:
         Args:
             indent: Whether to indent the JSON string, True for pretty print.
         """
-        try:
-            schema = AlignedReadSchema(**self.to_dict())
-            return schema.model_dump_json(
-                indent=2 if indent else None, exclude_none=True
-            )
-        except ValidationError as e:
-            raise e
+        # try:
+        #     schema = AlignedReadSchema(**self.to_dict())
+        #     return schema.model_dump_json(
+        #         indent=2 if indent else None, exclude_none=True
+        #     )
+        # except ValidationError as e:
+        #     raise e
+        return json.dumps(self.to_dict(), indent=2 if indent else None, ensure_ascii=False
+        )
 
     def __str__(self) -> str:
         """toString method as pretty JSON string."""

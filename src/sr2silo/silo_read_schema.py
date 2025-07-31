@@ -108,8 +108,6 @@ class AlignedReadSchema(BaseModel):
 
     # at lead one Gene
 
-
-
     # metadata: Optional[ReadMetadata] = None
     # nucleotideInsertions: NucleotideInsertions
     # aminoAcidInsertions: AminoAcidInsertions
