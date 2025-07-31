@@ -360,7 +360,8 @@ def test_empty_gene_representation():
     aa_seq_set.set_sequence(gene1, "MKTSF", 0)
     aa_seq_set.set_sequence(gene2, "", 0)  # Empty sequence
 
-    # Set up amino acid insertions - note that insertions without sequence context are non-sense
+    # Set up amino acid insertions - note that insertions without sequence
+    # context are non-sense
     aa_ins_set = AAInsertionSet([gene1, gene2])
     aa_ins_set.set_insertions_for_gene(gene1, [AAInsertion(5, "VLK")])
     aa_ins_set.set_insertions_for_gene(
