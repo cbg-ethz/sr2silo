@@ -90,21 +90,205 @@ class AminoAcidInsertions(RootModel):
         return self
 
 
+class NucleotideSegment(BaseModel):
+    """Schema for a nucleotide genomic segment (e.g., main nucleotide sequence)."""
+
+    sequence: str
+    insertions: List[str]
+    offset: int
+
+    @field_validator("sequence")
+    @classmethod
+    def validate_nucleotide_sequence(cls, v: str) -> str:
+        """Validate that sequence contains only valid nucleotide characters."""
+        nucleotide_pattern = r"^[ACGTN\-]*$"
+
+        if not re.match(nucleotide_pattern, v, re.IGNORECASE):
+            raise ValueError(
+                "Nucleotide sequence contains invalid characters. "
+                "Expected nucleotides (ACGTN-) only."
+            )
+        return v
+
+    @field_validator("insertions")
+    @classmethod
+    def validate_nucleotide_insertions(cls, v: List[str]) -> List[str]:
+        """Validate that nucleotide insertions have the format 'position:sequence'."""
+        pattern = r"^\d+:[ACGTN]+$"
+        for insertion in v:
+            if not re.match(pattern, insertion, re.IGNORECASE):
+                raise ValueError(
+                    f"Nucleotide insertion '{insertion}' is not in the expected format. "
+                    "Expected format: 'position:sequence' with nucleotides only (e.g., '123:ACGT')"
+                )
+        return v
+
+    @field_validator("offset")
+    @classmethod
+    def validate_offset(cls, v: int) -> int:
+        """Validate that offset is non-negative."""
+        if v < 0:
+            raise ValueError("Offset must be non-negative")
+        return v
+
+
+class AminoAcidSegment(BaseModel):
+    """Schema for an amino acid genomic segment (e.g., gene sequences)."""
+
+    sequence: str
+    insertions: List[str]
+    offset: int
+
+    @field_validator("sequence")
+    @classmethod
+    def validate_amino_acid_sequence(cls, v: str) -> str:
+        """Validate that sequence contains only valid amino acid characters."""
+        amino_acid_pattern = r"^[A-Z*\-]*$"
+
+        if not re.match(amino_acid_pattern, v):
+            raise ValueError(
+                "Amino acid sequence contains invalid characters. "
+                "Expected amino acids (A-Z*-) only."
+            )
+        return v
+
+    @field_validator("insertions")
+    @classmethod
+    def validate_amino_acid_insertions(cls, v: List[str]) -> List[str]:
+        """Validate that amino acid insertions have the format 'position:sequence'."""
+        pattern = r"^\d+:[A-Z*\-]+$"
+        for insertion in v:
+            if not re.match(pattern, insertion):
+                raise ValueError(
+                    f"Amino acid insertion '{insertion}' is not in the expected format. "
+                    "Expected format: 'position:sequence' with amino acids only (e.g., '45:MYK')"
+                )
+            # Additional check: ensure the sequence part contains only amino acids, not nucleotides
+            position, sequence_part = insertion.split(":", 1)
+            if re.match(r"^[ACGTN]+$", sequence_part, re.IGNORECASE):
+                raise ValueError(
+                    f"Amino acid insertion '{insertion}' contains nucleotides. "
+                    "Expected amino acids (A-Z*-) only, not nucleotides (ACGTN)."
+                )
+        return v
+
+    @field_validator("offset")
+    @classmethod
+    def validate_offset(cls, v: int) -> int:
+        """Validate that offset is non-negative."""
+        if v < 0:
+            raise ValueError("Offset must be non-negative")
+        return v
+
+
+# Keep GenomicSegment for backwards compatibility, but it's now deprecated
+class GenomicSegment(BaseModel):
+    """DEPRECATED: Use NucleotideSegment or AminoAcidSegment instead.
+
+    Schema for a genomic segment (main nucleotide or gene amino acid sequence).
+    This class accepts both nucleotide and amino acid sequences but provides
+    less specific validation.
+    """
+
+    sequence: str
+    insertions: List[str]
+    offset: int
+
+    @field_validator("sequence")
+    @classmethod
+    def validate_sequence_format(cls, v: str) -> str:
+        """Validate that sequence contains only valid characters."""
+        # Allow nucleotide sequences (ACGTN-) and amino acid sequences (A-Z*-)
+        nucleotide_pattern = r"^[ACGTN\-]*$"
+        amino_acid_pattern = r"^[A-Z*\-]*$"
+
+        if not (
+            re.match(nucleotide_pattern, v, re.IGNORECASE)
+            or re.match(amino_acid_pattern, v)
+        ):
+            raise ValueError(
+                "Sequence contains invalid characters. "
+                "Expected nucleotides (ACGTN-) or amino acids (A-Z*-)."
+            )
+        return v
+
+    @field_validator("insertions")
+    @classmethod
+    def validate_insertions_format(cls, v: List[str]) -> List[str]:
+        """Validate that insertions have the format 'position:sequence'."""
+        pattern = r"^\d+:[ACGTN*A-Z\-]+$"
+        for insertion in v:
+            if not re.match(pattern, insertion, re.IGNORECASE):
+                raise ValueError(
+                    f"Insertion '{insertion}' is not in the expected format. "
+                    "Expected format: 'position:sequence' (e.g., '123:ACGT' or '45:MYK')"
+                )
+        return v
+
+    @field_validator("offset")
+    @classmethod
+    def validate_offset(cls, v: int) -> int:
+        """Validate that offset is non-negative."""
+        if v < 0:
+            raise ValueError("Offset must be non-negative")
+        return v
+
+
 class AlignedReadSchema(BaseModel):
-    """SILO-specific pydantic schema for AlignedRead JSON format."""
+    """SILO-specific pydantic schema for AlignedRead JSON format.
 
-    pass
-    # arbitrary number of fileds for metatata
+    This schema validates the new SILO format where:
+    - Metadata fields are at the root level
+    - 'main' is a nucleotide segment with nucleotide-specific validation
+    - Gene segments are amino acid segments with amino acid-specific validation
+    - Unaligned sequences are prefixed with 'unaligned_'
+    """
 
-    # at least one GenomicSegment
+    # Main nucleotide segment (required)
+    main: NucleotideSegment
 
-    # at least one UnaligmentSegement
+    # Additional fields will be validated dynamically
+    model_config = {"extra": "allow"}
 
-    # at lead one Gene
+    @model_validator(mode="after")
+    def validate_dynamic_fields(self) -> "AlignedReadSchema":
+        """Validate dynamically added gene segments and unaligned sequences."""
+        for field_name, field_value in self.__dict__.items():
+            if field_name == "main":
+                continue
 
-    # metadata: Optional[ReadMetadata] = None
-    # nucleotideInsertions: NucleotideInsertions
-    # aminoAcidInsertions: AminoAcidInsertions
-    # alignedNucleotideSequences: AlignedNucleotideSequences
-    # unalignedNucleotideSequences: UnalignedNucleotideSequences
-    # alignedAminoAcidSequences: AminoAcidSequences
+            # Check for gene segments (should be amino acid segments)
+            if isinstance(field_value, dict) and all(
+                k in field_value for k in ["sequence", "insertions", "offset"]
+            ):
+                # Validate as AminoAcidSegment for gene segments
+                try:
+                    AminoAcidSegment(**field_value)
+                except Exception as e:
+                    raise ValueError(f"Invalid amino acid segment '{field_name}': {e}")
+
+            # Check for unaligned sequences (should be strings with nucleotides)
+            elif field_name.startswith("unaligned_") and isinstance(field_value, str):
+                # Validate unaligned sequence format (nucleotides only)
+                nucleotide_pattern = r"^[ACGTN\-]*$"
+                if not re.match(nucleotide_pattern, field_value, re.IGNORECASE):
+                    raise ValueError(
+                        f"Unaligned sequence '{field_name}' contains invalid characters. "
+                        f"Expected nucleotides (ACGTN-) only."
+                    )
+
+            # Allow metadata fields (strings, numbers)
+            elif isinstance(field_value, (str, int, float)):
+                continue
+
+            else:
+                # For gene segments that aren't properly structured
+                if not field_name.startswith("unaligned_") and not isinstance(
+                    field_value, (str, int, float)
+                ):
+                    raise ValueError(
+                        f"Field '{field_name}' should be either an amino acid segment "
+                        f"(with sequence, insertions, offset) or metadata (string/number)"
+                    )
+
+        return self

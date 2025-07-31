@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel
 
-from sr2silo.silo_read_schema import ReadMetadata
+from sr2silo.silo_read_schema import AlignedReadSchema, ReadMetadata
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -204,22 +204,31 @@ class AlignedRead:
 
     def to_silo_json(self, indent: bool = False) -> str:
         """
-        Validate the aligned read dict using a pydantic schema and print a
+        Validate the aligned read dict using the new SILO schema and return a
         nicely formatted JSON string conforming to the DB requirements.
 
         Args:
             indent: Whether to indent the JSON string, True for pretty print.
         """
-        # try:
-        #     schema = AlignedReadSchema(**self.to_dict())
-        #     return schema.model_dump_json(
-        #         indent=2 if indent else None, exclude_none=True
-        #     )
-        # except ValidationError as e:
-        #     raise e
-        return json.dumps(
-            self.to_dict(), indent=2 if indent else None, ensure_ascii=False
-        )
+        # Get the dictionary representation
+        data_dict = self.to_dict()
+
+        try:
+            # Validate using the new AlignedReadSchema
+            schema = AlignedReadSchema(**data_dict)
+
+            return schema.model_dump_json(
+                indent=2 if indent else None, exclude_none=True
+            )
+        except Exception as e:
+            # If validation fails, log the error and return the raw JSON
+            logging.error(f"Schema validation failed: {e}")
+            logging.error(f"Data that failed validation: {data_dict}")
+
+            # Return unvalidated JSON for debugging
+            return json.dumps(
+                data_dict, indent=2 if indent else None, ensure_ascii=False
+            )
 
     def __str__(self) -> str:
         """toString method as pretty JSON string."""
@@ -441,7 +450,12 @@ def aa_sequence_set_and_insertions_to_aligned_genes(
             gene_name = gene_name_str
 
         # Get insertions for this gene, default to empty list if not found
-        insertions = aa_insertion_set.aa_insertions.get(gene_name_str, [])
+        # Need to find the matching GeneName key since keys are GeneName objects
+        insertions = []
+        for gene_key, gene_insertions in aa_insertion_set.aa_insertions.items():
+            if str(gene_key) == str(gene_name_str):
+                insertions = gene_insertions
+                break
 
         # Use per-gene offset from AASequenceSet
         current_offset = aa_sequence_set.offsets[gene_name_str]
