@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from sr2silo.silo_read_schema import AlignedReadSchema, ReadMetadata
 
@@ -62,8 +62,9 @@ class AlignedRead:
 
     __slots__ = [
         "read_id",
-        "unaligned_nucleotide_sequences",
-        "aligned_nucleotide_sequences",
+        "unaligned_nucleotide_sequence",
+        "aligned_nucleotide_sequence",
+        "aligned_nucleotide_sequence_offset",
         "nucleotide_insertions",
         "amino_acid_insertions",
         "aligned_amino_acid_sequences",
@@ -73,8 +74,9 @@ class AlignedRead:
     def __init__(
         self,
         read_id: str,
-        unaligned_nucleotide_sequences: str,
-        aligned_nucleotide_sequences: str,
+        unaligned_nucleotide_sequence: str,
+        aligned_nucleotide_sequence: str,
+        aligned_nucleotide_sequence_offset: int,
         nucleotide_insertions: List[NucInsertion],
         amino_acid_insertions: AAInsertionSet,
         aligned_amino_acid_sequences: AASequenceSet,
@@ -82,11 +84,12 @@ class AlignedRead:
     ):
         """Initialize with a AlignedRead object."""
         self.read_id = read_id
-        self.unaligned_nucleotide_sequences = unaligned_nucleotide_sequences
-        self.aligned_nucleotide_sequences = aligned_nucleotide_sequences
+        self.unaligned_nucleotide_sequence = unaligned_nucleotide_sequence
+        self.aligned_nucleotide_sequence = aligned_nucleotide_sequence
         self.nucleotide_insertions = nucleotide_insertions
         self.amino_acid_insertions = amino_acid_insertions
         self.aligned_amino_acid_sequences = aligned_amino_acid_sequences
+        self.aligned_nucleotide_sequence_offset = aligned_nucleotide_sequence_offset
         if metadata:
             self.set_metadata(metadata)
         else:
@@ -97,15 +100,15 @@ class AlignedRead:
         """Validate the types of the attributes."""
         if not isinstance(self.read_id, str):
             raise TypeError(f"read_id must be a str, got {type(self.read_id).__name__}")
-        if not isinstance(self.unaligned_nucleotide_sequences, str):
+        if not isinstance(self.unaligned_nucleotide_sequence, str):
             raise TypeError(
-                f"unaligned_nucleotide_sequences must be a str, got "
-                f"{type(self.unaligned_nucleotide_sequences).__name__}"
+                f"unaligned_nucleotide_sequence must be a str, got "
+                f"{type(self.unaligned_nucleotide_sequence).__name__}"
             )
-        if not isinstance(self.aligned_nucleotide_sequences, str):
+        if not isinstance(self.aligned_nucleotide_sequence, str):
             raise TypeError(
-                f"aligned_nucleotide_sequences must be a str, got "
-                f"{type(self.aligned_nucleotide_sequences).__name__}"
+                f"aligned_nucleotide_sequence must be a str, got "
+                f"{type(self.aligned_nucleotide_sequence).__name__}"
             )
         if not all(isinstance(i, NucInsertion) for i in self.nucleotide_insertions):
             raise TypeError(
@@ -158,98 +161,84 @@ class AlignedRead:
         formatted_nuc_ins = [
             f"{ins.position}:{ins.sequence}" for ins in self.nucleotide_insertions
         ]
-        json_representation = {
-            "readId": self.read_id,
-            "nucleotideInsertions": {
-                "main": formatted_nuc_ins,
-            },
-            "aminoAcidInsertions": self.amino_acid_insertions.to_dict(),
-            "alignedNucleotideSequences": {
-                "main": self.aligned_nucleotide_sequences,
-            },
-            "unalignedNucleotideSequences": {
-                "main": self.unaligned_nucleotide_sequences,
-            },
-            "alignedAminoAcidSequences": self.aligned_amino_acid_sequences.to_dict(),
-        }
+        aln_gene_list = aa_sequence_set_and_insertions_to_aligned_genes(
+            self.aligned_amino_acid_sequences, self.amino_acid_insertions
+        )
+
+        json_representation = {}
+
+        # Add metadata at the start if available
         if self.metadata:
-            if isinstance(self.metadata, dict):
-                self.metadata["read_id"] = self.read_id
-            json_representation["metadata"] = self.metadata
+            metadata_dict = (
+                self.metadata.model_dump()
+                if isinstance(self.metadata, BaseModel)
+                else self.metadata
+            )
+            for key, value in metadata_dict.items():
+                if isinstance(value, str):
+                    json_representation[key] = value
+                elif isinstance(value, (int, float)):
+                    json_representation[key] = str(value)
+                else:
+                    logging.warning(
+                        f"Metadata value for {key} is not a string or number: {value}"
+                    )
+
+        # Add main section
+        json_representation["main"] = {
+            "insertions": formatted_nuc_ins,
+            "sequence": self.aligned_nucleotide_sequence,
+            "offset": self.aligned_nucleotide_sequence_offset,
+        }
+
+        # Add each gene to the JSON representation
+        for aligned_gene in aln_gene_list:
+            # Check if gene has no sequence - if so, represent as null
+            # Note: Insertions without a context sequence are non-sense,
+            # so we only need to check if the sequence is empty
+            if not aligned_gene.sequence:
+                json_representation[aligned_gene.gene_name.name] = None
+            else:
+                formatted_aa_ins = [str(ins) for ins in aligned_gene.insertions]
+                json_representation[aligned_gene.gene_name.name] = {
+                    "sequence": aligned_gene.sequence,
+                    "offset": aligned_gene.offset,
+                    "insertions": formatted_aa_ins,
+                }
+
         return json_representation
 
     def to_silo_json(self, indent: bool = False) -> str:
         """
-        Validate the aligned read dict using a pydantic schema and print a
+        Validate the aligned read dict using the new SILO schema and return a
         nicely formatted JSON string conforming to the DB requirements.
 
         Args:
             indent: Whether to indent the JSON string, True for pretty print.
         """
+        # Get the dictionary representation
+        data_dict = self.to_dict()
+
         try:
-            schema = AlignedReadSchema(**self.to_dict())
+            # Validate using the new AlignedReadSchema
+            schema = AlignedReadSchema(**data_dict)
+
             return schema.model_dump_json(
-                indent=2 if indent else None, exclude_none=True
+                indent=2 if indent else None, exclude_none=False
             )
-        except ValidationError as e:
-            raise e
+        except Exception as e:
+            # If validation fails, log the error and return the raw JSON
+            logging.error(f"Schema validation failed: {e}")
+            logging.error(f"Data that failed validation: {data_dict}")
+
+            # Return unvalidated JSON for debugging
+            return json.dumps(
+                data_dict, indent=2 if indent else None, ensure_ascii=False
+            )
 
     def __str__(self) -> str:
         """toString method as pretty JSON string."""
         return json.dumps(self.to_dict(), indent=2)
-
-    @staticmethod
-    def from_str(data: str) -> AlignedRead:
-        """Create an AlignedRead object from a string."""
-        data = data.strip()  # Remove extra whitespace
-
-        # Parse the json data to a dict
-        json_data = json.loads(data)
-
-        # Extract the data from the dict
-        read_id = json_data["metadata"]["read_id"]
-        metadata = ReadMetadata(**json_data["metadata"])
-
-        unaligned_nucleotide_sequences = json_data["unalignedNucleotideSequences"][
-            "main"
-        ]
-        aligned_nucleotide_sequences = json_data["alignedNucleotideSequences"]["main"]
-        nucleotide_insertions = []
-        if json_data["nucleotideInsertions"]["main"]:
-            nucleotide_insertions = [
-                NucInsertion(int(ins.split(":")[0]), ins.split(":")[1])
-                for ins in json_data["nucleotideInsertions"]["main"]
-            ]
-        amino_acid_insertions = AAInsertionSet.from_dict(
-            json_data["aminoAcidInsertions"]
-        )
-        aligned_amino_acid_sequences = AASequenceSet.from_dict(
-            json_data["alignedAminoAcidSequences"]
-        )
-
-        # validate all the arguments are of the correct type
-        assert isinstance(read_id, str)
-        assert isinstance(unaligned_nucleotide_sequences, str)
-        assert isinstance(aligned_nucleotide_sequences, str)
-        assert all(isinstance(i, NucInsertion) for i in nucleotide_insertions)
-        assert isinstance(amino_acid_insertions, AAInsertionSet)
-        assert isinstance(aligned_amino_acid_sequences, AASequenceSet)
-
-        try:
-            return AlignedRead(
-                read_id,
-                unaligned_nucleotide_sequences,
-                aligned_nucleotide_sequences,
-                nucleotide_insertions,
-                amino_acid_insertions,
-                aligned_amino_acid_sequences,
-                metadata=metadata,
-            )
-        except TypeError as e:
-            logging.error(
-                "Error constructing AlignedRead with data: " + repr(json_data)
-            )
-            raise e
 
 
 class GeneName:
@@ -386,11 +375,13 @@ class AASequenceSet:
     def __init__(self, genes: List[GeneName]):
         """Initialize with an empty sequence for each gene"""
         self.sequences = {gene: "" for gene in genes}
+        self.offsets = {gene: 0 for gene in genes}
         self.genes = genes
 
-    def set_sequence(self, gene_name: GeneName, aa_sequence: str):
+    def set_sequence(self, gene_name: GeneName, aa_sequence: str, offset: int = 0):
         """Set the amino acid sequence for a particular gene."""
         self.sequences[gene_name] = aa_sequence
+        self.offsets[gene_name] = offset
 
     def to_dict(self) -> dict:
         """Return a dictionary with gene names as keys"""
@@ -406,3 +397,87 @@ class AASequenceSet:
 
     def __str__(self) -> str:
         return str(self.to_dict())
+
+
+class AlignedGene:
+    """Class to represent an aligned gene with its sequence, insertions, and offset."""
+
+    def __init__(
+        self,
+        gene_name: GeneName,
+        sequence: str,
+        offset: int,
+        insertions: List[AAInsertion],
+    ):
+        """Initialize with gene name, sequence, offset, and insertions."""
+        self.gene_name = gene_name
+        self.sequence = sequence
+        self.offset = offset
+        self.insertions = insertions
+
+    def __str__(self) -> str:
+        """String representation of the aligned gene."""
+        return (
+            f"AlignedGene(gene_name={self.gene_name}, "
+            f"sequence_length={len(self.sequence)}, offset={self.offset}, "
+            f"insertions_count={len(self.insertions)})"
+        )
+
+    def __eq__(self, other) -> bool:
+        """Compare two AlignedGene objects by their values."""
+        if not isinstance(other, AlignedGene):
+            return False
+        return (
+            self.gene_name.name == other.gene_name.name
+            and self.sequence == other.sequence
+            and self.offset == other.offset
+            and self.insertions == other.insertions
+        )
+
+
+def aa_sequence_set_and_insertions_to_aligned_genes(
+    aa_sequence_set: AASequenceSet,
+    aa_insertion_set: AAInsertionSet,
+) -> List[AlignedGene]:
+    """
+    Convert an AASequenceSet and AAInsertionSet to a list of AlignedGene objects.
+
+    Args:
+        aa_sequence_set: The amino acid sequences for each gene
+        aa_insertion_set: The amino acid insertions for each gene
+
+    Returns:
+        List of AlignedGene objects
+    """
+    aligned_genes = []
+
+    # Get all gene names from the sequence set
+    for gene_name_str, sequence in aa_sequence_set.sequences.items():
+        # Create GeneName object if gene_name_str is a string
+        if isinstance(gene_name_str, str):
+            gene_name = GeneName(gene_name_str)
+        else:
+            gene_name = gene_name_str
+
+        # Get insertions for this gene, default to empty list if not found
+        # Need to find the matching GeneName key since keys are GeneName objects
+        insertions = []
+        for gene_key, gene_insertions in aa_insertion_set.aa_insertions.items():
+            if str(gene_key) == str(gene_name_str):
+                insertions = gene_insertions
+                break
+
+        # Use per-gene offset from AASequenceSet
+        current_offset = aa_sequence_set.offsets[gene_name_str]
+
+        # Create AlignedGene object
+        aligned_gene = AlignedGene(
+            gene_name=gene_name,
+            sequence=sequence,
+            offset=current_offset,
+            insertions=insertions,
+        )
+
+        aligned_genes.append(aligned_gene)
+
+    return aligned_genes

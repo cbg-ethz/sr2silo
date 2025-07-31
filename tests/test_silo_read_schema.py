@@ -30,39 +30,29 @@ INVALID_AA_INSERTIONS_FORMAT = {"S": ["10:AST", "abc:KLM"]}  # non-numeric posit
 
 INVALID_AA_INSERTIONS_SEQUENCE = {"S": ["10:ASt"]}  # lowercase 't' is invalid
 
-# Test data for other required components
-VALID_ALIGNED_NUC_SEQ = {"main": "ACGTACGT"}
+# Test data for new schema format
+VALID_MAIN_SEGMENT = {
+    "sequence": "ACGTACGTACGTACGT",
+    "insertions": ["10:ACGT", "123:A"],
+    "offset": 0,
+}
 
-VALID_UNALIGNED_NUC_SEQ = {"main": "ACGTACGT"}
+VALID_GENE_SEGMENTS = {
+    "S": {"sequence": "KLMAST", "insertions": ["10:AST", "123:G"], "offset": 0},
+    "ORF1a": {"sequence": "VWXYZ", "insertions": ["45:KLM", "67:Y"], "offset": 0},
+}
 
-VALID_AA_SEQ = {"S": "KLMAST", "ORF1a": "VWXYZ"}
-
-# Sample valid metadata dictionary from test_metadata_schema.py
-VALID_METADATA = {
+# Test full AlignedReadSchema with new format
+VALID_ALIGNED_READ = {
+    "main": VALID_MAIN_SEGMENT,
     "read_id": "read123",
     "sample_id": "A1_05_2024_10_08",
     "batch_id": "batch001",
     "sampling_date": "2024-10-08",
-    "sequencing_date": "2024-10-24",
     "location_name": "Lugano (TI)",
     "read_length": "250",
-    "primer_protocol": "v532",
-    "location_code": "05",
-    "flow_cell_serial_number": "2411515907",
-    "sequencing_well_position": "A1",
-    "primer_protocol_name": "SARS-CoV-2 ARTIC V5.3.2",
-    "nextclade_reference": "sars-cov-2",
-    "sr2silo_version": "v1.0.0",
-}
-
-# Test full AlignedReadSchema
-VALID_ALIGNED_READ = {
-    "metadata": VALID_METADATA,
-    "nucleotideInsertions": VALID_NUC_INSERTIONS,
-    "aminoAcidInsertions": VALID_AA_INSERTIONS,
-    "alignedNucleotideSequences": VALID_ALIGNED_NUC_SEQ,
-    "unalignedNucleotideSequences": VALID_UNALIGNED_NUC_SEQ,
-    "alignedAminoAcidSequences": VALID_AA_SEQ,
+    "unaligned_main": "ACGTACGTACGTACGT",
+    **VALID_GENE_SEGMENTS,
 }
 
 
@@ -123,27 +113,31 @@ def test_valid_amino_acid_insertions_with_ns():
 def test_valid_aligned_read_schema():
     """Test that a valid complete aligned read schema is accepted."""
     aligned_read = AlignedReadSchema(**VALID_ALIGNED_READ)
-    # Verify nucleotide insertions
-    assert aligned_read.nucleotideInsertions.main == VALID_NUC_INSERTIONS["main"]
-    # Verify amino acid insertions
-    assert aligned_read.aminoAcidInsertions.root == VALID_AA_INSERTIONS
-    # Verify metadata if present
-    assert aligned_read.metadata is not None
-    assert aligned_read.metadata.read_id == VALID_METADATA["read_id"]
+    # Verify main nucleotide segment
+    assert aligned_read.main.sequence == VALID_MAIN_SEGMENT["sequence"]
+    assert aligned_read.main.insertions == VALID_MAIN_SEGMENT["insertions"]
+    assert aligned_read.main.offset == VALID_MAIN_SEGMENT["offset"]
+    # Verify gene segments are accessible via getattr or dict access
+    assert hasattr(aligned_read, "S")
+    assert hasattr(aligned_read, "ORF1a")
+    # Verify metadata fields are accessible
+    assert getattr(aligned_read, "read_id") == "read123"
+    assert getattr(aligned_read, "sample_id") == "A1_05_2024_10_08"
 
 
 def test_aligned_read_schema_without_metadata():
-    """Test that an aligned read schema without metadata is accepted."""
-    data = dict(VALID_ALIGNED_READ)
-    data.pop("metadata")
-    aligned_read = AlignedReadSchema(**data)
-    assert aligned_read.metadata is None
+    """Test that an aligned read schema with minimal required fields is accepted."""
+    from sr2silo.silo_read_schema import NucleotideSegment
+
+    minimal_data = {"main": NucleotideSegment(**VALID_MAIN_SEGMENT)}
+    aligned_read = AlignedReadSchema(**minimal_data)
+    assert aligned_read.main.sequence == VALID_MAIN_SEGMENT["sequence"]
 
 
 def test_invalid_aligned_read_schema_missing_required():
     """Test that an aligned read schema missing required fields is rejected."""
     data = dict(VALID_ALIGNED_READ)
-    data.pop("nucleotideInsertions")
+    data.pop("main")  # Remove the required main field
     with pytest.raises(ValidationError):
         AlignedReadSchema(**data)
 
@@ -151,6 +145,9 @@ def test_invalid_aligned_read_schema_missing_required():
 def test_invalid_aligned_read_schema_with_invalid_insertions():
     """Test that an aligned read schema with invalid insertions is rejected."""
     data = dict(VALID_ALIGNED_READ)
-    data["nucleotideInsertions"] = INVALID_NUC_INSERTIONS_SEQUENCE
+    # Create invalid main segment with bad insertions
+    invalid_main = dict(VALID_MAIN_SEGMENT)
+    invalid_main["insertions"] = ["abc:ACGT"]  # non-numeric position
+    data["main"] = invalid_main
     with pytest.raises(ValidationError):
         AlignedReadSchema(**data)

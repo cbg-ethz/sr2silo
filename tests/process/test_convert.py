@@ -16,7 +16,6 @@ from sr2silo.process.convert import (
     create_index,
     is_bam_indexed,
     is_sorted_qname,
-    pad_alignment,
     sam_to_seq_and_indels,
     sort_bam_file,
     sort_sam_by_qname,
@@ -121,6 +120,8 @@ def test_is_sorted_qname(tmp_path, monkeypatch):
 
     # Setup mock AlignmentFile objects
     class MockAlignmentFile:
+        """Mock class to simulate pysam.AlignmentFile behavior."""
+
         def __init__(self, header):
             self.header = header
 
@@ -256,37 +257,6 @@ def test_bam_to_fasta_query(micro_bam_fp, tmp_path):
     assert (
         output_content == expected_content
     ), f"Expected:\n{expected_content}\nGot:\n{output_content}"
-
-
-def test_pad_alignment():
-    """Test the pad_alignment function with various inputs."""
-
-    # Test with string input and default unknown_char 'N'
-    seq = "ACTG"
-    ref_start = 2
-    ref_length = 10  # Expected: "NNACTGNNNN" (2 left, 4 right)
-    expected = "NNACTGNNNN"
-    result = pad_alignment(seq, ref_start, ref_length)
-    assert result == expected, f"Expected {expected}, got {result}"
-
-    # Test with list input, same parameters
-    seq_list = ["A", "C", "T", "G"]
-    expected = "NNACTGNNNN"
-    result = pad_alignment(seq_list, ref_start, ref_length)
-    assert result == expected, f"Expected {expected}, got {result}"
-
-    # Test with custom unknown_char '-' (variation of deletion char)
-    expected = "--ACTG----"
-    result = pad_alignment(seq, ref_start, ref_length, unknown_char="-")
-    assert result == expected, f"Expected {expected}, got {result}"
-
-    # Test with 'X' as unknown_char for amino acid sequences
-    aa_seq = "MKLV"
-    aa_ref_start = 3
-    aa_ref_length = 12  # Expected: "XXXMKLVXXXXX" (3 left, 5 right)
-    expected_aa = "XXXMKLVXXXXX"
-    result_aa = pad_alignment(aa_seq, aa_ref_start, aa_ref_length, unknown_char="X")
-    assert result_aa == expected_aa, f"Expected {expected_aa}, got {result_aa}"
 
 
 def test_sam_to_seq_and_indels():

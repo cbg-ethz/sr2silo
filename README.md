@@ -18,47 +18,53 @@
 [![Pyright](https://img.shields.io/badge/type%20checked-pyright-blue.svg)](https://github.com/microsoft/pyright)
 
 ### General Use: Convert Nucleotide Alignment Reads - CIGAR in .BAM to Cleartext JSON
-sr2silo can convert millions of Short-Read nucleotide read in the form of a .bam CIGAR
-alignments to cleartext alignments. Further, it will gracefully extract insertions
-and deletions. Optionally, sr2silo can translate and align each read using [diamond / blastX](https://github.com/bbuchfink/diamond). And again handle insertions and deletions.
+sr2silo can convert millions of Short-Read nucleotide reads in the form of .bam CIGAR
+alignments to cleartext alignments compatible with LAPIS-SILO v0.8.0+. It gracefully extracts insertions
+and deletions. Optionally, sr2silo can translate and align each read using [diamond / blastX](https://github.com/bbuchfink/diamond), handling insertions and deletions in amino acid sequences as well.
 
 Your input `.bam/.sam` with one line as:
-````
-294	163	NC_045512.2	79	60	31S220M	=	197	400	CTCTTGTAGAT	FGGGHHHHLMM	...
-````
-
-sr2silo outputs per read a JSON (mock output):
-
+```text
+294 163 NC_045512.2 79  60  31S220M =   197 400 CTCTTGTAGAT FGGGHHHHLMM ...
 ```
+
+sr2silo outputs per read a JSON (compatible with LAPIS-SILO v0.8.0+):
+
+```json
 {
-  "metadata":{
-    "read_id":"AV233803:AV044:2411515907:1:10805:5199:3294",
-      ...
-    },
-    "nucleotideInsertions":{
-                            "main":[10 : ACTG]
-                            },
-    "aminoAcidInsertions":{
-                            "E":[],
-                            ...
-                            "ORF1a":[2323 : TG, 2389 : CA],
-                            ...
-                            "S":[23 : A]
-                            },
-    "alignedNucleotideSequences":
-                                {
-                                  "main":"NNNNNNNNNNNNNNNNNNCGGTTTCGTCCGTGTTGCAGCCG...GTGTCAACATCTTAAAGATGGCACTTGTGNNNNNNNNNNNNNNNNNNNNNNNN"
-                                  },
-    "unalignedNucleotideSequences":{
-                                  "main":"CGGTTTCGTCCGTGTTGCAGCCGATCATCAGCACATCTAGGTTTTGTCCGGGTGTGA...TACAGGTTCGCGACGTGCTCGTGTGAAAGATGGCACTTGTG"
-                                  },
-    "alignedAminoAcidSequences":{
-                "E":"",
-                ...
-                "ORF1a":"...XXXMESLVPGFNEKTHVQLSLPVLQVRVRGFGDSVEEVLSEARQHLKDGTCGLVEVEKGVXXXXXX...",
-                ...
-                "S":""}
-      }
+  "read_id": "AV233803:AV044:2411515907:1:10805:5199:3294",
+  "sample_id": "A1_05_2024_10_08",
+  "batch_id": "20241024_2411515907",
+  "sampling_date": "2024-10-08",
+  "location_name": "Lugano (TI)",
+  "read_length": "250",
+  "location_code": "05",
+  "main": {
+    "sequence": "CGGTTTCGTCCGTGTTGCAGCCG...GTGTCAACATCTTAAAGATGGCACTTGTG",
+    "insertions": ["10:ACTG", "456:TACG"],
+    "offset": 4545
+  },
+  "unaligned_main": "CGGTTTCGTCCGTGTTGCAGCCGATCATCTAGGT...TACAGGTTCGCGACGTGCTCGTGTGAAAGATGGCACTTGTG",
+  "S": {
+    "sequence": "MESLVPGFNEKTHVQLSLPVLQVRVRGFGDSVEEVLSEARQHLKDGTCGLVEVEKGV",
+    "insertions": ["23:A", "145:KLM"],
+    "offset": 78
+  },
+  "ORF1a": {
+    "sequence": "XXXMESLVPGFNEKTHVQLSLPVLQVRVRGFGDSVEEVLSEARQHLKDGTCGLV",
+    "insertions": ["2323:TG", "2389:CA"],
+    "offset": 678
+  },
+  "E": null,
+  "M": null,
+  "N": null,
+  "ORF1b": null,
+  "ORF3a": null,
+  "ORF6": null,
+  "ORF7a": null,
+  "ORF7b": null,
+  "ORF8": null,
+  "ORF10": null
+}
 ```
 
 The total output is handled in an `.ndjson.zst`.
@@ -75,22 +81,29 @@ For detailed information about resource requirements, especially for cluster env
 
 ### Wrangling Short-Read Genomic Alignments for SILO Database
 
-Originally this was started for wargeling short-read genomic alignments for from wastewater-sampling, into a format for easy import into [Loculus](https://github.com/loculus-project/loculus) and its sequence database SILO.
+Originally this was started for wrangling short-read genomic alignments from wastewater-sampling, into a format for easy import into [Loculus](https://github.com/loculus-project/loculus) and its sequence database SILO.
 
-sr2silo is designed to process a nucliotide alignments from `.bam` files with metadata, translate and align reads in amino acids, gracefully handling all insertions and deletions and upload the results to the backend [LAPIS-SILO](https://github.com/GenSpectrum/LAPIS-SILO).
+sr2silo is designed to process nucleotide alignments from `.bam` files with metadata, translate and align reads in amino acids, gracefully handling all insertions and deletions and upload the results to the backend [LAPIS-SILO](https://github.com/GenSpectrum/LAPIS-SILO) v0.8.0+.
 
-For the V-Pipe to Silo implementation we carry through the following metadata:
-```
-  "metadata":{
-    "read_id":"AV233803:AV044:2411515907:1:10805:5199:3294",
-    "sample_id":"A1_05_2024_10_08",
-    "batch_id":"20241024_2411515907",
-    "sampling_date":"2024-10-08",
-    "location_name":"Lugano (TI)",
-    "read_length":"250",
-    "primer_protocol":"v532",
-    "location_code":"5"
-    }
+**New Output Format for LAPIS-SILO v0.8.0+:**
+- Metadata fields are now at the root level (no nested "metadata" object)
+- Genomic segments use a structured format with `sequence`, `insertions`, and `offset` fields
+- The main nucleotide segment is required and contains the primary alignment
+- Gene segments (S, ORF1a, etc.) contain amino acid sequences or `null` if empty
+- Insertions use the format `"position:sequence"` (e.g., `"123:ACGT"`)
+- Unaligned sequences are prefixed with `unaligned_` (e.g., `unaligned_main`)
+
+For the V-Pipe to Silo implementation we include the following metadata fields at the root level:
+```json
+{
+  "read_id": "AV233803:AV044:2411515907:1:10805:5199:3294",
+  "sample_id": "A1_05_2024_10_08",
+  "batch_id": "20241024_2411515907",
+  "sampling_date": "2024-10-08",
+  "location_name": "Lugano (TI)",
+  "read_length": "250",
+  "location_code": "05"
+}
 ```
 
 ### Setting up the repository
