@@ -103,13 +103,6 @@ def test_read_in_AligendReads_nuc_ins(aligned_reads):
         )
 
 
-# TODO: Implement the following tests
-@pytest.mark.skip(reason="Not implemented")
-def test_read_in_AligendReads_aa_ins():
-    """Test the read_in_AlignedReads_aa_ins function."""
-    raise NotImplementedError
-
-
 @pytest.mark.parametrize(
     "read_id, gene_name_str, pos, cigar, expected_seq, expected_insertions",
     [
@@ -202,65 +195,59 @@ def test_enrich_read_with_aa_seq_multiple(
 
 
 def test_curry_read_with_metadata(tmp_path):
-    """Test the curry_read_with_metadata function."""
-    # Create a temporary metadata JSON file
-    metadata = {
-        "read_id": "test_read",
-        "sample_id": "sample123",
-        "batch_id": "batch456",
-        "sampling_date": "2023-01-01",
-        "sequencing_date": "2023-01-15",
-        "location_name": "Test Location",
-        "read_length": "150",
-        "primer_protocol": "v1",
-        "location_code": "TL",
-        "flow_cell_serial_number": "FC123",
-        "sequencing_well_position": "A1",
-        "primer_protocol_name": "Test Protocol",
-        "nextclade_reference": "ref123",
-    }
+    """Test that curry_read_with_metadata correctly enriches a read with metadata."""
+    # Create minimal test metadata
+    metadata = {"sample_id": "test123", "location": "TestLab"}
 
-    metadata_file = tmp_path / "test_metadata.json"
+    metadata_file = tmp_path / "metadata.json"
     with open(metadata_file, "w") as f:
         import json
 
         json.dump(metadata, f)
 
-    # Get the enrich function using curry_read_with_metadata
-    enrich_read = translate_align.curry_read_with_metadata(metadata_file)
-
-    # Create a dummy AlignedRead
-    dummy_read = AlignedRead(
-        read_id="read1",
-        unaligned_nucleotide_sequences="ACGT",
-        aligned_nucleotide_sequences="ACGT",
+    # Create minimal AlignedRead
+    read = AlignedRead(
+        read_id="test_read",
+        unaligned_nucleotide_sequence="ACGT",
+        aligned_nucleotide_sequence="ACGT",
+        aligned_nucleotide_sequence_offset=0,
         nucleotide_insertions=[],
         amino_acid_insertions=AAInsertionSet([]),
         aligned_amino_acid_sequences=AASequenceSet([]),
     )
 
-    # Enrich the read with metadata
-    enriched_read = enrich_read(dummy_read)
+    # Test the main functionality
+    enrich_func = translate_align.curry_read_with_metadata(metadata_file)
+    enriched_read = enrich_func(read)
 
-    # Verify metadata was attached correctly
     assert enriched_read.metadata == metadata
 
-    # Test error cases
-    with pytest.raises(FileNotFoundError):
-        translate_align.curry_read_with_metadata(tmp_path / "nonexistent_file.json")
 
-    # Test invalid JSON
-    invalid_json_file = tmp_path / "invalid.json"
-    with open(invalid_json_file, "w") as f:
-        f.write("This is not valid JSON")
+def test_curry_read_with_metadata_file_not_found(tmp_path):
+    """Test that curry_read_with_metadata raises FileNotFoundError for missing files."""
+    with pytest.raises(FileNotFoundError):
+        translate_align.curry_read_with_metadata(tmp_path / "nonexistent.json")
+
+
+def test_curry_read_with_metadata_invalid_json(tmp_path):
+    """Test that curry_read_with_metadata raises JSONDecodeError for invalid JSON."""
+    import json
+
+    invalid_file = tmp_path / "invalid.json"
+    with open(invalid_file, "w") as f:
+        f.write("not valid json")
 
     with pytest.raises(json.JSONDecodeError):
-        translate_align.curry_read_with_metadata(invalid_json_file)
+        translate_align.curry_read_with_metadata(invalid_file)
 
-    # Test empty metadata
-    empty_metadata_file = tmp_path / "empty.json"
-    with open(empty_metadata_file, "w") as f:
+
+def test_curry_read_with_metadata_empty_metadata(tmp_path):
+    """Test that curry_read_with_metadata raises ValueError for empty metadata."""
+    empty_file = tmp_path / "empty.json"
+    with open(empty_file, "w") as f:
+        import json
+
         json.dump({}, f)
 
     with pytest.raises(ValueError, match="No metadata found in the file"):
-        translate_align.curry_read_with_metadata(empty_metadata_file)
+        translate_align.curry_read_with_metadata(empty_file)
