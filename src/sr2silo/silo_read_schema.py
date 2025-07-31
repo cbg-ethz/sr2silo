@@ -43,12 +43,6 @@ class AlignedNucleotideSequences(BaseModel):
     main: str
 
 
-class UnalignedNucleotideSequences(BaseModel):
-    """SILO-specific pydantic schema for UnalignedNucleotideSequences JSON format."""
-
-    main: str
-
-
 class NucleotideInsertions(BaseModel):
     """SILO-specific pydantic schema for NucleotideInsertions JSON format."""
 

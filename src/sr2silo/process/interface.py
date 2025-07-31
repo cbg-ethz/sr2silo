@@ -164,23 +164,10 @@ class AlignedRead:
         aln_gene_list = aa_sequence_set_and_insertions_to_aligned_genes(
             self.aligned_amino_acid_sequence, self.amino_acid_insertions
         )
-        json_representation = {
-            "main": {
-                "insertions": formatted_nuc_ins,
-                "sequence": self.aligned_nucleotide_sequence,
-                "offset": self.aligned_nucleotide_sequence_offset,
-            },
-            "unaligned_main": self.unaligned_nucleotide_sequence,
-        }
-        # Add each gene to the JSON representation
-        for aligned_gene in aln_gene_list:
-            formatted_aa_ins = [str(ins) for ins in aligned_gene.insertions]
-            json_representation[aligned_gene.gene_name.name] = {
-                "sequence": aligned_gene.sequence,
-                "offset": aligned_gene.offset,
-                "insertions": formatted_aa_ins,
-            }
 
+        json_representation = {}
+
+        # Add metadata at the start if available
         if self.metadata:
             metadata_dict = (
                 self.metadata.model_dump()
@@ -196,6 +183,22 @@ class AlignedRead:
                     logging.warning(
                         f"Metadata value for {key} is not a string or number: {value}"
                     )
+
+        # Add main section
+        json_representation["main"] = {
+            "insertions": formatted_nuc_ins,
+            "sequence": self.aligned_nucleotide_sequence,
+            "offset": self.aligned_nucleotide_sequence_offset,
+        }
+
+        # Add each gene to the JSON representation
+        for aligned_gene in aln_gene_list:
+            formatted_aa_ins = [str(ins) for ins in aligned_gene.insertions]
+            json_representation[aligned_gene.gene_name.name] = {
+                "sequence": aligned_gene.sequence,
+                "offset": aligned_gene.offset,
+                "insertions": formatted_aa_ins,
+            }
 
         return json_representation
 
