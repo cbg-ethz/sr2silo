@@ -188,11 +188,15 @@ class AlignedReadSchema(BaseModel):
     """SILO-specific pydantic schema for AlignedRead JSON format.
 
     This schema validates the new SILO format where:
+    - read_id is a required field at the root level
     - Metadata fields are at the root level
     - 'main' is a nucleotide segment with nucleotide-specific validation
     - Gene segments are amino acid segments with amino acid-specific validation
     - Unaligned sequences are prefixed with 'unaligned_'
     """
+
+    # Required read_id field
+    read_id: str
 
     # Main nucleotide segment (required)
     main: NucleotideSegment
@@ -202,9 +206,12 @@ class AlignedReadSchema(BaseModel):
 
     @model_validator(mode="after")
     def validate_dynamic_fields(self) -> "AlignedReadSchema":
-        """Validate dynamically added gene segments and unaligned sequences."""
+        """Validate gene segments, unaligned sequences, and metadata fields."""
+        # Get ReadMetadata field names for validation
+        metadata_fields = set(ReadMetadata.model_fields.keys())
+
         for field_name, field_value in self.__dict__.items():
-            if field_name == "main":
+            if field_name in ["read_id", "main"]:
                 continue
 
             # Check for gene segments (should be amino acid segments or None)
@@ -231,7 +238,20 @@ class AlignedReadSchema(BaseModel):
                         f"characters. Expected nucleotides (ACGTN-) only."
                     )
 
-            # Allow metadata fields (strings, numbers)
+            # Validate metadata fields if they match ReadMetadata field names
+            elif field_name in metadata_fields:
+                # Validate individual metadata field types and constraints
+                metadata_field_info = ReadMetadata.model_fields[field_name]
+                expected_type = metadata_field_info.annotation
+
+                # Basic type checking for string fields
+                if expected_type is str and not isinstance(field_value, str):
+                    raise ValueError(
+                        f"Metadata field '{field_name}' should be a string, "
+                        f"got {type(field_value).__name__}"
+                    )
+
+            # Allow other metadata fields (strings, numbers)
             elif isinstance(field_value, (str, int, float)):
                 continue
 

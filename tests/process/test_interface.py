@@ -342,6 +342,56 @@ def test_aa_insertion_set_equality():
     assert aa_set1 != "not_an_aa_insertion_set"
 
 
+def test_read_id_in_json_output():
+    """Test that read_id appears as the first field in JSON output."""
+    from sr2silo.process.interface import (
+        AAInsertionSet,
+        AASequenceSet,
+        AlignedRead,
+        GeneName,
+    )
+
+    read_id = "test_read_123"
+    read = AlignedRead(
+        read_id=read_id,
+        unaligned_nucleotide_sequence="ACTG",
+        aligned_nucleotide_sequence="ACTG",
+        aligned_nucleotide_sequence_offset=0,
+        nucleotide_insertions=[],
+        amino_acid_insertions=AAInsertionSet([GeneName("gene1")]),
+        aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
+    )
+
+    # Test to_dict includes read_id
+    result_dict = read.to_dict()
+
+    # Check that read_id is present
+    assert "read_id" in result_dict, "read_id missing from to_dict() output"
+    assert (
+        result_dict["read_id"] == read_id
+    ), f"Expected {read_id}, got {result_dict['read_id']}"
+
+    # Check that read_id is the first key
+    first_key = list(result_dict.keys())[0]
+    assert (
+        first_key == "read_id"
+    ), f"read_id should be first key, but {first_key} was first"
+
+    # Test that the SILO JSON validation works with read_id
+    try:
+        json_output = read.to_silo_json()
+        assert json_output is not None
+
+        # Parse the JSON to verify structure
+        import json
+
+        parsed = json.loads(json_output)
+        assert "read_id" in parsed
+        assert parsed["read_id"] == read_id
+    except Exception as e:
+        pytest.fail(f"SILO JSON validation failed with read_id: {e}")
+
+
 def test_empty_gene_representation():
     """Test that genes with no sequence are represented as null."""
     from sr2silo.process.interface import (

@@ -167,6 +167,9 @@ class AlignedRead:
 
         json_representation = {}
 
+        # Add read_id as the first field
+        json_representation["read_id"] = self.read_id
+
         # Add metadata at the start if available
         if self.metadata:
             metadata_dict = (
