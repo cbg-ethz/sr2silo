@@ -152,3 +152,6 @@ results
 
 # Bioinformatics files
 .bai
+
+# References directory (ignore all untracked references)
+resources/references/

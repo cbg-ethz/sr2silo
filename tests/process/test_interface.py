@@ -38,15 +38,16 @@ def test_aligned_read():
     """Test AlignedRead functionality."""
     read = AlignedRead(
         read_id="read1",
-        unaligned_nucleotide_sequences="ACTG",
-        aligned_nucleotide_sequences="ACTG",
+        unaligned_nucleotide_sequence="ACTG",
+        aligned_nucleotide_sequence="ACTG",
+        aligned_nucleotide_sequence_offset=0,
         nucleotide_insertions=[NucInsertion(10, "ACTG")],
         amino_acid_insertions=AAInsertionSet([GeneName("gene1")]),
         aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
     )
     assert read.read_id == "read1"
-    assert read.unaligned_nucleotide_sequences == "ACTG"
-    assert read.aligned_nucleotide_sequences == "ACTG"
+    assert read.unaligned_nucleotide_sequence == "ACTG"
+    assert read.aligned_nucleotide_sequence == "ACTG"
     assert len(read.nucleotide_insertions) == 1
     assert isinstance(read.nucleotide_insertions[0], NucInsertion)
     assert isinstance(read.amino_acid_insertions, AAInsertionSet)
@@ -103,8 +104,9 @@ def test_to_silo_json():
     aligned_reads = {
         "read1": AlignedRead(
             read_id="read1",
-            unaligned_nucleotide_sequences="ACTG",
-            aligned_nucleotide_sequences="ACTG",
+            unaligned_nucleotide_sequence="ACTG",
+            aligned_nucleotide_sequence="ACTG",
+            aligned_nucleotide_sequence_offset=0,
             nucleotide_insertions=[NucInsertion(10, "ACTG")],
             amino_acid_insertions=AAInsertionSet([GeneName("gene1")]),
             aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
@@ -153,8 +155,9 @@ def test_set_nuc_insertion():
 
     read = AlignedRead(
         read_id="insertion_test",
-        unaligned_nucleotide_sequences="AAAA",
-        aligned_nucleotide_sequences="AAAA",
+        unaligned_nucleotide_sequence="AAAA",
+        aligned_nucleotide_sequence="AAAA",
+        aligned_nucleotide_sequence_offset=0,
         nucleotide_insertions=[],
         amino_acid_insertions=AAInsertionSet([GeneName("gene1")]),
         aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
@@ -181,8 +184,9 @@ def test_get_amino_acid_insertions():
     aa_ins_set.set_insertions_for_gene(GeneName("gene1"), [AAInsertion(7, "ABC")])
     read = AlignedRead(
         read_id="aa_ins_test",
-        unaligned_nucleotide_sequences="CCCC",
-        aligned_nucleotide_sequences="CCCC",
+        unaligned_nucleotide_sequence="CCCC",
+        aligned_nucleotide_sequence="CCCC",
+        aligned_nucleotide_sequence_offset=0,
         nucleotide_insertions=[],
         amino_acid_insertions=aa_ins_set,
         aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
@@ -203,8 +207,9 @@ def test_get_metadata_without_setting():
 
     read = AlignedRead(
         read_id="meta_test",
-        unaligned_nucleotide_sequences="GGGG",
-        aligned_nucleotide_sequences="GGGG",
+        unaligned_nucleotide_sequence="GGGG",
+        aligned_nucleotide_sequence="GGGG",
+        aligned_nucleotide_sequence_offset=0,
         nucleotide_insertions=[],
         amino_acid_insertions=AAInsertionSet([GeneName("gene1")]),
         aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
@@ -335,3 +340,68 @@ def test_aa_insertion_set_equality():
 
     # Comparing with a non-AAInsertionSet object should return False
     assert aa_set1 != "not_an_aa_insertion_set"
+
+
+def test_empty_gene_representation():
+    """Test that genes with no sequence are represented as null."""
+    from sr2silo.process.interface import (
+        AAInsertionSet,
+        AASequenceSet,
+        AlignedRead,
+        GeneName,
+    )
+
+    # Create a read with genes - one empty, one with content
+    gene1 = GeneName("gene1")
+    gene2 = GeneName("gene2")
+
+    # Set up amino acid sequences - gene1 has sequence, gene2 is empty
+    aa_seq_set = AASequenceSet([gene1, gene2])
+    aa_seq_set.set_sequence(gene1, "MKTSF", 0)
+    aa_seq_set.set_sequence(gene2, "", 0)  # Empty sequence
+
+    # Set up amino acid insertions - note that insertions without sequence
+    # context are non-sense
+    aa_ins_set = AAInsertionSet([gene1, gene2])
+    aa_ins_set.set_insertions_for_gene(gene1, [AAInsertion(5, "VLK")])
+    aa_ins_set.set_insertions_for_gene(
+        gene2, [AAInsertion(10, "ABC")]
+    )  # Nonsensical without sequence
+
+    read = AlignedRead(
+        read_id="empty_gene_test",
+        unaligned_nucleotide_sequence="ATGAAGACCTCGTTC",
+        aligned_nucleotide_sequence="ATGAAGACCTCGTTC",
+        aligned_nucleotide_sequence_offset=0,
+        nucleotide_insertions=[],
+        amino_acid_insertions=aa_ins_set,
+        aligned_amino_acid_sequences=aa_seq_set,
+    )
+
+    # Get the dictionary representation
+    result_dict = read.to_dict()
+
+    # Check that gene1 is represented normally
+    assert "gene1" in result_dict
+    assert result_dict["gene1"] == {
+        "sequence": "MKTSF",
+        "offset": 0,
+        "insertions": ["5:VLK"],
+    }
+
+    # Check that gene2 is represented as null (only sequence emptiness matters)
+    assert "gene2" in result_dict
+    assert result_dict["gene2"] is None
+
+    # Test that the JSON schema validation still works
+    try:
+        json_output = read.to_silo_json()
+        assert json_output is not None
+        # Parse the JSON to verify structure
+        import json
+
+        parsed = json.loads(json_output)
+        assert parsed["gene2"] is None
+        assert "gene1" in parsed
+    except Exception as e:
+        pytest.fail(f"Schema validation failed for empty gene: {e}")
