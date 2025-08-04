@@ -29,8 +29,8 @@
 #SBATCH --mem-per-cpu=8G
 #SBATCH --tmp=160G
 #SBATCH --time=12:00:00
-#SBATCH --output=/cluster/work/bewi/members/koehng/logs/sr2silo.out
-#SBATCH --error=/cluster/work/bewi/members/koehng/logs/sr2silo.err
+#SBATCH --output=/cluster/project/pangolin/W-ASAP/logs/sr2silo.out
+#SBATCH --error=/cluster/project/pangolin/W-ASAP/logs/sr2silo.err
 
 # =============================================================================
 # Configuration Variables - Edit these as needed
@@ -43,7 +43,7 @@ CORES=20
 USE_EXISTING_ENV=false
 
 # Log directory (should match --output and --error paths above)
-LOG_DIR="/cluster/work/bewi/members/koehng/logs"
+LOG_DIR="/cluster/project/pangolin/W-ASAP/logs"
 
 # Conda environment name (change this if you want to use a different environment)
 CONDA_ENV="sr2silo-workflow"
@@ -92,13 +92,13 @@ mkdir -p "$LOG_DIR"
 if [ "$USE_EXISTING_ENV" = true ]; then
     # Use the active conda environment
     echo "Using existing conda environment"
-    echo "Running: snakemake -c $CORES" --rerun-incomplete
-    snakemake -c $CORES
+    echo "Running: snakemake -c $CORES --rerun-incomplete --keep-going"
+    snakemake -c $CORES --rerun-incomplete --keep-going
 else
     # Use the conda environments defined in the workflow
     echo "Using workflow-defined conda environments"
-    echo "Running: snakemake --use-conda --conda-frontend conda -c $CORES"
-    snakemake --use-conda --conda-frontend conda -c $CORES --rerun-incomplete
+    echo "Running: snakemake --use-conda --conda-frontend conda -c $CORES --rerun-incomplete --keep-going"
+    snakemake --use-conda --conda-frontend conda -c $CORES --rerun-incomplete --keep-going
 fi
 
 SNAKEMAKE_EXIT_CODE=$?

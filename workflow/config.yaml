@@ -12,10 +12,10 @@ START_DATE: "2025-06-15"
 END_DATE: "2025-07-15"
 
 ### Input Files
-BASE_SAMPLE_DIR: "../results"
-TIMELINE_FILE: "../../work-vp-test/variants/timeline.tsv" 
+BASE_SAMPLE_DIR:  "../results" # "tests/data/samples_large"
+TIMELINE_FILE: "../../work-vp-test/variants/timeline.tsv" # "tests/data/samples_large/timeline_A1_05_2024_10_08.tsv" 
 ### Output Files
-RESULTS_DIR: "../silo-inputs"
+RESULTS_DIR:  "silo-inputs"
 
 ### Loculus (to submit results to)
 ## URLs for Loculus services
@@ -30,3 +30,9 @@ PASSWORD: "testuser"
 
 ### LAPIS – hosting the SILO database (to query reference from)
 LAPIS_URL: "http://88.198.54.174"
+
+### Subsampling Configuration
+## Subsampling 1) by fraction 2 by max reads or 3) by fraction, but max max_reads
+ENABLE_SUBSAMPLING: true
+# SUBSAMPLE_FRACTION: 0.5  
+SUBSAMPLE_MAX_READS: 4500000  # keep of max of 4.5 Mio Reads
