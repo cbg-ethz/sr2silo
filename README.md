@@ -198,7 +198,6 @@ sr2silo process-from-vpipe \
     --input-file input.bam \
     --sample-id SAMPLE_001 \
     --timeline-file timeline.tsv \
-    --lapis-url https://lapis.cov-spectrum.org/open/v2 \
     --output-fp output.ndjson
 
 # Example: Submit to Loculus (use environment variables for credentials)
@@ -212,6 +211,8 @@ sr2silo submit-to-loculus --processed-file output.ndjson.zst
 ```
 
 **Note:** Use environment variables for credentials to avoid exposing sensitive information in command history.
+
+**Note:** The `--lapis-url` parameter is optional. If not provided, sr2silo uses default SARS-CoV-2 references (NC_045512.2). See `sr2silo process-from-vpipe --help` for details.
 
 ### Environment Variable Configuration
 
@@ -230,12 +231,11 @@ export GROUP_ID=123
 export USERNAME=your-username
 export PASSWORD=your-password
 
-# Run with required CLI arguments (timeline file must be specified)
+# Run with environment variables set
 sr2silo process-from-vpipe \
     --input-file input.bam \
     --sample-id SAMPLE_001 \
     --timeline-file /path/to/timeline.tsv \
-    --lapis-url https://lapis.cov-spectrum.org/open/v2 \
     --output-fp output.ndjson
 
 # Submission using environment variables for credentials
