@@ -200,14 +200,6 @@ sr2silo process-from-vpipe \
     --timeline-file timeline.tsv \
     --output-fp output.ndjson
 
-# Example: Process V-Pipe data with custom LAPIS server
-sr2silo process-from-vpipe \
-    --input-file input.bam \
-    --sample-id SAMPLE_001 \
-    --timeline-file timeline.tsv \
-    --lapis-url https://lapis.cov-spectrum.org/open/v2 \
-    --output-fp output.ndjson
-
 # Example: Submit to Loculus (use environment variables for credentials)
 export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
 export SUBMISSION_URL=https://api.example.com/submit
@@ -220,37 +212,7 @@ sr2silo submit-to-loculus --processed-file output.ndjson.zst
 
 **Note:** Use environment variables for credentials to avoid exposing sensitive information in command history.
 
-### Reference Genome Configuration
-
-sr2silo supports flexible reference genome configuration:
-
-**Default Behavior (Recommended):**
-- If no `--lapis-url` is provided, sr2silo uses built-in SARS-CoV-2 references
-- References: NCBI Reference Sequence NC_045512.2 from `resources/references/sars-cov-2/`
-- This ensures consistent, reliable processing without external dependencies
-
-**Custom LAPIS Server:**
-- Provide `--lapis-url` to fetch references from a custom LAPIS instance
-- If the LAPIS server is unavailable, sr2silo automatically falls back to default SARS-CoV-2 references
-- Useful for processing data with organism-specific or updated reference genomes
-
-**Examples:**
-```bash
-# Use default SARS-CoV-2 references (recommended for most use cases)
-sr2silo process-from-vpipe \
-    --input-file input.bam \
-    --sample-id SAMPLE_001 \
-    --timeline-file timeline.tsv \
-    --output-fp output.ndjson
-
-# Use custom LAPIS server with automatic fallback
-sr2silo process-from-vpipe \
-    --input-file input.bam \
-    --sample-id SAMPLE_001 \
-    --timeline-file timeline.tsv \
-    --lapis-url https://lapis.cov-spectrum.org/open/v2 \
-    --output-fp output.ndjson
-```
+**Note:** The `--lapis-url` parameter is optional. If not provided, sr2silo uses default SARS-CoV-2 references (NC_045512.2). See `sr2silo process-from-vpipe --help` for details.
 
 ### Environment Variable Configuration
 
@@ -269,19 +231,11 @@ export GROUP_ID=123
 export USERNAME=your-username
 export PASSWORD=your-password
 
-# Run with required CLI arguments (timeline file must be specified)
+# Run with environment variables set
 sr2silo process-from-vpipe \
     --input-file input.bam \
     --sample-id SAMPLE_001 \
     --timeline-file /path/to/timeline.tsv \
-    --output-fp output.ndjson
-
-# Or optionally specify a custom LAPIS server for references
-sr2silo process-from-vpipe \
-    --input-file input.bam \
-    --sample-id SAMPLE_001 \
-    --timeline-file /path/to/timeline.tsv \
-    --lapis-url https://lapis.cov-spectrum.org/open/v2 \
     --output-fp output.ndjson
 
 # Submission using environment variables for credentials
