@@ -47,12 +47,14 @@ def _get_reference_files(ci_env: bool, lapis_url: str | None) -> tuple[Path, Pat
         if ci_env:
             logging.info(
                 "Running in CI environment, using default SARS-CoV-2 references "
-                "from resources/references/sars-cov-2/ (NCBI Reference Sequence: NC_045512.2)"
+                "from resources/references/sars-cov-2/ "
+                "(NCBI Reference Sequence: NC_045512.2)"
             )
         else:
             logging.info(
                 "No LAPIS URL provided, using default SARS-CoV-2 references "
-                "from resources/references/sars-cov-2/ (NCBI Reference Sequence: NC_045512.2)"
+                "from resources/references/sars-cov-2/ "
+                "(NCBI Reference Sequence: NC_045512.2)"
             )
         return default_nuc_ref_fp, default_aa_ref_fp
 
@@ -83,7 +85,8 @@ def _get_reference_files(ci_env: bool, lapis_url: str | None) -> tuple[Path, Pat
         logging.warning(f"Failed to fetch references from Lapis ({lapis_url}): {e}")
         logging.warning(
             "Falling back to default SARS-CoV-2 references "
-            "from resources/references/sars-cov-2/ (NCBI Reference Sequence: NC_045512.2)"
+            "from resources/references/sars-cov-2/ "
+            "(NCBI Reference Sequence: NC_045512.2)"
         )
         return default_nuc_ref_fp, default_aa_ref_fp
 
