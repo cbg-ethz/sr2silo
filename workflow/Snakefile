@@ -8,6 +8,7 @@ import sys
 import csv
 from pathlib import Path
 from datetime import datetime
+from math import ceil
 
 CONFIG = "workflow/config.yaml"
 
@@ -18,6 +19,40 @@ configfile: CONFIG
 # Load configuration
 with open(CONFIG, "r") as file:
     config = yaml.safe_load(file)
+
+
+# --- Resource sizing helpers -------------------------------------------------
+# Default per-job resource budgets; can be overridden via config.yaml
+DEFAULT_THREADS = int(config.get("PROCESS_THREADS", 4))
+DEFAULT_MEM_MB = int(
+    config.get("PROCESS_MEM_MB", 10000)
+)  # 10 GB: 6 GB required + 4 GB safety margin
+DEFAULT_TMP_GB = int(config.get("PROCESS_TMP_GB", 40))
+# Per-CPU memory default (clusters that require --mem-per-cpu)
+DEFAULT_MEM_PER_CPU_MB = int(
+    config.get(
+        "PROCESS_MEM_PER_CPU_MB",
+        max(2500, ceil(DEFAULT_MEM_MB / DEFAULT_THREADS)),  # 2.5 GB per CPU
+    )
+)
+
+
+def estimate_tmp_gb(sample_id: str) -> int:
+    """Estimate tmp space (GB) for a sample.
+
+    Heuristic:
+    - Base 30 GB for Diamond + 5 GB safety margin
+    - Add 0.1 x BAM size (GB) up to +10 GB extra
+    - Ensure at least DEFAULT_TMP_GB
+    """
+    try:
+        bam_fp = get_processing_input_path(sample_id)
+        size_gb = Path(bam_fp).stat().st_size / 1e9 if Path(bam_fp).exists() else 0
+    except Exception:
+        size_gb = 0
+    base = 35  # 30 GB Diamond + 5 GB margin
+    extra = min(10, int(max(0, size_gb * 0.1)))
+    return max(DEFAULT_TMP_GB, base + extra)
 
 
 def get_sample_list():
@@ -225,6 +260,11 @@ rule subsample_bam:
         sample_id=lambda wildcards: wildcards.sample_id,
         subsample_fraction=config.get("SUBSAMPLE_FRACTION", "None"),
         subsample_max_reads=config.get("SUBSAMPLE_MAX_READS", "None"),
+    threads: 1
+    resources:
+        mem_per_cpu_mb=1000,
+        tmp_gb=2,
+        runtime=30,
     log:
         "logs/sr2silo/subsample/sampleId_{sample_id}.log",
     conda:
@@ -273,7 +313,6 @@ rule subsample_bam:
                 echo "Fraction gives $FINAL_READS reads, under max limit" >> {log}
                 echo "Using requested fraction: $ACTUAL_FRACTION" >> {log}
             fi
-
         elif [ "$HAS_MAX_READS" = true ] && [ "$HAS_FRACTION" = false ]; then
             # Mode 2: Max reads only
             echo "MODE 2: Max reads only ($SUBSAMPLE_MAX_READS)" >> {log}
@@ -286,13 +325,11 @@ rule subsample_bam:
                 echo "Original reads ($ORIGINAL_READS) <= max reads ($SUBSAMPLE_MAX_READS), keeping all reads" >> {log}
                 echo "Using fraction: $ACTUAL_FRACTION" >> {log}
             fi
-
         elif [ "$HAS_FRACTION" = true ] && [ "$HAS_MAX_READS" = false ]; then
             # Mode 1: Fraction only
             echo "MODE 1: Fraction only ($SUBSAMPLE_FRACTION)" >> {log}
             ACTUAL_FRACTION=$SUBSAMPLE_FRACTION
             echo "Using requested fraction: $ACTUAL_FRACTION" >> {log}
-
         else
             # Error: neither set
             echo "ERROR: Neither SUBSAMPLE_FRACTION nor SUBSAMPLE_MAX_READS is set!" >> {log}
@@ -332,6 +369,11 @@ rule aggregate_read_counts:
         ),
     output:
         summary="logs/subsampling/read_counts.tsv",
+    threads: 1
+    resources:
+        mem_per_cpu_mb=500,
+        tmp_gb=1,
+        runtime=15,
     shell:
         """
         mkdir -p logs/subsampling
@@ -366,12 +408,25 @@ rule process_sample:
         sample_id=lambda wildcards: wildcards.sample_id,
         timeline_file=config["TIMELINE_FILE"],
         lapis_url=config.get("LAPIS_URL", ""),
+    threads: DEFAULT_THREADS
+    resources:
+        # Keep total mem for reference and logs, but scheduling uses mem_per_cpu_mb
+        mem_mb=DEFAULT_MEM_MB,
+        mem_per_cpu_mb=DEFAULT_MEM_PER_CPU_MB,
+        tmp_gb=lambda wildcards: estimate_tmp_gb(wildcards.sample_id),
+        runtime=180,
     log:
         "logs/sr2silo/process_sample/sampleId_{sample_id}.log",
     conda:
         "envs/sr2silo.yaml"
     shell:
-        """
+        r"""
+        # Set fast node-local temporary directory per sample
+        export TMPDIR="${{SLURM_TMPDIR:-${{TMPDIR:-/tmp}}}}/sr2silo/{wildcards.sample_id}"
+        mkdir -p "$TMPDIR"
+        trap 'rm -rf "$TMPDIR"' EXIT
+        echo "Using TMPDIR=$TMPDIR" && df -h "$TMPDIR" || true
+
         sr2silo process-from-vpipe \
             --input-file {input.sample_fp} \
             --sample-id {params.sample_id} \
