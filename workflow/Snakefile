@@ -420,7 +420,7 @@ rule process_sample:
     conda:
         "envs/sr2silo.yaml"
     shell:
-        r"""\
+        r"""
         # Set fast node-local temporary directory per sample
         export TMPDIR="${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/sr2silo/{wildcards.sample_id}"
         mkdir -p "$TMPDIR"
