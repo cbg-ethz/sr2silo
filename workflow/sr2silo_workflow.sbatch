@@ -73,43 +73,64 @@ echo "Snakemake version: $(snakemake --version)"
 # Create log directory if it doesn't exist
 mkdir -p "$LOG_DIR"
 
-# Create Slurm executor configuration for per-rule job submission
-cat > slurm-executor.yaml << 'EOF'
-executor: slurm
+# Create Snakemake profile directory
+mkdir -p .snakemake/profiles/slurm
+
+# Create a simple profile config that uses local execution with resource limits
+cat > .snakemake/profiles/slurm/config.yaml << 'EOF'
+jobs: 20
+rerun-incomplete: true
+keep-going: true
+latency-wait: 120
+restart-times: 2
+use-conda: true
+conda-frontend: conda
 default-resources:
-  slurm_account: ""
-  slurm_partition: ""
-  runtime: 120
+  mem_mb: 12000
   mem_per_cpu_mb: 3000
   tmp_gb: 40
-
-restart-times: 2
-latency-wait: 120
-
-jobscript: |
-  #!/bin/bash
-  #SBATCH --job-name=sr2silo_{rule}
-  #SBATCH --cpus-per-task={threads}
-  #SBATCH --mem-per-cpu={resources.mem_per_cpu_mb}M
-  #SBATCH --tmp={resources.tmp_gb}G
-  #SBATCH --time={resources.runtime}
-  #SBATCH --output=$LOG_DIR/sr2silo_{rule}.%j.out
-  #SBATCH --error=$LOG_DIR/sr2silo_{rule}.%j.err
-  {exec_job}
+  runtime: 120
 EOF
 
-# Prepare and execute Snakemake command
+# Function to calculate available tmp space and limit concurrent heavy jobs
+calculate_tmp_limit() {
+    # Get available tmp space in GB (rough estimate)
+    if [ -n "$SLURM_TMPDIR" ]; then
+        AVAIL_TMP=$(df -BG "$SLURM_TMPDIR" 2>/dev/null | awk 'NR==2{gsub("G","",$4); print $4}' || echo "200")
+    else
+        AVAIL_TMP=$(df -BG /tmp 2>/dev/null | awk 'NR==2{gsub("G","",$4); print $4}' || echo "200")
+    fi
+
+    # Reserve 20GB buffer and ensure we don't go below 40GB per heavy job
+    USABLE_TMP=$((AVAIL_TMP - 20))
+    MAX_HEAVY_JOBS=$((USABLE_TMP / 40))
+
+    # Ensure at least 1 heavy job can run, max 10 to avoid over-submission
+    if [ $MAX_HEAVY_JOBS -lt 1 ]; then MAX_HEAVY_JOBS=1; fi
+    if [ $MAX_HEAVY_JOBS -gt 10 ]; then MAX_HEAVY_JOBS=10; fi
+
+    echo $MAX_HEAVY_JOBS
+}
+
+MAX_TMP_JOBS=$(calculate_tmp_limit)
+echo "Available tmp space allows max $MAX_TMP_JOBS concurrent heavy jobs"
+
+# Prepare and execute Snakemake command with resource constraints
 if [ "$USE_EXISTING_ENV" = true ]; then
     echo "Using existing conda environment"
-    echo "Running: snakemake --executor slurm --jobs $CORES --rerun-incomplete --keep-going \
+    echo "Running: snakemake --cores $CORES --rerun-incomplete --keep-going \
+      --resources tmp_gb=$((MAX_TMP_JOBS * 40)) \
       --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 runtime=120"
-    snakemake --executor slurm --jobs $CORES --rerun-incomplete --keep-going \
+    snakemake --cores $CORES --rerun-incomplete --keep-going \
+      --resources tmp_gb=$((MAX_TMP_JOBS * 40)) \
       --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 runtime=120
 else
     echo "Using workflow-defined conda environments"
-    echo "Running: snakemake --use-conda --conda-frontend conda --executor slurm --jobs $CORES --rerun-incomplete --keep-going \
+    echo "Running: snakemake --use-conda --conda-frontend conda --cores $CORES --rerun-incomplete --keep-going \
+      --resources tmp_gb=$((MAX_TMP_JOBS * 40)) \
       --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 runtime=120"
-    snakemake --use-conda --conda-frontend conda --executor slurm --jobs $CORES --rerun-incomplete --keep-going \
+    snakemake --use-conda --conda-frontend conda --cores $CORES --rerun-incomplete --keep-going \
+      --resources tmp_gb=$((MAX_TMP_JOBS * 40)) \
       --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 runtime=120
 fi
 
