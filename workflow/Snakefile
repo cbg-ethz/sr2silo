@@ -25,16 +25,16 @@ with open(CONFIG, "r") as file:
 # Default per-job resource budgets; can be overridden via config.yaml
 DEFAULT_THREADS = int(config.get("PROCESS_THREADS", 4))
 DEFAULT_MEM_MB = int(
-    config.get("PROCESS_MEM_MB", 20000)
-)  # Increased from 12000 to 20000
+    config.get("PROCESS_MEM_MB", 10000)
+)  # 10 GB: 6 GB required + 4 GB safety margin
 DEFAULT_TMP_GB = int(config.get("PROCESS_TMP_GB", 40))
 # Per-CPU memory default (clusters that require --mem-per-cpu)
 DEFAULT_MEM_PER_CPU_MB = int(
     config.get(
         "PROCESS_MEM_PER_CPU_MB",
         max(
-            4000, ceil(DEFAULT_MEM_MB / DEFAULT_THREADS)
-        ),  # Increased from 2000 to 4000
+            2500, ceil(DEFAULT_MEM_MB / DEFAULT_THREADS)
+        ),  # 2.5 GB per CPU
     )
 )
 
@@ -428,6 +428,10 @@ rule process_sample:
         mkdir -p "$TMPDIR"
         trap 'rm -rf "$TMPDIR"' EXIT
         echo "Using TMPDIR=$TMPDIR" && df -h "$TMPDIR" || true
+
+        # Change to the temp directory so sr2silo uses it as working directory
+        cd "$TMPDIR"
+        echo "Changed working directory to: $(pwd)"
 
         sr2silo process-from-vpipe \
             --input-file {input.sample_fp} \

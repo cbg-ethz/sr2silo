@@ -120,18 +120,18 @@ if [ "$USE_EXISTING_ENV" = true ]; then
     echo "Using existing conda environment"
     echo "Running: snakemake --cores $CORES --rerun-incomplete --keep-going \
       --resources tmp_gb=$((MAX_TMP_JOBS * 40)) \
-      --default-resources mem_mb=20000 mem_per_cpu_mb=4000 tmp_gb=40 runtime=120"
+      --default-resources mem_mb=10000 mem_per_cpu_mb=2500 tmp_gb=40 runtime=120"
     snakemake --cores $CORES --rerun-incomplete --keep-going \
       --resources tmp_gb=$((MAX_TMP_JOBS * 40)) \
-      --default-resources mem_mb=20000 mem_per_cpu_mb=4000 tmp_gb=40 runtime=120
+      --default-resources mem_mb=10000 mem_per_cpu_mb=2500 tmp_gb=40 runtime=120
 else
     echo "Using workflow-defined conda environments"
     echo "Running: snakemake --use-conda --conda-frontend conda --cores $CORES --rerun-incomplete --keep-going \
       --resources tmp_gb=$((MAX_TMP_JOBS * 40)) \
-      --default-resources mem_mb=20000 mem_per_cpu_mb=4000 tmp_gb=40 runtime=120"
+      --default-resources mem_mb=10000 mem_per_cpu_mb=2500 tmp_gb=40 runtime=120"
     snakemake --use-conda --conda-frontend conda --cores $CORES --rerun-incomplete --keep-going \
       --resources tmp_gb=$((MAX_TMP_JOBS * 40)) \
-      --default-resources mem_mb=20000 mem_per_cpu_mb=4000 tmp_gb=40 runtime=120
+      --default-resources mem_mb=10000 mem_per_cpu_mb=2500 tmp_gb=40 runtime=120
 fi
 
 SNAKEMAKE_EXIT_CODE=$?
