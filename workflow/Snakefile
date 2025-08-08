@@ -32,9 +32,7 @@ DEFAULT_TMP_GB = int(config.get("PROCESS_TMP_GB", 40))
 DEFAULT_MEM_PER_CPU_MB = int(
     config.get(
         "PROCESS_MEM_PER_CPU_MB",
-        max(
-            2500, ceil(DEFAULT_MEM_MB / DEFAULT_THREADS)
-        ),  # 2.5 GB per CPU
+        max(2500, ceil(DEFAULT_MEM_MB / DEFAULT_THREADS)),  # 2.5 GB per CPU
     )
 )
 
@@ -428,10 +426,6 @@ rule process_sample:
         mkdir -p "$TMPDIR"
         trap 'rm -rf "$TMPDIR"' EXIT
         echo "Using TMPDIR=$TMPDIR" && df -h "$TMPDIR" || true
-
-        # Change to the temp directory so sr2silo uses it as working directory
-        cd "$TMPDIR"
-        echo "Changed working directory to: $(pwd)"
 
         sr2silo process-from-vpipe \
             --input-file {input.sample_fp} \
