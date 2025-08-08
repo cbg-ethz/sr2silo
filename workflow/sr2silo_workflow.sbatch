@@ -5,14 +5,14 @@
 #
 # This is a standalone .sbatch file for running the sr2silo workflow
 # Each Snakemake rule is submitted as its own Slurm job with resources
-# mapped from rule resources (threads, mem_mb, tmp_gb).
+# mapped from rule resources (threads, mem_per_cpu_mb, tmp_gb).
 # =============================================================================
 
 #SBATCH --job-name=sr2silo
 #SBATCH --mail-type=END
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=2G
+#SBATCH --mem-per-cpu=2G
 #SBATCH --time=12:00:00
 #SBATCH --output=/cluster/project/pangolin/W-ASAP/logs/sr2silo.out
 #SBATCH --error=/cluster/project/pangolin/W-ASAP/logs/sr2silo.err
@@ -74,10 +74,11 @@ echo "Snakemake version: $(snakemake --version)"
 mkdir -p "$LOG_DIR"
 
 # Cluster submission command mapping rule resources to Slurm
+# Prefer --mem-per-cpu; compute from resources.mem_per_cpu_mb when available
 CLUSTER_CMD="sbatch --parsable \
   --job-name=sr2silo_{rule} \
   --cpus-per-task={threads} \
-  --mem={resources.mem_mb}M \
+  --mem-per-cpu={resources.mem_per_cpu_mb}M \
   --tmp={resources.tmp_gb}G \
   --output=$LOG_DIR/sr2silo_{rule}.%j.out \
   --error=$LOG_DIR/sr2silo_{rule}.%j.err"
@@ -86,18 +87,18 @@ CLUSTER_CMD="sbatch --parsable \
 if [ "$USE_EXISTING_ENV" = true ]; then
     echo "Using existing conda environment"
     echo "Running: snakemake -j $CORES --rerun-incomplete --keep-going --restart-times 2 --latency-wait 120 \
-      --default-resources mem_mb=12000 tmp_gb=40 \
+      --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 \
       --cluster \"$CLUSTER_CMD\""
     snakemake -j $CORES --rerun-incomplete --keep-going --restart-times 2 --latency-wait 120 \
-      --default-resources mem_mb=12000 tmp_gb=40 \
+      --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 \
       --cluster "$CLUSTER_CMD"
 else
     echo "Using workflow-defined conda environments"
     echo "Running: snakemake --use-conda --conda-frontend conda -j $CORES --rerun-incomplete --keep-going --restart-times 2 --latency-wait 120 \
-      --default-resources mem_mb=12000 tmp_gb=40 \
+      --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 \
       --cluster \"$CLUSTER_CMD\""
     snakemake --use-conda --conda-frontend conda -j $CORES --rerun-incomplete --keep-going --restart-times 2 --latency-wait 120 \
-      --default-resources mem_mb=12000 tmp_gb=40 \
+      --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 \
       --cluster "$CLUSTER_CMD"
 fi
 

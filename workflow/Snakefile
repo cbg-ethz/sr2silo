@@ -8,6 +8,7 @@ import sys
 import csv
 from pathlib import Path
 from datetime import datetime
+from math import ceil
 
 CONFIG = "workflow/config.yaml"
 
@@ -25,6 +26,12 @@ with open(CONFIG, "r") as file:
 DEFAULT_THREADS = int(config.get("PROCESS_THREADS", 4))
 DEFAULT_MEM_MB = int(config.get("PROCESS_MEM_MB", 12000))
 DEFAULT_TMP_GB = int(config.get("PROCESS_TMP_GB", 40))
+# Per-CPU memory default (clusters that require --mem-per-cpu)
+DEFAULT_MEM_PER_CPU_MB = int(
+    config.get(
+        "PROCESS_MEM_PER_CPU_MB", max(2000, ceil(DEFAULT_MEM_MB / DEFAULT_THREADS))
+    )
+)
 
 
 def estimate_tmp_gb(sample_id: str) -> int:
@@ -252,7 +259,7 @@ rule subsample_bam:
         subsample_max_reads=config.get("SUBSAMPLE_MAX_READS", "None"),
     threads: 1
     resources:
-        mem_mb=2000,
+        mem_per_cpu_mb=1000,
         tmp_gb=2,
     log:
         "logs/sr2silo/subsample/sampleId_{sample_id}.log",
@@ -363,7 +370,7 @@ rule aggregate_read_counts:
         summary="logs/subsampling/read_counts.tsv",
     threads: 1
     resources:
-        mem_mb=1000,
+        mem_per_cpu_mb=500,
         tmp_gb=1,
     shell:
         """
@@ -401,7 +408,9 @@ rule process_sample:
         lapis_url=config.get("LAPIS_URL", ""),
     threads: DEFAULT_THREADS
     resources:
+        # Keep total mem for reference and logs, but scheduling uses mem_per_cpu_mb
         mem_mb=DEFAULT_MEM_MB,
+        mem_per_cpu_mb=DEFAULT_MEM_PER_CPU_MB,
         tmp_gb=lambda wildcards: estimate_tmp_gb(wildcards.sample_id),
     log:
         "logs/sr2silo/process_sample/sampleId_{sample_id}.log",
