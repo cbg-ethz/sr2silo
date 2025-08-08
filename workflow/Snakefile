@@ -419,7 +419,7 @@ rule process_sample:
     shell:
         r"""
         # Set fast node-local temporary directory per sample
-        export TMPDIR="${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/sr2silo/{wildcards.sample_id}"
+        export TMPDIR="${{SLURM_TMPDIR:-${{TMPDIR:-/tmp}}}}/sr2silo/{wildcards.sample_id}"
         mkdir -p "$TMPDIR"
         trap 'rm -rf "$TMPDIR"' EXIT
         echo "Using TMPDIR=$TMPDIR" && df -h "$TMPDIR" || true
