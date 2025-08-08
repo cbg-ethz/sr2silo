@@ -261,6 +261,7 @@ rule subsample_bam:
     resources:
         mem_per_cpu_mb=1000,
         tmp_gb=2,
+        runtime=30,
     log:
         "logs/sr2silo/subsample/sampleId_{sample_id}.log",
     conda:
@@ -372,6 +373,7 @@ rule aggregate_read_counts:
     resources:
         mem_per_cpu_mb=500,
         tmp_gb=1,
+        runtime=15,
     shell:
         """
         mkdir -p logs/subsampling
@@ -412,6 +414,7 @@ rule process_sample:
         mem_mb=DEFAULT_MEM_MB,
         mem_per_cpu_mb=DEFAULT_MEM_PER_CPU_MB,
         tmp_gb=lambda wildcards: estimate_tmp_gb(wildcards.sample_id),
+        runtime=180,
     log:
         "logs/sr2silo/process_sample/sampleId_{sample_id}.log",
     conda:

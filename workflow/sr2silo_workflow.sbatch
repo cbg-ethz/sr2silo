@@ -73,33 +73,44 @@ echo "Snakemake version: $(snakemake --version)"
 # Create log directory if it doesn't exist
 mkdir -p "$LOG_DIR"
 
-# Cluster submission command mapping rule resources to Slurm
-# Prefer --mem-per-cpu; compute from resources.mem_per_cpu_mb when available
-CLUSTER_CMD="sbatch --parsable \
-  --job-name=sr2silo_{rule} \
-  --cpus-per-task={threads} \
-  --mem-per-cpu={resources.mem_per_cpu_mb}M \
-  --tmp={resources.tmp_gb}G \
-  --output=$LOG_DIR/sr2silo_{rule}.%j.out \
-  --error=$LOG_DIR/sr2silo_{rule}.%j.err"
+# Create Slurm executor configuration for per-rule job submission
+cat > slurm-executor.yaml << 'EOF'
+executor: slurm
+default-resources:
+  slurm_account: ""
+  slurm_partition: ""
+  runtime: 120
+  mem_per_cpu_mb: 3000
+  tmp_gb: 40
+
+restart-times: 2
+latency-wait: 120
+
+jobscript: |
+  #!/bin/bash
+  #SBATCH --job-name=sr2silo_{rule}
+  #SBATCH --cpus-per-task={threads}
+  #SBATCH --mem-per-cpu={resources.mem_per_cpu_mb}M
+  #SBATCH --tmp={resources.tmp_gb}G
+  #SBATCH --time={resources.runtime}
+  #SBATCH --output=$LOG_DIR/sr2silo_{rule}.%j.out
+  #SBATCH --error=$LOG_DIR/sr2silo_{rule}.%j.err
+  {exec_job}
+EOF
 
 # Prepare and execute Snakemake command
 if [ "$USE_EXISTING_ENV" = true ]; then
     echo "Using existing conda environment"
-    echo "Running: snakemake -j $CORES --rerun-incomplete --keep-going --restart-times 2 --latency-wait 120 \
-      --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 \
-      --cluster \"$CLUSTER_CMD\""
-    snakemake -j $CORES --rerun-incomplete --keep-going --restart-times 2 --latency-wait 120 \
-      --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 \
-      --cluster "$CLUSTER_CMD"
+    echo "Running: snakemake --executor slurm --jobs $CORES --rerun-incomplete --keep-going \
+      --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 runtime=120"
+    snakemake --executor slurm --jobs $CORES --rerun-incomplete --keep-going \
+      --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 runtime=120
 else
     echo "Using workflow-defined conda environments"
-    echo "Running: snakemake --use-conda --conda-frontend conda -j $CORES --rerun-incomplete --keep-going --restart-times 2 --latency-wait 120 \
-      --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 \
-      --cluster \"$CLUSTER_CMD\""
-    snakemake --use-conda --conda-frontend conda -j $CORES --rerun-incomplete --keep-going --restart-times 2 --latency-wait 120 \
-      --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 \
-      --cluster "$CLUSTER_CMD"
+    echo "Running: snakemake --use-conda --conda-frontend conda --executor slurm --jobs $CORES --rerun-incomplete --keep-going \
+      --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 runtime=120"
+    snakemake --use-conda --conda-frontend conda --executor slurm --jobs $CORES --rerun-incomplete --keep-going \
+      --default-resources mem_mb=12000 mem_per_cpu_mb=3000 tmp_gb=40 runtime=120
 fi
 
 SNAKEMAKE_EXIT_CODE=$?
