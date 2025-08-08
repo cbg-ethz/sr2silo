@@ -20,6 +20,31 @@ with open(CONFIG, "r") as file:
     config = yaml.safe_load(file)
 
 
+# --- Resource sizing helpers -------------------------------------------------
+# Default per-job resource budgets; can be overridden via config.yaml
+DEFAULT_THREADS = int(config.get("PROCESS_THREADS", 4))
+DEFAULT_MEM_MB = int(config.get("PROCESS_MEM_MB", 12000))
+DEFAULT_TMP_GB = int(config.get("PROCESS_TMP_GB", 40))
+
+
+def estimate_tmp_gb(sample_id: str) -> int:
+    """Estimate tmp space (GB) for a sample.
+
+    Heuristic:
+    - Base 30 GB for Diamond + 5 GB safety margin
+    - Add 0.1 x BAM size (GB) up to +10 GB extra
+    - Ensure at least DEFAULT_TMP_GB
+    """
+    try:
+        bam_fp = get_processing_input_path(sample_id)
+        size_gb = Path(bam_fp).stat().st_size / 1e9 if Path(bam_fp).exists() else 0
+    except Exception:
+        size_gb = 0
+    base = 35  # 30 GB Diamond + 5 GB margin
+    extra = min(10, int(max(0, size_gb * 0.1)))
+    return max(DEFAULT_TMP_GB, base + extra)
+
+
 def get_sample_list():
     """Read timeline file and filter by date range and location codes."""
 
@@ -225,6 +250,10 @@ rule subsample_bam:
         sample_id=lambda wildcards: wildcards.sample_id,
         subsample_fraction=config.get("SUBSAMPLE_FRACTION", "None"),
         subsample_max_reads=config.get("SUBSAMPLE_MAX_READS", "None"),
+    threads: 1
+    resources:
+        mem_mb=2000,
+        tmp_gb=2,
     log:
         "logs/sr2silo/subsample/sampleId_{sample_id}.log",
     conda:
@@ -253,7 +282,7 @@ rule subsample_bam:
         # Check if max_reads is set
         if [ "$SUBSAMPLE_MAX_READS" != "None" ] && [ "$SUBSAMPLE_MAX_READS" != "" ]; then
             HAS_MAX_READS=true
-        else
+        else:
             HAS_MAX_READS=false
         fi
 
@@ -293,7 +322,7 @@ rule subsample_bam:
             ACTUAL_FRACTION=$SUBSAMPLE_FRACTION
             echo "Using requested fraction: $ACTUAL_FRACTION" >> {log}
 
-        else
+        else:
             # Error: neither set
             echo "ERROR: Neither SUBSAMPLE_FRACTION nor SUBSAMPLE_MAX_READS is set!" >> {log}
             echo "This should not happen if ENABLE_SUBSAMPLING is true." >> {log}
@@ -332,6 +361,10 @@ rule aggregate_read_counts:
         ),
     output:
         summary="logs/subsampling/read_counts.tsv",
+    threads: 1
+    resources:
+        mem_mb=1000,
+        tmp_gb=1,
     shell:
         """
         mkdir -p logs/subsampling
@@ -366,12 +399,22 @@ rule process_sample:
         sample_id=lambda wildcards: wildcards.sample_id,
         timeline_file=config["TIMELINE_FILE"],
         lapis_url=config.get("LAPIS_URL", ""),
+    threads: DEFAULT_THREADS
+    resources:
+        mem_mb=DEFAULT_MEM_MB,
+        tmp_gb=lambda wildcards: estimate_tmp_gb(wildcards.sample_id),
     log:
         "logs/sr2silo/process_sample/sampleId_{sample_id}.log",
     conda:
         "envs/sr2silo.yaml"
     shell:
-        """
+        r"""\
+        # Set fast node-local temporary directory per sample
+        export TMPDIR="${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/sr2silo/{wildcards.sample_id}"
+        mkdir -p "$TMPDIR"
+        trap 'rm -rf "$TMPDIR"' EXIT
+        echo "Using TMPDIR=$TMPDIR" && df -h "$TMPDIR" || true
+
         sr2silo process-from-vpipe \
             --input-file {input.sample_fp} \
             --sample-id {params.sample_id} \
