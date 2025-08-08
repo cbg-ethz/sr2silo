@@ -290,7 +290,7 @@ rule subsample_bam:
         # Check if max_reads is set
         if [ "$SUBSAMPLE_MAX_READS" != "None" ] && [ "$SUBSAMPLE_MAX_READS" != "" ]; then
             HAS_MAX_READS=true
-        else:
+        else
             HAS_MAX_READS=false
         fi
 
@@ -310,7 +310,6 @@ rule subsample_bam:
                 echo "Fraction gives $FINAL_READS reads, under max limit" >> {log}
                 echo "Using requested fraction: $ACTUAL_FRACTION" >> {log}
             fi
-
         elif [ "$HAS_MAX_READS" = true ] && [ "$HAS_FRACTION" = false ]; then
             # Mode 2: Max reads only
             echo "MODE 2: Max reads only ($SUBSAMPLE_MAX_READS)" >> {log}
@@ -323,14 +322,12 @@ rule subsample_bam:
                 echo "Original reads ($ORIGINAL_READS) <= max reads ($SUBSAMPLE_MAX_READS), keeping all reads" >> {log}
                 echo "Using fraction: $ACTUAL_FRACTION" >> {log}
             fi
-
         elif [ "$HAS_FRACTION" = true ] && [ "$HAS_MAX_READS" = false ]; then
             # Mode 1: Fraction only
             echo "MODE 1: Fraction only ($SUBSAMPLE_FRACTION)" >> {log}
             ACTUAL_FRACTION=$SUBSAMPLE_FRACTION
             echo "Using requested fraction: $ACTUAL_FRACTION" >> {log}
-
-        else:
+        else
             # Error: neither set
             echo "ERROR: Neither SUBSAMPLE_FRACTION nor SUBSAMPLE_MAX_READS is set!" >> {log}
             echo "This should not happen if ENABLE_SUBSAMPLING is true." >> {log}
