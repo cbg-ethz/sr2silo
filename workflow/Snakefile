@@ -24,12 +24,17 @@ with open(CONFIG, "r") as file:
 # --- Resource sizing helpers -------------------------------------------------
 # Default per-job resource budgets; can be overridden via config.yaml
 DEFAULT_THREADS = int(config.get("PROCESS_THREADS", 4))
-DEFAULT_MEM_MB = int(config.get("PROCESS_MEM_MB", 12000))
+DEFAULT_MEM_MB = int(
+    config.get("PROCESS_MEM_MB", 20000)
+)  # Increased from 12000 to 20000
 DEFAULT_TMP_GB = int(config.get("PROCESS_TMP_GB", 40))
 # Per-CPU memory default (clusters that require --mem-per-cpu)
 DEFAULT_MEM_PER_CPU_MB = int(
     config.get(
-        "PROCESS_MEM_PER_CPU_MB", max(2000, ceil(DEFAULT_MEM_MB / DEFAULT_THREADS))
+        "PROCESS_MEM_PER_CPU_MB",
+        max(
+            4000, ceil(DEFAULT_MEM_MB / DEFAULT_THREADS)
+        ),  # Increased from 2000 to 4000
     )
 )
 
