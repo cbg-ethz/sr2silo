@@ -25,7 +25,7 @@
 CORES=20
 
 # Use existing conda environment (true) or workflow-defined conda envs (false)
-USE_EXISTING_ENV=false
+USE_EXISTING_ENV=true
 
 # Log directory for Snakemake job stdout/stderr
 LOG_DIR="/cluster/project/pangolin/W-ASAP/logs"
@@ -86,8 +86,8 @@ restart-times: 2
 use-conda: true
 conda-frontend: conda
 default-resources:
-  mem_mb: 20000
-  mem_per_cpu_mb: 4000
+  mem_mb: 8000
+  mem_per_cpu_mb: 8000
   tmp_gb: 40
   runtime: 120
 EOF

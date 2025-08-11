@@ -23,7 +23,7 @@ with open(CONFIG, "r") as file:
 
 # --- Resource sizing helpers -------------------------------------------------
 # Default per-job resource budgets; can be overridden via config.yaml
-DEFAULT_THREADS = int(config.get("PROCESS_THREADS", 4))
+DEFAULT_THREADS = int(config.get("PROCESS_THREADS", 1))
 DEFAULT_MEM_MB = int(
     config.get("PROCESS_MEM_MB", 10000)
 )  # 10 GB: 6 GB required + 4 GB safety margin
@@ -32,7 +32,7 @@ DEFAULT_TMP_GB = int(config.get("PROCESS_TMP_GB", 40))
 DEFAULT_MEM_PER_CPU_MB = int(
     config.get(
         "PROCESS_MEM_PER_CPU_MB",
-        max(2500, ceil(DEFAULT_MEM_MB / DEFAULT_THREADS)),  # 2.5 GB per CPU
+        max(8000, ceil(DEFAULT_MEM_MB / DEFAULT_THREADS)),  # 8 GB per CPU
     )
 )
 
@@ -419,6 +419,7 @@ rule process_sample:
         "logs/sr2silo/process_sample/sampleId_{sample_id}.log",
     conda:
         "envs/sr2silo.yaml"
+    retries: 2
     shell:
         r"""
         # Set fast node-local temporary directory per sample
