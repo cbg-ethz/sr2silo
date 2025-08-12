@@ -129,8 +129,12 @@ def test_aligned_read_schema_without_metadata():
     """Test that an aligned read schema with minimal required fields is accepted."""
     from sr2silo.silo_read_schema import NucleotideSegment
 
-    minimal_data = {"main": NucleotideSegment(**VALID_MAIN_SEGMENT)}
+    minimal_data = {
+        "read_id": "test_read_123",
+        "main": NucleotideSegment(**VALID_MAIN_SEGMENT),
+    }
     aligned_read = AlignedReadSchema(**minimal_data)
+    assert aligned_read.read_id == "test_read_123"
     assert aligned_read.main.sequence == VALID_MAIN_SEGMENT["sequence"]
 
 

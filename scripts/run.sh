@@ -6,15 +6,12 @@ INPUT_FILE="tests/data/samples_large/A1_05_2024_10_08/20241024_2411515907/alignm
 SAMPLE_ID="A1_05_2024_10_08"
 OUTPUT_FILE="./results_neo/silo_input.ndjson"
 TIMELINE_FILE="tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
-LAPIS_URL="https://lapis.cov-spectrum.org/open/v2"
 
 # Run using sr2silo CLI
-# Use submit-to-loculus command to upload and submit processed files to SILO
 sr2silo process-from-vpipe \
     --input-file "$INPUT_FILE" \
     --sample-id "$SAMPLE_ID" \
     --timeline-file "$TIMELINE_FILE" \
-    --lapis-url "$LAPIS_URL" \
     --output-fp "$OUTPUT_FILE"
 
 # Uncomment the following lines to upload and submit the processed file to SILO

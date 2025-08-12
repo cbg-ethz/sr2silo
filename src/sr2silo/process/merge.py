@@ -40,7 +40,8 @@ def paired_end_read_merger(
         raise FileNotFoundError(f"File not found: {ref_genome_fasta_fp}")
 
     if output_merged_sam_fp.exists():
-        raise FileExistsError(f"File already exists: {output_merged_sam_fp}")
+        logger.info(f"Output file {output_merged_sam_fp} already exists. Overwriting.")
+        output_merged_sam_fp.unlink()
 
     if not is_sorted_qname(nuc_align_sam_fp):
         raise ValueError(f"Input file {nuc_align_sam_fp} is not sorted by QNAME.")

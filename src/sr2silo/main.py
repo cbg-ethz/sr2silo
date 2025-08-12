@@ -24,10 +24,71 @@ from sr2silo.loculus.lapis import LapisClient
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
 from sr2silo.submit_to_loculus import submit_to_silo
 
-# Use force=True to override any existing logging configuration
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", force=True
 )
+
+
+def _get_reference_files(ci_env: bool, lapis_url: str | None) -> tuple[Path, Path]:
+    """Get reference files, either from Lapis or fallback to default CI references.
+
+    Args:
+        ci_env: Whether running in CI environment
+        lapis_url: URL of LAPIS instance, or None to use default references
+
+    Returns:
+        Tuple of (nucleotide_ref_path, amino_acid_ref_path)
+    """
+    # Default SARS-CoV-2 references (NCBI Reference Sequence: NC_045512.2)
+    default_nuc_ref_fp = Path("resources/references/sars-cov-2/nuc_ref.fasta")
+    default_aa_ref_fp = Path("resources/references/sars-cov-2/aa_ref.fasta")
+
+    if ci_env or lapis_url is None:
+        if ci_env:
+            logging.info(
+                "Running in CI environment, using default SARS-CoV-2 references "
+                "from resources/references/sars-cov-2/ "
+                "(NCBI Reference Sequence: NC_045512.2)"
+            )
+        else:
+            logging.info(
+                "No LAPIS URL provided, using default SARS-CoV-2 references "
+                "from resources/references/sars-cov-2/ "
+                "(NCBI Reference Sequence: NC_045512.2)"
+            )
+        return default_nuc_ref_fp, default_aa_ref_fp
+
+    # Try to fetch references from Lapis
+    try:
+        lapis = LapisClient(lapis_url)
+        logging.info("Fetching references from Lapis...")
+        reference = lapis.referenceGenome()
+
+        # Create domain-specific directory for Lapis references
+        domain = lapis_url.split("//")[-1].split("/")[0]
+        Path(f"resources/references/{domain}").mkdir(parents=True, exist_ok=True)
+
+        nuc_ref_fp = Path(f"resources/references/{domain}/nuc_ref.fasta")
+        aa_ref_fp = Path(f"resources/references/{domain}/aa_ref.fasta")
+
+        lapis.referenceGenomeToFasta(
+            reference_json_string=json.dumps(reference),
+            nucleotide_out_fp=nuc_ref_fp,
+            amino_acid_out_fp=aa_ref_fp,
+        )
+        logging.info(
+            f"Successfully fetched references from Lapis: {nuc_ref_fp} and {aa_ref_fp}"
+        )
+        return nuc_ref_fp, aa_ref_fp
+
+    except Exception as e:
+        logging.warning(f"Failed to fetch references from Lapis ({lapis_url}): {e}")
+        logging.warning(
+            "Falling back to default SARS-CoV-2 references "
+            "from resources/references/sars-cov-2/ "
+            "(NCBI Reference Sequence: NC_045512.2)"
+        )
+        return default_nuc_ref_fp, default_aa_ref_fp
 
 
 app = typer.Typer(
@@ -82,14 +143,16 @@ def process_from_vpipe(
         ),
     ],
     lapis_url: Annotated[
-        str,
+        str | None,
         typer.Option(
             "--lapis-url",
             "-r",
-            help="URL of LAPIS instance, hosting SILO database."
-            "Used to fetch the nucleotide / amino acid reference.",
+            help="URL of LAPIS instance, hosting SILO database. "
+            "Used to fetch the nucleotide / amino acid reference. "
+            "If not provided, uses default SARS-CoV-2 references "
+            "(NCBI Reference Sequence: NC_045512.2).",
         ),
-    ],
+    ] = None,
     skip_merge: Annotated[
         bool,
         typer.Option(
@@ -117,7 +180,10 @@ def process_from_vpipe(
     logging.info(f"Processing input file: {input_file}")
     logging.info(f"Using timeline file: {timeline_file}")
     logging.info(f"Using output file: {output_fp}")
-    logging.info(f"Using Lapis URL: {lapis_url}")
+    if lapis_url:
+        logging.info(f"Using Lapis URL: {lapis_url}")
+    else:
+        logging.info("Using default SARS-CoV-2 references (no Lapis URL provided)")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Skip read pair merging: {skip_merge}")
 
@@ -138,34 +204,8 @@ def process_from_vpipe(
 
     logging.info(f"Running version: {version_info}")
 
-    # if not CI envrionement, get the nucleotide and amino acid references, from Lapis
-    if not ci_env:
-        # make LapisClient
-        lapis = LapisClient(lapis_url)
-        # fetch references
-        reference = lapis.referenceGenome()
-        # convert references to FASTA files
-        logging.info("Fetching references from Lapis...")
-        # get the domain from the lapis_url
-        domain = lapis_url.split("//")[-1].split("/")[0]
-        # create the directory if it does not exist
-        Path(f"resources/references/{domain}").mkdir(parents=True, exist_ok=True)
-        # define the paths for the nucleotide and amino acid references
-        nuc_ref_fp = Path(f"resources/references/{domain}/nuc_ref.fasta")
-        aa_ref_fp = Path(f"resources/references/{domain}/aa_ref.fasta")
-        lapis.referenceGenomeToFasta(
-            reference_json_string=json.dumps(reference),
-            nucleotide_out_fp=nuc_ref_fp,
-            amino_acid_out_fp=aa_ref_fp,
-        )
-        logging.info(f"Fetched references from Lapis: {nuc_ref_fp} and {aa_ref_fp}")
-    else:
-        logging.info(
-            "Running in CI environment, using default references \
-            from resources/references/sars-cov-2/"
-        )
-        nuc_ref_fp = Path("resources/references/sars-cov-2/nuc_ref.fasta")
-        aa_ref_fp = Path("resources/references/sars-cov-2/aa_ref.fasta")
+    # Get nucleotide and amino acid references
+    nuc_ref_fp, aa_ref_fp = _get_reference_files(ci_env, lapis_url)
 
     nuc_align_to_silo_njson(
         input_file=input_file,
