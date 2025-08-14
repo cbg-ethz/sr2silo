@@ -370,6 +370,7 @@ rule process_sample:
         "logs/sr2silo/process_sample/sampleId_{sample_id}.log",
     conda:
         "envs/sr2silo.yaml"
+    retries: 3
     shell:
         """
         sr2silo process-from-vpipe \
