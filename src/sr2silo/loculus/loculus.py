@@ -359,9 +359,12 @@ class Submission:
     ) -> tuple[Path, str]:
         """Create a metadata TSV file with the required submissionId header.
 
+            The metadata file will be saved in a 'submission' subdirectory of
+            its parent directory.
+
         Args:
-            result_dir: Directory where to save the metadata file
-            countReads: Whether to include a countReads column (default: False)
+            processed_file: Path to the processed file.
+            count_reads: Whether to include a countReads column (default: False)
 
         Returns:
             Tuple of (Path to the created metadata file, submission ID)
@@ -373,7 +376,7 @@ class Submission:
 
         # Generate a submission id and current date
         submission_id = str(uuid.uuid4())
-        sumbission_date = date.today().isoformat()
+        submission_date = date.today().isoformat()
 
         # Count reads if requested
         count = None
@@ -393,7 +396,7 @@ class Submission:
         with metadata_fp.open("w") as f:
             # Write header with required submissionId field and optional date field
             f.write("submissionId\tdate\n")
-            f.write(f"{submission_id}\t{sumbission_date}\n")
+            f.write(f"{submission_id}\t{submission_date}\n")
             # Write additional metadata fields if available
             for key, value in metadata.items():
                 f.write(f"{key}\t{value}\n")
@@ -456,12 +459,13 @@ class Submission:
 
         # convert keys to camel case
         def to_camel_case(snake_str):
+            """Convert snake_case string to camelCase string."""
             components = snake_str.split("_")
             return components[0] + "".join(word.capitalize() for word in components[1:])
 
         camel_case_metadata = {}
         for key, value in metadata.items():
-            if key != "readId":  # exclude readId as specified
+            if key != "read_id":  # exclude readId as specified
                 camel_case_key = to_camel_case(key)
                 camel_case_metadata[camel_case_key] = value
 
@@ -482,15 +486,22 @@ class Submission:
                 with dctx.stream_reader(f) as reader:
                     count = 0
                     chunk_size = 8192  # Read in 8KB chunks
+                    last_byte = None
                     while True:
                         chunk = reader.read(chunk_size)
                         if not chunk:
                             break
                         count += chunk.count(b"\n")
-            return count + 1  # Add 1 if file does not end with newline
+                        last_byte = chunk[-1] if len(chunk) > 0 else last_byte
+            # Only add 1 if the last byte is not a newline
+            if last_byte is not None and last_byte != ord(b"\n"):
+                return count + 1
+            else:
+                return count
         else:
             # Handle uncompressed files
             count = 0
+            last_byte = None
             with open(silo_input, "rb") as f:
                 chunk_size = 8192  # Read in 8KB chunks
                 while True:
@@ -498,4 +509,9 @@ class Submission:
                     if not chunk:
                         break
                     count += chunk.count(b"\n")
-            return count
+                    last_byte = chunk[-1] if len(chunk) > 0 else last_byte
+            # Only add 1 if the last byte is not a newline
+            if last_byte is not None and last_byte != ord(b"\n"):
+                return count + 1
+            else:
+                return count
