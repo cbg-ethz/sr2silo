@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -46,3 +48,50 @@ def test_count_reads_uncompressed(test_silo_input_uncompressed):
 
     # The test file has 2 lines (no final newline), so expect 2 reads
     assert count == 3
+
+
+def test_create_metadata_file(test_silo_input_uncompressed):
+    """Test creating metadata TSV file."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Copy test file to temp directory to simulate processed file
+        temp_processed_file = Path(temp_dir) / "test_processed.ndjson"
+        temp_processed_file.write_text(test_silo_input_uncompressed.read_text())
+
+        # Test without count_reads
+        metadata_file, submission_id = Submission.create_metadata_file(
+            temp_processed_file
+        )
+
+        # Check that file was created
+        assert metadata_file.exists()
+        assert metadata_file.name.startswith("metadata_")
+        assert metadata_file.suffix == ".tsv"
+
+        # Check that submission directory was created
+        assert metadata_file.parent.name == "submission"
+
+        # Check file contents
+        with open(metadata_file, "r") as f:
+            reader = csv.DictReader(f, delimiter="\t")
+            rows = list(reader)
+            fieldnames = reader.fieldnames or []
+
+            # Should have at least the main row with submissionId and date
+            assert len(rows) >= 1
+            assert "submissionId" in fieldnames
+            assert "date" in fieldnames
+
+            # Check submission ID matches
+            first_row = rows[0]
+            assert first_row["submissionId"] == submission_id
+            assert first_row["date"]  # Should have a date
+
+        # Test with count_reads=True
+        metadata_file2, submission_id2 = Submission.create_metadata_file(
+            temp_processed_file, count_reads=True
+        )
+
+        # Should create a different file with different submission ID
+        assert metadata_file2 != metadata_file
+        assert submission_id2 != submission_id
+        assert metadata_file2.exists()

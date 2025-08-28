@@ -355,8 +355,8 @@ class Submission:
 
     @staticmethod
     def create_metadata_file(
-        result_dir: Path, countReads: bool = False
-    ) -> dict[Path, str]:
+        processed_file: Path, count_reads: bool = False
+    ) -> tuple[Path, str]:
         """Create a metadata TSV file with the required submissionId header.
 
         Args:
@@ -366,28 +366,40 @@ class Submission:
         Returns:
             Tuple of (Path to the created metadata file, submission ID)
         """
+        # Ensure the submission directory exists
+        result_dir = processed_file.parent
         result_dir_submission = result_dir / "submission"
         result_dir_submission.mkdir(parents=True, exist_ok=True)
 
+        # Generate a submission id and current date
         submission_id = str(uuid.uuid4())
+        sumbission_date = date.today().isoformat()
+
+        # Count reads if requested
+        count = None
+        if count_reads:
+            count = Submission.count_reads(processed_file)
+            logging.info(f"Counted {count} reads in {processed_file}")
+        else:
+            logging.debug("Skipping read count as countReads is False")
+
+        # extract metadata from the processed file
+        metadata = Submission.parse_metadata(processed_file)
+        logging.debug(f"Extracted metadata: {metadata}")
+
+        # Create the metadata file path
+
         metadata_fp = result_dir_submission / f"metadata_{submission_id}.tsv"
         with metadata_fp.open("w") as f:
-
-            # TODO Extend with all metadata fields but readId and make camel case
-            # submissionDate
-            # batchId
-            # sampleId
-            # locationCode
-            # locationName
-            # sr2siloVersion
-            # readCount (if countReads is True)
-
             # Write header with required submissionId field and optional date field
             f.write("submissionId\tdate\n")
-            # Write a sample entry with the generated UUID for submissionId
-            today = date.today().isoformat()
-            f.write(f"{submission_id}\t{today}\n")
-
+            f.write(f"{submission_id}\t{sumbission_date}\n")
+            # Write additional metadata fields if available
+            for key, value in metadata.items():
+                f.write(f"{key}\t{value}\n")
+            # Write countReads if requested
+            if count is not None:
+                f.write(f"countReads\t{count}\n")
         logging.info(
             f"Metadata file created at: {metadata_fp} "
             f"with submission ID: {submission_id}"
