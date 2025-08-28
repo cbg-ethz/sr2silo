@@ -401,7 +401,7 @@ class Submission:
         in camel case.
 
         Assumptions:
-         - the metaddata is stored for each read under the key 'metadata'
+         - the metaddata is stored in the root of the object under the keys
          - each read has the same metadata, up to readId
         """
         # check if the file is compressed or not
@@ -418,9 +418,29 @@ class Submission:
                 # read the first line
                 first_line = f.readline().strip()
 
-        # parse the JSON and extract the metadata
+        # parse the JSON and extract the metadata - look for fields sample_id, batch_id
+        # location_code, location_name, sampling_date, sr2silo_version
         data = json.loads(first_line)
-        metadata = data.get("metadata", {})
+
+        # Extract specific metadata fields
+        metadata_fields = [
+            "sample_id",
+            "batch_id",
+            "location_code",
+            "location_name",
+            "sampling_date",
+            "sr2silo_version",
+        ]
+
+        metadata = {}
+        for field in metadata_fields:
+            if field in data:
+                metadata[field] = data[field]
+            else:
+                logging.warning(
+                    f"Metadata field '{field}' not found in the input data."
+                )
+                metadata[field] = None
 
         # convert keys to camel case
         def to_camel_case(snake_str):
@@ -455,7 +475,7 @@ class Submission:
                         if not chunk:
                             break
                         count += chunk.count(b"\n")
-            return count
+            return count + 1  # Add 1 if file does not end with newline
         else:
             # Handle uncompressed files
             count = 0
