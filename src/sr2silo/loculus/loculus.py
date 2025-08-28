@@ -8,9 +8,10 @@ import logging
 import uuid
 from datetime import date
 from pathlib import Path
-from typing import List, TypedDict
+from typing import Dict, List, TypedDict
 
 import requests
+import zstandard as zstd
 
 from sr2silo.config import is_ci_environment
 
@@ -353,11 +354,14 @@ class Submission:
         return submission_ids
 
     @staticmethod
-    def create_metadata_file(result_dir: Path) -> tuple[Path, str]:
+    def create_metadata_file(
+        result_dir: Path, countReads: bool = False
+    ) -> dict[Path, str]:
         """Create a metadata TSV file with the required submissionId header.
 
         Args:
             result_dir: Directory where to save the metadata file
+            countReads: Whether to include a countReads column (default: False)
 
         Returns:
             Tuple of (Path to the created metadata file, submission ID)
@@ -368,6 +372,16 @@ class Submission:
         submission_id = str(uuid.uuid4())
         metadata_fp = result_dir_submission / f"metadata_{submission_id}.tsv"
         with metadata_fp.open("w") as f:
+
+            # TODO Extend with all metadata fields but readId and make camel case
+            # submissionDate
+            # batchId
+            # sampleId
+            # locationCode
+            # locationName
+            # sr2siloVersion
+            # readCount (if countReads is True)
+
             # Write header with required submissionId field and optional date field
             f.write("submissionId\tdate\n")
             # Write a sample entry with the generated UUID for submissionId
@@ -380,45 +394,76 @@ class Submission:
         )
         return metadata_fp, submission_id
 
+    @staticmethod
+    def parse_metadata(silo_input: Path) -> Dict:
+        """Parses the metadata from a silo input .ndjson.zstd or .ndjson
+        returning all metadata fields but readId as a dictoriary with keys
+        in camel case.
 
-def refererenceGenome():
-    """Fetch reference genome from the Lapis `sample/referenceGenome` endpoint"""
+        Assumptions:
+         - the metaddata is stored for each read under the key 'metadata'
+         - each read has the same metadata, up to readId
+        """
+        # check if the file is compressed or not
+        if silo_input.suffix == ".zst" or silo_input.name.endswith(".zstd"):
+            # open the file accordingly (compressed)
+            with open(silo_input, "rb") as f:
+                dctx = zstd.ZstdDecompressor()
+                with dctx.stream_reader(f) as reader:
+                    # read the first line
+                    first_line = reader.readline().decode("utf-8").strip()
+        else:
+            # open the file accordingly (uncompressed)
+            with open(silo_input, "r") as f:
+                # read the first line
+                first_line = f.readline().strip()
 
+        # parse the JSON and extract the metadata
+        data = json.loads(first_line)
+        metadata = data.get("metadata", {})
 
-def _reference_json_to_fasta(
-    reference_json_string: str, nucleotide_out_fp: Path, amino_acid_out_fp: Path
-) -> None:
-    """Convert a reference JSON from `sample/referenceGenome` endpoint
-      to separate nucleotide and amino acid reference FASTA files.
+        # convert keys to camel case
+        def to_camel_case(snake_str):
+            components = snake_str.split("_")
+            return components[0] + "".join(word.capitalize() for word in components[1:])
 
-    Args:
-        reference_json_string: JSON string containing reference sequences with
-                              'nucleotideSequences' and 'genes' sections
-        nucleotide_output_path: Path to the output nucleotide FASTA file
-        amino_acid_output_path: Path to the output amino acid FASTA file
+        camel_case_metadata = {}
+        for key, value in metadata.items():
+            if key != "readId":  # exclude readId as specified
+                camel_case_key = to_camel_case(key)
+                camel_case_metadata[camel_case_key] = value
 
-    Returns:
-        None
-    """
-    # Parse the JSON string
-    reference_data = json.loads(reference_json_string)
+        # return the metadata dictionary
+        return camel_case_metadata
 
-    # Create nucleotide FASTA file
-    with nucleotide_out_fp.open("w") as nuc_file:
-        for nuc_seq in reference_data.get("nucleotideSequences", []):
-            seq_name = nuc_seq.get("name", "main")
-            sequence = nuc_seq.get("sequence", "")
-            nuc_file.write(f">{seq_name}\n{sequence}\n")
+    @staticmethod
+    def count_reads(silo_input: Path) -> int:
+        """Counts the number of reads in a silo input .ndjson.zstd or .ndjson file.
 
-    logging.info(f"Nucleotide FASTA file created at: {nucleotide_out_fp}")
+        Assumption: each line in the file corresponds to one read.
+        """
 
-    # Create amino acid FASTA file
-    with amino_acid_out_fp.open("w") as aa_file:
-        for gene in reference_data.get("genes", []):
-            gene_name = gene.get("name", "")
-            sequence = gene.get("sequence", "")
-            # Remove stop codon asterisk if present
-            sequence = sequence.rstrip("*")
-            aa_file.write(f">{gene_name}\n{sequence}\n")
-
-    logging.info(f"Amino acid FASTA file created at: {amino_acid_out_fp}")
+        if silo_input.suffix == ".zst" or silo_input.name.endswith(".zstd"):
+            # Handle compressed files
+            with open(silo_input, "rb") as f:
+                dctx = zstd.ZstdDecompressor()
+                with dctx.stream_reader(f) as reader:
+                    count = 0
+                    chunk_size = 8192  # Read in 8KB chunks
+                    while True:
+                        chunk = reader.read(chunk_size)
+                        if not chunk:
+                            break
+                        count += chunk.count(b"\n")
+            return count
+        else:
+            # Handle uncompressed files
+            count = 0
+            with open(silo_input, "rb") as f:
+                chunk_size = 8192  # Read in 8KB chunks
+                while True:
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+                    count += chunk.count(b"\n")
+            return count
