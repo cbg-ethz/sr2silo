@@ -36,7 +36,7 @@ def test_get_version_only_package():
     """Test get_version without git info."""
     with patch("importlib.metadata.version", return_value="1.2.3"):
         # Without git info
-        version = get_version(add_git_info=False)
+        version = get_version()
         assert version == "1.2.3"
 
 
@@ -78,7 +78,7 @@ def test_get_version_package_not_found():
         side_effect=importlib.metadata.PackageNotFoundError(),
     ):
         # Without git info
-        version = get_version(add_git_info=False)
+        version = get_version()
         assert version == "unknown"
 
         # With git info but in CI environment
