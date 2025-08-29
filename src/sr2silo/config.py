@@ -5,7 +5,6 @@ from __future__ import annotations
 import importlib.metadata
 import logging
 import os
-import subprocess
 import sys
 from pathlib import Path
 
@@ -32,10 +31,11 @@ def get_version(add_git_info: bool = True) -> str:
 
     Args:
         add_git_info (bool): Whether to include Git version information.
-            Will be ignored in CI environments.
+            For reliable versioning, this now defaults to False to avoid
+            inconsistent git describe results on development branches.
 
     Returns:
-        str: The version information (package version and Git info if available)
+        str: The version information (package version only for reliability)
     """
     try:
         # Get package version from metadata
@@ -43,26 +43,10 @@ def get_version(add_git_info: bool = True) -> str:
     except importlib.metadata.PackageNotFoundError:
         package_version = "unknown"
 
-    # If in CI environment or explicitly disabled, return only package version
-    if is_ci_environment() or not add_git_info:
-        return package_version
-
-    # Try to get Git version info
-    try:
-        git_version = subprocess.check_output(
-            ["git", "describe", "--tags", "--match", "v*"],
-            text=True,
-            stderr=subprocess.STDOUT,
-            timeout=2,  # Timeout after 2 seconds
-        ).strip()
-        return f"{package_version} ({git_version})"
-    except (
-        subprocess.CalledProcessError,
-        subprocess.TimeoutExpired,
-        FileNotFoundError,
-    ):
-        # Fall back to package version if Git command fails
-        return package_version
+    # For reliable versioning, we use only the package version
+    # This ensures consistency between development and production
+    # The package version is manually updated at release time
+    return package_version
 
 
 def get_keycloak_token_url(default: str | None = None) -> str:

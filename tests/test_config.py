@@ -5,7 +5,6 @@ from __future__ import annotations
 import importlib
 import importlib.metadata
 import os
-import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -52,27 +51,24 @@ def test_get_version_in_ci():
 
 def test_get_version_with_git_success():
     """Test get_version with successful git command."""
-    # Standard format from poetry-dynamic-versioning could be:
-    # - Tagged release: 1.2.3
-    # - Development build: 1.2.3.dev4+a1b2c3d
-    with patch("importlib.metadata.version", return_value="1.2.3.dev4+a1b2c3d"):
+    # With the simplified approach, git info is no longer appended
+    # We only return the package version for reliability
+    with patch("importlib.metadata.version", return_value="1.2.3"):
         with patch("sr2silo.config.is_ci_environment", return_value=False):
-            with patch("subprocess.check_output", return_value="v1.2.3-4-g12345678"):
-                version = get_version()
-                # Even with dynamic versioning, the git info is still appended
-                assert version == "1.2.3.dev4+a1b2c3d (v1.2.3-4-g12345678)"
+            version = get_version()
+            # Git info is no longer appended - just return package version
+            assert version == "1.2.3"
 
 
 def test_get_version_with_git_failure():
     """Test get_version when git command fails."""
+    # With simplified approach, git failures don't affect version
+    # We always return just the package version
     with patch("importlib.metadata.version", return_value="1.2.3"):
         with patch("sr2silo.config.is_ci_environment", return_value=False):
-            with patch(
-                "subprocess.check_output",
-                side_effect=subprocess.CalledProcessError(1, "git"),
-            ):
-                version = get_version()
-                assert version == "1.2.3"
+            version = get_version()
+            # Git failures no longer affect the result
+            assert version == "1.2.3"
 
 
 def test_get_version_package_not_found():
@@ -92,12 +88,8 @@ def test_get_version_package_not_found():
 
         # With git info but git command fails
         with patch("sr2silo.config.is_ci_environment", return_value=False):
-            with patch(
-                "subprocess.check_output",
-                side_effect=subprocess.CalledProcessError(1, "git"),
-            ):
-                version = get_version()
-                assert version == "unknown"
+            version = get_version()
+            assert version == "unknown"
 
 
 def test_get_timeline_file():
