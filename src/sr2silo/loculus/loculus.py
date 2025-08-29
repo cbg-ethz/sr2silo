@@ -8,9 +8,10 @@ import logging
 import uuid
 from datetime import date
 from pathlib import Path
-from typing import List, TypedDict
+from typing import Dict, List, TypedDict
 
 import requests
+import zstandard as zstd
 
 from sr2silo.config import is_ci_environment
 
@@ -353,72 +354,188 @@ class Submission:
         return submission_ids
 
     @staticmethod
-    def create_metadata_file(result_dir: Path) -> tuple[Path, str]:
+    def create_metadata_file(
+        processed_file: Path, count_reads: bool = False
+    ) -> tuple[Path, str]:
         """Create a metadata TSV file with the required submissionId header.
 
+            The metadata file will be saved in a 'submission' subdirectory of
+            its parent directory.
+
         Args:
-            result_dir: Directory where to save the metadata file
+            processed_file: Path to the processed file.
+            count_reads: Whether to include a countReads column (default: False)
 
         Returns:
             Tuple of (Path to the created metadata file, submission ID)
         """
+        # Ensure the submission directory exists
+        result_dir = processed_file.parent
         result_dir_submission = result_dir / "submission"
         result_dir_submission.mkdir(parents=True, exist_ok=True)
 
+        # Generate a submission id and current date
         submission_id = str(uuid.uuid4())
+        submission_date = date.today().isoformat()
+
+        # Count reads if requested
+        count = None
+        if count_reads:
+            count = Submission.count_reads(processed_file)
+            logging.info(f"Counted {count} reads in {processed_file}")
+        else:
+            logging.debug("Skipping read count as countReads is False")
+
+        # extract metadata from the processed file
+        metadata = Submission.parse_metadata(processed_file)
+        logging.debug(f"Extracted metadata: {metadata}")
+
+        # Create the metadata file path
+
         metadata_fp = result_dir_submission / f"metadata_{submission_id}.tsv"
         with metadata_fp.open("w") as f:
-            # Write header with required submissionId field and optional date field
-            f.write("submissionId\tdate\n")
-            # Write a sample entry with the generated UUID for submissionId
-            today = date.today().isoformat()
-            f.write(f"{submission_id}\t{today}\n")
+            # Prepare all column names
+            columns = ["submissionId", "date"]
+            values = [submission_id, submission_date]
 
+            # Add metadata fields as columns
+            for key, value in metadata.items():
+                columns.append(key)
+                values.append(str(value) if value is not None else "")
+
+            # Add countReads column if requested
+            if count is not None:
+                columns.append("countReads")
+                values.append(str(count))
+
+            # Write header row
+            f.write("\t".join(columns) + "\n")
+            # Write data row
+            f.write("\t".join(values) + "\n")
         logging.info(
             f"Metadata file created at: {metadata_fp} "
             f"with submission ID: {submission_id}"
         )
         return metadata_fp, submission_id
 
+    @staticmethod
+    def parse_metadata(silo_input: Path) -> Dict:
+        """Parses the metadata from a silo input .ndjson.zstd or .ndjson
+        returning all metadata fields but readId as a dictoriary with keys
+        in camel case.
 
-def refererenceGenome():
-    """Fetch reference genome from the Lapis `sample/referenceGenome` endpoint"""
+        Assumptions:
+         - the metaddata is stored in the root of the object under the keys
+         - each read has the same metadata, up to readId
+        """
+        # check if the file is compressed or not
+        if silo_input.suffix == ".zst" or silo_input.name.endswith(".zstd"):
+            # open the file accordingly (compressed)
+            with open(silo_input, "rb") as f:
+                dctx = zstd.ZstdDecompressor()
+                with dctx.stream_reader(f) as reader:
+                    # read the first line by reading chunks until we find a newline
+                    buffer = b""
+                    chunk_size = 1024
+                    first_line = ""
+                    while True:
+                        chunk = reader.read(chunk_size)
+                        if not chunk:
+                            # If no more data and no newline found,
+                            # use the entire buffer
+                            first_line = buffer.decode("utf-8").strip()
+                            break
+                        buffer += chunk
+                        if b"\n" in buffer:
+                            first_line = (
+                                buffer.split(b"\n", 1)[0].decode("utf-8").strip()
+                            )
+                            break
+        else:
+            # open the file accordingly (uncompressed)
+            with open(silo_input, "r") as f:
+                # read the first line
+                first_line = f.readline().strip()
 
+        # parse the JSON and extract the metadata - look for fields sample_id, batch_id
+        # location_code, location_name, sampling_date, sr2silo_version
+        data = json.loads(first_line)
 
-def _reference_json_to_fasta(
-    reference_json_string: str, nucleotide_out_fp: Path, amino_acid_out_fp: Path
-) -> None:
-    """Convert a reference JSON from `sample/referenceGenome` endpoint
-      to separate nucleotide and amino acid reference FASTA files.
+        # Extract specific metadata fields
+        metadata_fields = [
+            "sample_id",
+            "batch_id",
+            "location_code",
+            "location_name",
+            "sampling_date",
+            "sr2silo_version",
+        ]
 
-    Args:
-        reference_json_string: JSON string containing reference sequences with
-                              'nucleotideSequences' and 'genes' sections
-        nucleotide_output_path: Path to the output nucleotide FASTA file
-        amino_acid_output_path: Path to the output amino acid FASTA file
+        metadata = {}
+        for field in metadata_fields:
+            if field in data:
+                metadata[field] = data[field]
+            else:
+                logging.warning(
+                    f"Metadata field '{field}' not found in the input data."
+                )
+                metadata[field] = None
 
-    Returns:
-        None
-    """
-    # Parse the JSON string
-    reference_data = json.loads(reference_json_string)
+        # convert keys to camel case
+        def to_camel_case(snake_str):
+            """Convert snake_case string to camelCase string."""
+            components = snake_str.split("_")
+            return components[0] + "".join(word.capitalize() for word in components[1:])
 
-    # Create nucleotide FASTA file
-    with nucleotide_out_fp.open("w") as nuc_file:
-        for nuc_seq in reference_data.get("nucleotideSequences", []):
-            seq_name = nuc_seq.get("name", "main")
-            sequence = nuc_seq.get("sequence", "")
-            nuc_file.write(f">{seq_name}\n{sequence}\n")
+        camel_case_metadata = {}
+        for key, value in metadata.items():
+            if key != "read_id":  # exclude readId as specified
+                camel_case_key = to_camel_case(key)
+                camel_case_metadata[camel_case_key] = value
 
-    logging.info(f"Nucleotide FASTA file created at: {nucleotide_out_fp}")
+        # return the metadata dictionary
+        return camel_case_metadata
 
-    # Create amino acid FASTA file
-    with amino_acid_out_fp.open("w") as aa_file:
-        for gene in reference_data.get("genes", []):
-            gene_name = gene.get("name", "")
-            sequence = gene.get("sequence", "")
-            # Remove stop codon asterisk if present
-            sequence = sequence.rstrip("*")
-            aa_file.write(f">{gene_name}\n{sequence}\n")
+    @staticmethod
+    def count_reads(silo_input: Path) -> int:
+        """Counts the number of reads in a silo input .ndjson.zstd or .ndjson file.
 
-    logging.info(f"Amino acid FASTA file created at: {amino_acid_out_fp}")
+        Assumption: each line in the file corresponds to one read.
+        """
+
+        if silo_input.suffix == ".zst" or silo_input.name.endswith(".zstd"):
+            # Handle compressed files
+            with open(silo_input, "rb") as f:
+                dctx = zstd.ZstdDecompressor()
+                with dctx.stream_reader(f) as reader:
+                    count = 0
+                    chunk_size = 8192  # Read in 8KB chunks
+                    last_byte = None
+                    while True:
+                        chunk = reader.read(chunk_size)
+                        if not chunk:
+                            break
+                        count += chunk.count(b"\n")
+                        last_byte = chunk[-1] if len(chunk) > 0 else last_byte
+            # Only add 1 if the last byte is not a newline
+            if last_byte is not None and last_byte != ord(b"\n"):
+                return count + 1
+            else:
+                return count
+        else:
+            # Handle uncompressed files
+            count = 0
+            last_byte = None
+            with open(silo_input, "rb") as f:
+                chunk_size = 8192  # Read in 8KB chunks
+                while True:
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+                    count += chunk.count(b"\n")
+                    last_byte = chunk[-1] if len(chunk) > 0 else last_byte
+            # Only add 1 if the last byte is not a newline
+            if last_byte is not None and last_byte != ord(b"\n"):
+                return count + 1
+            else:
+                return count

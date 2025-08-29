@@ -8,14 +8,14 @@ LOCATIONS:
   - 10  # Zürich (ZH)
   - 16  # Geneva (GE)
   - 25  # Laupen (BE)
-START_DATE: "2025-06-15"
-END_DATE: "2025-07-15"
+START_DATE: "2025-06-12"
+END_DATE: "2025-08-11"
 
 ### Input Files
 BASE_SAMPLE_DIR:  "../results" # "tests/data/samples_large"
 TIMELINE_FILE: "../../work-vp-test/variants/timeline.tsv" # "tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
 ### Output Files
-RESULTS_DIR:  "silo-inputs"
+RESULTS_DIR:  "../silo-inputs"
 
 ### Loculus (to submit results to)
 ## URLs for Loculus services

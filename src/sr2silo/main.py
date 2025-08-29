@@ -320,14 +320,10 @@ def submit_to_loculus(
     version_info = get_version(True)
     logging.info(f"Running version: {version_info}")
 
-    # Get the result directory (parent of the processed file)
-    result_dir = processed_file.parent
-
     # Submit to SILO using the pre-signed upload approach
     # This will handle both metadata and processed file upload via pre-signed URLs
 
     success = submit_to_silo(
-        result_dir,
         processed_file,
         keycloak_token_url=keycloak_token_url,
         submission_url=submission_url,
