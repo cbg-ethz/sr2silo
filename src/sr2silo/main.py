@@ -200,7 +200,7 @@ def process_from_vpipe(
     logging.info(f"Running in CI environment: {ci_env}")
 
     # Get version information if needed
-    version_info = get_version(True)
+    version_info = get_version()
 
     logging.info(f"Running version: {version_info}")
 
@@ -317,17 +317,13 @@ def submit_to_loculus(
     logging.info(f"Running in CI environment: {ci_env}")
 
     # Get version information
-    version_info = get_version(True)
+    version_info = get_version()
     logging.info(f"Running version: {version_info}")
-
-    # Get the result directory (parent of the processed file)
-    result_dir = processed_file.parent
 
     # Submit to SILO using the pre-signed upload approach
     # This will handle both metadata and processed file upload via pre-signed URLs
 
     success = submit_to_silo(
-        result_dir,
         processed_file,
         keycloak_token_url=keycloak_token_url,
         submission_url=submission_url,
