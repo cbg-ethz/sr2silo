@@ -432,6 +432,8 @@ class Submission:
                     while True:
                         chunk = reader.read(chunk_size)
                         if not chunk:
+                            # If no more data and no newline found, use the entire buffer
+                            first_line = buffer.decode("utf-8").strip()
                             break
                         buffer += chunk
                         if b"\n" in buffer:
@@ -439,9 +441,6 @@ class Submission:
                                 buffer.split(b"\n", 1)[0].decode("utf-8").strip()
                             )
                             break
-                    else:
-                        # If no newline found, use the entire buffer
-                        first_line = buffer.decode("utf-8").strip()
         else:
             # open the file accordingly (uncompressed)
             with open(silo_input, "r") as f:
