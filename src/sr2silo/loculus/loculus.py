@@ -425,7 +425,7 @@ class Submission:
         in camel case.
 
         Assumptions:
-         - the metaddata is stored in the root of the object under the keys
+         - the metadata is stored in the root of the object under the keys
          - each read has the same metadata, up to readId
         """
         # check if the file is compressed or not
