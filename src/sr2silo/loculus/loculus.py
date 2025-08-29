@@ -441,7 +441,8 @@ class Submission:
                     while True:
                         chunk = reader.read(chunk_size)
                         if not chunk:
-                            # If no more data and no newline found, use the entire buffer
+                            # If no more data and no newline found,
+                            # use the entire buffer
                             first_line = buffer.decode("utf-8").strip()
                             break
                         buffer += chunk
