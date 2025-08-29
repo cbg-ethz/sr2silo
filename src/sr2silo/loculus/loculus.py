@@ -420,8 +420,7 @@ class Submission:
 
     @staticmethod
     def parse_metadata(silo_input: Path) -> Dict:
-        """Parses the metadata from a silo input .ndjson.zstd or .ndjson
-        returning all metadata fields but readId as a dictoriary with keys
+        returning all metadata fields but readId as a dictionary with keys
         in camel case.
 
         Assumptions:
