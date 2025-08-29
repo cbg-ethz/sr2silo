@@ -26,13 +26,8 @@ def is_ci_environment() -> bool:
     return bool(os.getenv("CI", "false").lower() in ("yes", "true", "t", "1"))
 
 
-def get_version(add_git_info: bool = True) -> str:
+def get_version() -> str:
     """Get the version information of the sr2silo package.
-
-    Args:
-        add_git_info (bool): Whether to include Git version information.
-            For reliable versioning, this now defaults to False to avoid
-            inconsistent git describe results on development branches.
 
     Returns:
         str: The version information (package version only for reliability)

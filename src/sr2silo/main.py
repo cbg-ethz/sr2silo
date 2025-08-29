@@ -200,7 +200,7 @@ def process_from_vpipe(
     logging.info(f"Running in CI environment: {ci_env}")
 
     # Get version information if needed
-    version_info = get_version(True)
+    version_info = get_version()
 
     logging.info(f"Running version: {version_info}")
 
@@ -317,7 +317,7 @@ def submit_to_loculus(
     logging.info(f"Running in CI environment: {ci_env}")
 
     # Get version information
-    version_info = get_version(True)
+    version_info = get_version()
     logging.info(f"Running version: {version_info}")
 
     # Submit to SILO using the pre-signed upload approach
