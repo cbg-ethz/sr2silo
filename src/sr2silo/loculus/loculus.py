@@ -425,8 +425,23 @@ class Submission:
             with open(silo_input, "rb") as f:
                 dctx = zstd.ZstdDecompressor()
                 with dctx.stream_reader(f) as reader:
-                    # read the first line
-                    first_line = reader.readline().decode("utf-8").strip()
+                    # read the first line by reading chunks until we find a newline
+                    buffer = b""
+                    chunk_size = 1024
+                    first_line = ""
+                    while True:
+                        chunk = reader.read(chunk_size)
+                        if not chunk:
+                            break
+                        buffer += chunk
+                        if b"\n" in buffer:
+                            first_line = (
+                                buffer.split(b"\n", 1)[0].decode("utf-8").strip()
+                            )
+                            break
+                    else:
+                        # If no newline found, use the entire buffer
+                        first_line = buffer.decode("utf-8").strip()
         else:
             # open the file accordingly (uncompressed)
             with open(silo_input, "r") as f:
