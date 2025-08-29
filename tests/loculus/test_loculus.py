@@ -115,8 +115,8 @@ def test_create_metadata_file(test_silo_input_uncompressed):
             rows = list(reader)
             fieldnames = reader.fieldnames or []
 
-            # Should have at least the main row with submissionId and date
-            assert len(rows) >= 1
+            # Should have exactly 1 row of data (wide format)
+            assert len(rows) == 1
             assert "submissionId" in fieldnames
             assert "date" in fieldnames
 
@@ -124,6 +124,21 @@ def test_create_metadata_file(test_silo_input_uncompressed):
             first_row = rows[0]
             assert first_row["submissionId"] == submission_id
             assert first_row["date"]  # Should have a date
+
+            # Check that metadata fields are present as columns
+            expected_metadata_fields = {
+                "sampleId",
+                "batchId",
+                "locationCode",
+                "locationName",
+                "samplingDate",
+                "sr2siloVersion",
+            }
+            for field in expected_metadata_fields:
+                assert (
+                    field in fieldnames
+                ), f"Expected metadata field '{field}' not found in columns"
+                assert first_row[field]  # Should have a value
 
         # Test with count_reads=True
         metadata_file2, submission_id2 = Submission.create_metadata_file(
@@ -134,3 +149,14 @@ def test_create_metadata_file(test_silo_input_uncompressed):
         assert metadata_file2 != metadata_file
         assert submission_id2 != submission_id
         assert metadata_file2.exists()
+
+        # Check that countReads column is included when count_reads=True
+        with open(metadata_file2, "r") as f:
+            reader = csv.DictReader(f, delimiter="\t")
+            rows = list(reader)
+            fieldnames = reader.fieldnames or []
+
+            assert "countReads" in fieldnames
+            first_row = rows[0]
+            assert first_row["countReads"]  # Should have a count value
+            assert int(first_row["countReads"]) > 0  # Should be a positive number

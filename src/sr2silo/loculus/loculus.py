@@ -394,15 +394,24 @@ class Submission:
 
         metadata_fp = result_dir_submission / f"metadata_{submission_id}.tsv"
         with metadata_fp.open("w") as f:
-            # Write header with required submissionId field and optional date field
-            f.write("submissionId\tdate\n")
-            f.write(f"{submission_id}\t{submission_date}\n")
-            # Write additional metadata fields if available
+            # Prepare all column names
+            columns = ["submissionId", "date"]
+            values = [submission_id, submission_date]
+
+            # Add metadata fields as columns
             for key, value in metadata.items():
-                f.write(f"{key}\t{value}\n")
-            # Write countReads if requested
+                columns.append(key)
+                values.append(str(value) if value is not None else "")
+
+            # Add countReads column if requested
             if count is not None:
-                f.write(f"countReads\t{count}\n")
+                columns.append("countReads")
+                values.append(str(count))
+
+            # Write header row
+            f.write("\t".join(columns) + "\n")
+            # Write data row
+            f.write("\t".join(values) + "\n")
         logging.info(
             f"Metadata file created at: {metadata_fp} "
             f"with submission ID: {submission_id}"
