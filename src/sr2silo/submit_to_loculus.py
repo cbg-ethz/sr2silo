@@ -33,7 +33,6 @@ def load_config(config_file: Path) -> dict:
 
 
 def submit_to_silo(
-    result_dir: Path,
     processed_file: Path,
     keycloak_token_url: str | None = None,
     submission_url: str | None = None,
@@ -58,7 +57,9 @@ def submit_to_silo(
     logging.info("Submitting to Loculus...")
 
     # Create the new metadata file format and get the submission ID
-    metadata_fp, submission_id = Submission.create_metadata_file(result_dir)
+    metadata_fp, submission_id = Submission.create_metadata_file(
+        processed_file, count_reads=True
+    )
 
     if is_ci_environment():
         logging.info(

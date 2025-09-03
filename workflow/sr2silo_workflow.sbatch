@@ -25,9 +25,9 @@
 #SBATCH --job-name=sr2silo
 #SBATCH --mail-type=END
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=10
+#SBATCH --cpus-per-task=20
 #SBATCH --mem-per-cpu=8G
-#SBATCH --tmp=160G
+#SBATCH --tmp=800G
 #SBATCH --time=12:00:00
 #SBATCH --output=/cluster/project/pangolin/W-ASAP/logs/sr2silo.out
 #SBATCH --error=/cluster/project/pangolin/W-ASAP/logs/sr2silo.err
@@ -40,7 +40,7 @@
 CORES=20
 
 # Use existing conda environment (true) or workflow-defined conda envs (false)
-USE_EXISTING_ENV=false
+USE_EXISTING_ENV=true
 
 # Log directory (should match --output and --error paths above)
 LOG_DIR="/cluster/project/pangolin/W-ASAP/logs"
