@@ -32,8 +32,10 @@ def load_config(config_file: Path) -> dict:
         raise
 
 
-def submit_to_silo(
+# Todo: rename this function to submit_to_loculus
+def submit(
     processed_file: Path,
+    nucleotide_alignment: Path,
     keycloak_token_url: str | None = None,
     submission_url: str | None = None,
     group_id: int | None = None,
@@ -43,8 +45,8 @@ def submit_to_silo(
     """Submit data to SILO using the new pre-signed upload approach.
 
     Args:
-        result_dir (Path): Directory where to save submission files.
         processed_file (Path): Path to the processed .ndjson.zst file to upload.
+        nucleotide_alignment (Path): Path to nucleotide alignment file. (e.g., .bam)
         keycloak_token_url (str | None): Keycloak token URL. If None, uses environment.
         submission_url (str | None): Submission URL. If None, uses environment.
         group_id (int | None): Group ID for submission. If None, uses environment.
@@ -96,6 +98,7 @@ def submit_to_silo(
             metadata_file_path=metadata_fp,
             processed_file_path=processed_file,
             submission_id=submission_id,
+            nucleotide_alignment=nucleotide_alignment,
         )
 
         if response["status"] == "success":

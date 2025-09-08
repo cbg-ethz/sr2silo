@@ -22,7 +22,7 @@ from sr2silo.config import (
 )
 from sr2silo.loculus.lapis import LapisClient
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
-from sr2silo.submit_to_loculus import submit_to_silo
+from sr2silo.submit_to_loculus import submit
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", force=True
@@ -221,6 +221,15 @@ def process_from_vpipe(
 
 @app.command()
 def submit_to_loculus(
+    nucleotide_alignment: Annotated[
+        Path,
+        typer.Option(
+            "--nucleotide-alignment",
+            "-a",
+            help="Path to nucleotide alignment file (e.g., .bam) used to create the"
+            "processed .ndjson.zst file.",
+        ),
+    ],
     processed_file: Annotated[
         Path,
         typer.Option(
@@ -323,8 +332,9 @@ def submit_to_loculus(
     # Submit to SILO using the pre-signed upload approach
     # This will handle both metadata and processed file upload via pre-signed URLs
 
-    success = submit_to_silo(
+    success = submit(
         processed_file,
+        nucleotide_alignment,
         keycloak_token_url=keycloak_token_url,
         submission_url=submission_url,
         group_id=group_id,
