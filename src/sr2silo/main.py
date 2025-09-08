@@ -226,7 +226,7 @@ def submit_to_loculus(
         typer.Option(
             "--nucleotide-alignment",
             "-a",
-            help="Path to nucleotide alignment file (e.g., .bam) used to create the"
+            help="Path to nucleotide alignment file (e.g., .bam) used to create the "
             "processed .ndjson.zst file.",
         ),
     ],
