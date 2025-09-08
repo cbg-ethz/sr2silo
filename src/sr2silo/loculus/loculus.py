@@ -417,14 +417,30 @@ class Submission:
             columns = ["submissionId", "date"]
             values = [submission_id, submission_date]
 
-            # Add metadata fields as columns
-            for key, value in metadata.items():
-                columns.append(key)
-                values.append(str(value) if value is not None else "")
+            # Define mapping from snake_case to camelCase for specific fields
+            field_mapping = {
+                "sample_id": "sampleId",
+                "batch_id": "batchId",
+                "location_code": "locationCode",
+                "sampling_date": "samplingDate",
+                "location_name": "locationName",
+                "sr2silo_version": "sr2siloVersion",
+            }
+
+            # Add mapped metadata fields as columns (only the specified ones)
+            for snake_field, camel_field in field_mapping.items():
+                if snake_field in metadata:
+                    columns.append(camel_field)
+                    value = metadata[snake_field]
+                    values.append(str(value) if value is not None else "")
+                else:
+                    # Add empty column even if field is missing
+                    columns.append(camel_field)
+                    values.append("")
 
             # Add countReads column if requested
             if count is not None:
-                columns.append("countReads")
+                columns.append("countSiloReads")
                 values.append(str(count))
 
             # Write header row
