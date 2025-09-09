@@ -29,8 +29,8 @@
 #SBATCH --mem-per-cpu=8G
 #SBATCH --tmp=800G
 #SBATCH --time=12:00:00
-#SBATCH --output=/cluster/project/pangolin/W-ASAP/logs/sr2silo.out
-#SBATCH --error=/cluster/project/pangolin/W-ASAP/logs/sr2silo.err
+#SBATCH --output=/cluster/project/pangolin/research/W-ASAP/logs/sr2silo.out
+#SBATCH --error=/cluster/project/pangolin/research/W-ASAP/logs/sr2silo.err
 
 # =============================================================================
 # Configuration Variables - Edit these as needed
@@ -43,7 +43,7 @@ CORES=20
 USE_EXISTING_ENV=true
 
 # Log directory (should match --output and --error paths above)
-LOG_DIR="/cluster/project/pangolin/W-ASAP/logs"
+LOG_DIR="/cluster/project/pangolin/research/W-ASAP/logs"
 
 # Conda environment name (change this if you want to use a different environment)
 CONDA_ENV="sr2silo-workflow"

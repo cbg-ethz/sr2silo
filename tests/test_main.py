@@ -154,6 +154,8 @@ def test_submit_to_loculus_command_nonexistent_file():
             "submit-to-loculus",
             "--processed-file",
             "/tmp/nonexistent.ndjson.zst",
+            "--nucleotide-alignment",
+            "/tmp/nonexistent.bam",
         ],
     )
     assert result.exit_code == 1
@@ -175,6 +177,8 @@ def test_submit_to_loculus_command_wrong_extension():
                 "submit-to-loculus",
                 "--processed-file",
                 tmp_path,
+                "--nucleotide-alignment",
+                "/tmp/nonexistent.bam",
             ],
         )
         assert result.exit_code == 1
@@ -320,6 +324,8 @@ def test_submit_to_loculus_environment_variables():
                 "submit-to-loculus",
                 "--processed-file",
                 "/tmp/test.ndjson.zst",
+                "--nucleotide-alignment",
+                "/tmp/test.bam",
             ],
         )
         # Should fail due to missing file, but environment variables should be processed
@@ -344,6 +350,8 @@ def test_submit_to_loculus_cli_overrides_env():
                 "submit-to-loculus",
                 "--processed-file",
                 "/tmp/test.ndjson.zst",
+                "--nucleotide-alignment",
+                "/tmp/test.bam",
                 "--keycloak-token-url",
                 "https://cli.auth.com/token",
                 "--submission-url",
@@ -367,6 +375,8 @@ def test_submit_to_loculus_missing_env_and_cli():
                 "submit-to-loculus",
                 "--processed-file",
                 "/tmp/test.ndjson.zst",
+                "--nucleotide-alignment",
+                "/tmp/test.bam",
             ],
         )
         assert result.exit_code == 1
