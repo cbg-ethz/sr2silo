@@ -8,30 +8,31 @@ LOCATIONS:
   - 10  # Zürich (ZH)
   - 16  # Geneva (GE)
   - 25  # Laupen (BE)
-START_DATE: "2025-06-12"
-END_DATE: "2025-08-11"
+START_DATE: "2025-07-20"
+END_DATE: "2025-09-11"
 
 ### Input Files
 BASE_SAMPLE_DIR:  "../results" # "tests/data/samples_large"
-TIMELINE_FILE: "../../work-vp-test/variants/timeline.tsv" # "tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
+TIMELINE_FILE: "/cluster/project/pangolin/processes/lollipop/variants/timeline.tsv" # "tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
 ### Output Files
 RESULTS_DIR:  "../silo-inputs"
 
 ### Loculus (to submit results to)
 ## URLs for Loculus services
-KEYCLOAK_TOKEN_URL: "https://authentication-wise-files.loculus.org/realms/loculus/protocol/openid-connect/token"
-SUBMISSION_URL: "https://backend-wise-files.loculus.org"
+KEYCLOAK_TOKEN_URL: "https://auth.db.wasap.genspectrum.org/realms/loculus/protocol/openid-connect/token"
+SUBMISSION_URL: "https://db.wasap.genspectrum.org"
 
 ## Authentication credentials
 GROUP_ID: 1
 # For production use prefer reading them from environment at runtime or prompting the user.
-USERNAME: "testuser"
-PASSWORD: "testuser"
+ORGANISM: "covid"  # "sars-cov-2"
+USERNAME: "<<URSERNAME>>"
+PASSWORD: "<<PASSWORD>>"
 
 ### LAPIS – hosting the SILO database (to query reference from)
 # Optional: specify LAPIS URL for custom reference genomes
 # If not provided, uses default SARS-CoV-2 references (NCBI Reference Sequence: NC_045512.2)
-LAPIS_URL: "http://88.198.54.174"
+LAPIS_URL: "https://lapis.wasap.genspectrum.org/"
 
 ### Subsampling Configuration
 ## Subsampling 1) by fraction 2 by max reads or 3) by fraction, but max max_reads
