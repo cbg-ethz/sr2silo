@@ -456,11 +456,11 @@ class Submission:
     @staticmethod
     def parse_metadata(silo_input: Path) -> Dict:
         """Parses the metadata from a silo input .ndjson.zstd or .ndjson
-        returning all metadata fields but readId as a dictoriary with keys
-        in camel case.
+        returning all metadata fields but readId as a dictionary with keys
+        in snake_case format.
 
         Assumptions:
-         - the metaddata is stored in the root of the object under the keys
+         - the metadata is stored in the root of the object under the keys
          - each read has the same metadata, up to readId
         """
         # check if the file is compressed or not
@@ -516,20 +516,10 @@ class Submission:
                 )
                 metadata[field] = None
 
-        # convert keys to camel case
-        def to_camel_case(snake_str):
-            """Convert snake_case string to camelCase string."""
-            components = snake_str.split("_")
-            return components[0] + "".join(word.capitalize() for word in components[1:])
-
-        camel_case_metadata = {}
-        for key, value in metadata.items():
-            if key != "read_id":  # exclude readId as specified
-                camel_case_key = to_camel_case(key)
-                camel_case_metadata[camel_case_key] = value
-
-        # return the metadata dictionary
-        return camel_case_metadata
+        # return the metadata dictionary with snake_case keys
+        # (excluding read_id as specified)
+        filtered_metadata = {k: v for k, v in metadata.items() if k != "read_id"}
+        return filtered_metadata
 
     @staticmethod
     def count_reads(silo_input: Path) -> int:
