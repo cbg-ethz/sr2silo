@@ -9,7 +9,7 @@ import csv
 from pathlib import Path
 from datetime import datetime
 
-CONFIG = "workflow/config.yaml"
+CONFIG = "workflow/config_prod.yaml"
 
 
 configfile: CONFIG
@@ -55,6 +55,7 @@ def get_sample_list():
                     ):
                         sample_list.append(sample)
                 except (ValueError, TypeError):
+                    logging.warning(f"Skipping invalid row: {first_row}")
                     pass  # Skip invalid rows
 
         # Process remaining rows
@@ -395,6 +396,7 @@ rule submit_to_loculus:
         - GROUP_ID
         - USERNAME
         - PASSWORD
+        - ORGANISM
 
     CLI parameters take precedence over environment variables.
 
@@ -411,6 +413,7 @@ rule submit_to_loculus:
         group_id=config.get("GROUP_ID", ""),
         username=config.get("USERNAME", ""),
         password=config.get("PASSWORD", ""),
+        organism=config.get("ORGANISM", ""),
     log:
         "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}.log",
     conda:
@@ -423,6 +426,7 @@ rule submit_to_loculus:
             --keycloak-token-url "{params.keycloak_url}" \
             --submission-url "{params.submission_url}" \
             --group-id {params.group_id} \
+            --organism "{params.organism}" \
             --username {params.username} \
             --password {params.password} > {log} 2>&1 && \
         mkdir -p $(dirname {output.flag}) && \

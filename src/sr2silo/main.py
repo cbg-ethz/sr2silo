@@ -13,6 +13,7 @@ import typer
 from sr2silo.config import (
     get_group_id,
     get_keycloak_token_url,
+    get_organism,
     get_password,
     get_submission_url,
     get_timeline_file,
@@ -262,6 +263,14 @@ def submit_to_loculus(
             "GROUP_ID environment variable.",
         ),
     ] = None,
+    organism: Annotated[
+        str | None,
+        typer.Option(
+            "--organism",
+            help="Organism identifier for submission. Falls back to "
+            "ORGANISM environment variable.",
+        ),
+    ] = None,
     username: Annotated[
         str | None,
         typer.Option(
@@ -296,6 +305,10 @@ def submit_to_loculus(
     if group_id is None:
         group_id = get_group_id()
 
+    # Resolve organism with environment fallback
+    if organism is None:
+        organism = get_organism()
+
     # Resolve username with environment fallback
     if username is None:
         username = get_username()
@@ -308,6 +321,7 @@ def submit_to_loculus(
     logging.info(f"Using Keycloak token URL: {keycloak_token_url}")
     logging.info(f"Using submission URL: {submission_url}")
     logging.info(f"Using group ID: {group_id}")
+    logging.info(f"Using organism: {organism}")
     logging.info(f"Using username: {username}")
 
     # Check if the processed file exists
@@ -338,6 +352,7 @@ def submit_to_loculus(
         keycloak_token_url=keycloak_token_url,
         submission_url=submission_url,
         group_id=group_id,
+        organism=organism,
         username=username,
         password=password,
     )

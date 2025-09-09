@@ -39,6 +39,7 @@ def submit(
     keycloak_token_url: str | None = None,
     submission_url: str | None = None,
     group_id: int | None = None,
+    organism: str | None = None,
     username: str | None = None,
     password: str | None = None,
 ) -> bool:
@@ -48,6 +49,11 @@ def submit(
         processed_file (Path): Path to the processed .ndjson.zst file to upload.
         nucleotide_alignment (Path): Path to nucleotide alignment file. (e.g., .bam)
         keycloak_token_url (str | None): Keycloak token URL. If None, uses environment.
+        submission_url (str | None): Submission URL. If None, uses environment.
+        group_id (int | None): Group ID for submission. If None, uses environment.
+        organism (str | None): Organism identifier for submission. If None, uses environment.
+        username (str | None): Username for authentication. If None, uses environment.
+        password (str | None): Password for authentication. If None, uses environment.
         submission_url (str | None): Submission URL. If None, uses environment.
         group_id (int | None): Group ID for submission. If None, uses environment.
         username (str | None): Username for authentication. If None, uses environment.
@@ -78,18 +84,18 @@ def submit(
 
     # Resolve authentication parameters with environment fallback
     resolved_group_id = group_id if group_id is not None else get_group_id()
+    resolved_organism = organism or get_organism()
     resolved_username = username or get_username()
     resolved_password = password or get_password()
 
-    # Get organism configuration
-    organism = get_organism()
-    logging.info(f"Using organism: {organism}")
+    # Log resolved values
+    logging.info(f"Using organism: {resolved_organism}")
     logging.info(f"Using group ID: {resolved_group_id}")
     logging.info(f"Using username: {resolved_username}")
 
     try:
         # Create client with organism parameter
-        client = LoculusClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL, organism)
+        client = LoculusClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL, resolved_organism)
         client.authenticate(username=resolved_username, password=resolved_password)
 
         # Submit using new API with both metadata and processed file

@@ -20,7 +20,7 @@ RESULTS_DIR:  "../silo-inputs"
 ### Loculus (to submit results to)
 ## URLs for Loculus services
 KEYCLOAK_TOKEN_URL: "https://auth.db.wasap.genspectrum.org/realms/loculus/protocol/openid-connect/token"
-SUBMISSION_URL: "https://db.wasap.genspectrum.org"
+SUBMISSION_URL: "https://api.db.wasap.genspectrum.org/backend"
 
 ## Authentication credentials
 GROUP_ID: 1
