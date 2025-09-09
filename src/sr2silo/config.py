@@ -92,16 +92,17 @@ def get_organism() -> str:
     Returns:
         str: The organism identifier (e.g., 'sc2', 'sars-cov-2')
     """
-    try: 
+    try:
         organism = os.getenv("ORGANISM")
         if organism:
-               return organism
+            return organism
         else:
-               logging.error("ORGANISM environment variable is not set.")
-               sys.exit(1)
+            logging.error("ORGANISM environment variable is not set.")
+            sys.exit(1)
     except Exception as e:
         logging.error(f"Error retrieving ORGANISM from environment: {e}")
         sys.exit(1)
+
 
 def get_timeline_file(default: Path | str | None = None) -> Path | None:
     """Get the timeline file path from environment, or return default if not set.
