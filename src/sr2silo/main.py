@@ -13,6 +13,7 @@ import typer
 from sr2silo.config import (
     get_group_id,
     get_keycloak_token_url,
+    get_organism,
     get_password,
     get_submission_url,
     get_timeline_file,
@@ -22,7 +23,7 @@ from sr2silo.config import (
 )
 from sr2silo.loculus.lapis import LapisClient
 from sr2silo.process_from_vpipe import nuc_align_to_silo_njson
-from sr2silo.submit_to_loculus import submit_to_silo
+from sr2silo.submit_to_loculus import submit
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", force=True
@@ -221,6 +222,15 @@ def process_from_vpipe(
 
 @app.command()
 def submit_to_loculus(
+    nucleotide_alignment: Annotated[
+        Path,
+        typer.Option(
+            "--nucleotide-alignment",
+            "-a",
+            help="Path to nucleotide alignment file (e.g., .bam) used to create the "
+            "processed .ndjson.zst file.",
+        ),
+    ],
     processed_file: Annotated[
         Path,
         typer.Option(
@@ -251,6 +261,14 @@ def submit_to_loculus(
             "--group-id",
             help="Group ID for submission. Falls back to "
             "GROUP_ID environment variable.",
+        ),
+    ] = None,
+    organism: Annotated[
+        str | None,
+        typer.Option(
+            "--organism",
+            help="Organism identifier for submission. Falls back to "
+            "ORGANISM environment variable.",
         ),
     ] = None,
     username: Annotated[
@@ -287,6 +305,10 @@ def submit_to_loculus(
     if group_id is None:
         group_id = get_group_id()
 
+    # Resolve organism with environment fallback
+    if organism is None:
+        organism = get_organism()
+
     # Resolve username with environment fallback
     if username is None:
         username = get_username()
@@ -299,6 +321,7 @@ def submit_to_loculus(
     logging.info(f"Using Keycloak token URL: {keycloak_token_url}")
     logging.info(f"Using submission URL: {submission_url}")
     logging.info(f"Using group ID: {group_id}")
+    logging.info(f"Using organism: {organism}")
     logging.info(f"Using username: {username}")
 
     # Check if the processed file exists
@@ -323,11 +346,13 @@ def submit_to_loculus(
     # Submit to SILO using the pre-signed upload approach
     # This will handle both metadata and processed file upload via pre-signed URLs
 
-    success = submit_to_silo(
+    success = submit(
         processed_file,
+        nucleotide_alignment,
         keycloak_token_url=keycloak_token_url,
         submission_url=submission_url,
         group_id=group_id,
+        organism=organism,
         username=username,
         password=password,
     )

@@ -32,24 +32,32 @@ def load_config(config_file: Path) -> dict:
         raise
 
 
-def submit_to_silo(
+# Todo: rename this function to submit_to_loculus
+def submit(
     processed_file: Path,
+    nucleotide_alignment: Path,
     keycloak_token_url: str | None = None,
     submission_url: str | None = None,
     group_id: int | None = None,
+    organism: str | None = None,
     username: str | None = None,
     password: str | None = None,
 ) -> bool:
     """Submit data to SILO using the new pre-signed upload approach.
 
     Args:
-        result_dir (Path): Directory where to save submission files.
-        processed_file (Path): Path to the processed .ndjson.zst file to upload.
-        keycloak_token_url (str | None): Keycloak token URL. If None, uses environment.
-        submission_url (str | None): Submission URL. If None, uses environment.
-        group_id (int | None): Group ID for submission. If None, uses environment.
-        username (str | None): Username for authentication. If None, uses environment.
-        password (str | None): Password for authentication. If None, uses environment.
+        processed_file: Path to the processed .ndjson.zst file to upload.
+        nucleotide_alignment: Path to nucleotide alignment file. (e.g., .bam)
+        keycloak_token_url: Keycloak token URL. If None, uses environment.
+        submission_url: Submission URL. If None, uses environment.
+        group_id: Group ID for submission. If None, uses environment.
+        organism : Organism identifier for submission. If None, uses environment.
+        username: Username for authentication. If None, uses environment.
+        password: Password for authentication. If None, uses environment.
+        submission_url: Submission URL. If None, uses environment.
+        group_id: Group ID for submission. If None, uses environment.
+        username: Username for authentication. If None, uses environment.
+        password: Password for authentication. If None, uses environment.
 
     Returns:
         bool: True if submission was successful, False otherwise.
@@ -76,18 +84,18 @@ def submit_to_silo(
 
     # Resolve authentication parameters with environment fallback
     resolved_group_id = group_id if group_id is not None else get_group_id()
+    resolved_organism = organism or get_organism()
     resolved_username = username or get_username()
     resolved_password = password or get_password()
 
-    # Get organism configuration
-    organism = get_organism()
-    logging.info(f"Using organism: {organism}")
+    # Log resolved values
+    logging.info(f"Using organism: {resolved_organism}")
     logging.info(f"Using group ID: {resolved_group_id}")
     logging.info(f"Using username: {resolved_username}")
 
     try:
         # Create client with organism parameter
-        client = LoculusClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL, organism)
+        client = LoculusClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL, resolved_organism)
         client.authenticate(username=resolved_username, password=resolved_password)
 
         # Submit using new API with both metadata and processed file
@@ -96,6 +104,7 @@ def submit_to_silo(
             metadata_file_path=metadata_fp,
             processed_file_path=processed_file,
             submission_id=submission_id,
+            nucleotide_alignment=nucleotide_alignment,
         )
 
         if response["status"] == "success":

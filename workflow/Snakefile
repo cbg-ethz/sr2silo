@@ -55,6 +55,7 @@ def get_sample_list():
                     ):
                         sample_list.append(sample)
                 except (ValueError, TypeError):
+                    logging.warning(f"Skipping invalid row: {first_row}")
                     pass  # Skip invalid rows
 
         # Process remaining rows
@@ -395,6 +396,7 @@ rule submit_to_loculus:
         - GROUP_ID
         - USERNAME
         - PASSWORD
+        - ORGANISM
 
     CLI parameters take precedence over environment variables.
 
@@ -402,6 +404,7 @@ rule submit_to_loculus:
     """
     input:
         result_fp=f"{config['RESULTS_DIR']}" + "/sampleId-{sample_id}.ndjson.zst",
+        nucleotide_alignment=f"{config['RESULTS_DIR']}/subsampled/{{sample_id}}/REF_aln_trim.bam",
     output:
         flag=f"{config['RESULTS_DIR']}/uploads/sampleId-{{sample_id}}.uploaded",
     params:
@@ -410,6 +413,7 @@ rule submit_to_loculus:
         group_id=config.get("GROUP_ID", ""),
         username=config.get("USERNAME", ""),
         password=config.get("PASSWORD", ""),
+        organism=config.get("ORGANISM", ""),
     log:
         "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}.log",
     conda:
@@ -418,9 +422,11 @@ rule submit_to_loculus:
         """
         sr2silo submit-to-loculus \
             --processed-file {input.result_fp} \
+            --nucleotide-alignment {input.nucleotide_alignment} \
             --keycloak-token-url "{params.keycloak_url}" \
             --submission-url "{params.submission_url}" \
             --group-id {params.group_id} \
+            --organism "{params.organism}" \
             --username {params.username} \
             --password {params.password} > {log} 2>&1 && \
         mkdir -p $(dirname {output.flag}) && \

@@ -86,7 +86,8 @@ class LoculusClient:
         self,
         group_id: int,
         metadata_file_path: Path,
-        processed_file_path: Path | None = None,
+        processed_file_path: Path,
+        nucleotide_alignment: Path,
         submission_id: str | None = None,
         data_use_terms_type: str = "OPEN",
     ) -> SubmitResponse:
@@ -96,6 +97,7 @@ class LoculusClient:
             group_id: The group ID for the submission
             metadata_file_path: Path to the metadata TSV file
             processed_file_path: Path to the processed data file (e.g., .ndjson.zst)
+            nucleotide_alignment: Path to nucleotide alignment file (.bam)
             submission_id: Unique identifier for this submission
                            (auto-generated if not provided)
             data_use_terms_type: Data use terms type (default: "OPEN")
@@ -125,30 +127,39 @@ class LoculusClient:
                 "message": "Mock submission successful in CI environment",
             }
 
-        # Step 1: Upload processed file via pre-signed URL if provided
+        # Step 1: Upload both files via pre-signed URLs
         file_mapping_entries = {}
 
-        if processed_file_path is not None:
-            # Request pre-signed URL for processed file
-            upload_responses = self.request_upload(group_id=group_id, numberFiles=1)
+        # Always upload both files
+        files_to_upload = [
+            ("processed", processed_file_path),
+            ("nucleotide", nucleotide_alignment),
+        ]
 
-            if not upload_responses:
-                raise Exception("Failed to get upload URLs for processed file")
+        # Request pre-signed URLs for both files
+        upload_responses = self.request_upload(group_id=group_id, numberFiles=2)
 
-            processed_upload = upload_responses[0]
+        if len(upload_responses) != 2:
+            raise Exception(
+                f"Failed to get upload URLs for both files. "
+                f"Expected 2, got {len(upload_responses)}"
+            )
 
-            # Upload processed file to S3 using pre-signed URL
+        # Upload each file to S3 using pre-signed URLs
+        for i, (file_type, file_path) in enumerate(files_to_upload):
+            upload_info = upload_responses[i]
+
             try:
                 # Get file size for Content-Length header
-                file_size = processed_file_path.stat().st_size
+                file_size = file_path.stat().st_size
                 logging.info(
-                    f"Uploading processed file: {processed_file_path.name} "
+                    f"Uploading {file_type} file: {file_path.name} "
                     f"({file_size} bytes)"
                 )
 
-                with open(processed_file_path, "rb") as f:
+                with open(file_path, "rb") as f:
                     upload_response = requests.put(
-                        processed_upload["url"],
+                        upload_info["url"],
                         data=f,
                         headers={
                             "Content-Type": "application/octet-stream",
@@ -157,20 +168,29 @@ class LoculusClient:
                     )
                     upload_response.raise_for_status()
                     logging.info(
-                        f"Processed file uploaded successfully to S3: "
-                        f"{processed_file_path.name} ({file_size} bytes)"
+                        f"{file_type.capitalize()} file uploaded successfully to S3: "
+                        f"{file_path.name} ({file_size} bytes)"
                     )
 
-                # Add to file mapping
-                file_mapping_entries["silo_reads"] = [
-                    {
-                        "fileId": processed_upload["fileId"],
-                        "name": processed_file_path.name,
-                    }
-                ]
+                # Add to file mapping with correct key names
+                if file_type == "processed":
+                    file_mapping_entries["siloReads"] = [
+                        {
+                            "fileId": upload_info["fileId"],
+                            "name": file_path.name,
+                        }
+                    ]
+                elif file_type == "nucleotide":
+                    file_mapping_entries["nucleotideAlignment"] = [
+                        {
+                            "fileId": upload_info["fileId"],
+                            "name": file_path.name,
+                        }
+                    ]
+
             except Exception as e:
-                logging.error(f"Failed to upload processed file: {e}")
-                raise Exception(f"Processed file upload failed: {e}")
+                logging.error(f"Failed to upload {file_type} file: {e}")
+                raise Exception(f"{file_type.capitalize()} file upload failed: {e}")
 
         # Step 2: Create file mapping
         file_mapping = {submission_id: file_mapping_entries}
@@ -398,14 +418,30 @@ class Submission:
             columns = ["submissionId", "date"]
             values = [submission_id, submission_date]
 
-            # Add metadata fields as columns
-            for key, value in metadata.items():
-                columns.append(key)
-                values.append(str(value) if value is not None else "")
+            # Define mapping from snake_case to camelCase for specific fields
+            field_mapping = {
+                "sample_id": "sampleId",
+                "batch_id": "batchId",
+                "location_code": "locationCode",
+                "sampling_date": "samplingDate",
+                "location_name": "locationName",
+                "sr2silo_version": "sr2siloVersion",
+            }
+
+            # Add mapped metadata fields as columns (only the specified ones)
+            for snake_field, camel_field in field_mapping.items():
+                if snake_field in metadata:
+                    columns.append(camel_field)
+                    value = metadata[snake_field]
+                    values.append(str(value) if value is not None else "")
+                else:
+                    # Add empty column even if field is missing
+                    columns.append(camel_field)
+                    values.append("")
 
             # Add countReads column if requested
             if count is not None:
-                columns.append("countReads")
+                columns.append("countSiloReads")
                 values.append(str(count))
 
             # Write header row
@@ -421,11 +457,11 @@ class Submission:
     @staticmethod
     def parse_metadata(silo_input: Path) -> Dict:
         """Parses the metadata from a silo input .ndjson.zstd or .ndjson
-        returning all metadata fields but readId as a dictoriary with keys
-        in camel case.
+        returning all metadata fields but readId as a dictionary with keys
+        in snake_case format.
 
         Assumptions:
-         - the metaddata is stored in the root of the object under the keys
+         - the metadata is stored in the root of the object under the keys
          - each read has the same metadata, up to readId
         """
         # check if the file is compressed or not
@@ -481,20 +517,10 @@ class Submission:
                 )
                 metadata[field] = None
 
-        # convert keys to camel case
-        def to_camel_case(snake_str):
-            """Convert snake_case string to camelCase string."""
-            components = snake_str.split("_")
-            return components[0] + "".join(word.capitalize() for word in components[1:])
-
-        camel_case_metadata = {}
-        for key, value in metadata.items():
-            if key != "read_id":  # exclude readId as specified
-                camel_case_key = to_camel_case(key)
-                camel_case_metadata[camel_case_key] = value
-
-        # return the metadata dictionary
-        return camel_case_metadata
+        # return the metadata dictionary with snake_case keys
+        # (excluding read_id as specified)
+        filtered_metadata = {k: v for k, v in metadata.items() if k != "read_id"}
+        return filtered_metadata
 
     @staticmethod
     def count_reads(silo_input: Path) -> int:
