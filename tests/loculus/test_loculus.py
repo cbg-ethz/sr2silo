@@ -30,22 +30,22 @@ def test_parse_metadata_uncompressed(test_silo_input_uncompressed):
     # Check that metadata is returned as dictionary
     assert isinstance(metadata, dict)
 
-    # Check expected metadata fields in camelCase (excluding readId)
+    # Check expected metadata fields in snake_case (excluding read_id)
     expected_fields = {
-        "sampleId": "A1_05_2025_06_18",
-        "batchId": "20250711_2443602573",
-        "locationCode": "5",
-        "locationName": "Lugano (TI)",
-        "samplingDate": "2025-06-18",
-        "sr2siloVersion": "1.3.0 (v1.1.0-5-g31b0623)",
+        "sample_id": "A1_05_2025_06_18",
+        "batch_id": "20250711_2443602573",
+        "location_code": "5",
+        "location_name": "Lugano (TI)",
+        "sampling_date": "2025-06-18",
+        "sr2silo_version": "1.3.0 (v1.1.0-5-g31b0623)",
     }
 
     for key, expected_value in expected_fields.items():
         assert key in metadata
         assert metadata[key] == expected_value
 
-    # Ensure readId is excluded (function should exclude it)
-    assert "readId" not in metadata
+    # Ensure read_id is excluded (function should exclude it)
+    assert "read_id" not in metadata
 
 
 def test_parse_metadata_compressed(test_silo_input_compressed):
@@ -55,22 +55,22 @@ def test_parse_metadata_compressed(test_silo_input_compressed):
     # Check that metadata is returned as dictionary
     assert isinstance(metadata, dict)
 
-    # Check expected metadata fields in camelCase (excluding readId)
+    # Check expected metadata fields in snake_case (excluding read_id)
     expected_fields = {
-        "sampleId": "A1_05_2025_06_18",
-        "batchId": "20250711_2443602573",
-        "locationCode": "5",
-        "locationName": "Lugano (TI)",
-        "samplingDate": "2025-06-18",
-        "sr2siloVersion": "1.3.0 (v1.1.0-5-g31b0623)",
+        "sample_id": "A1_05_2025_06_18",
+        "batch_id": "20250711_2443602573",
+        "location_code": "5",
+        "location_name": "Lugano (TI)",
+        "sampling_date": "2025-06-18",
+        "sr2silo_version": "1.3.0 (v1.1.0-5-g31b0623)",
     }
 
     for key, expected_value in expected_fields.items():
         assert key in metadata
         assert metadata[key] == expected_value
 
-    # Ensure readId is excluded (function should exclude it)
-    assert "readId" not in metadata
+    # Ensure read_id is excluded (function should exclude it)
+    assert "read_id" not in metadata
 
 
 def test_count_reads_uncompressed(test_silo_input_uncompressed):
@@ -156,7 +156,7 @@ def test_create_metadata_file(test_silo_input_uncompressed):
             rows = list(reader)
             fieldnames = reader.fieldnames or []
 
-            assert "countReads" in fieldnames
+            assert "countSiloReads" in fieldnames
             first_row = rows[0]
-            assert first_row["countReads"]  # Should have a count value
-            assert int(first_row["countReads"]) > 0  # Should be a positive number
+            assert first_row["countSiloReads"]  # Should have a count value
+            assert int(first_row["countSiloReads"]) > 0  # Should be a positive number
