@@ -46,18 +46,18 @@ def submit(
     """Submit data to SILO using the new pre-signed upload approach.
 
     Args:
-        processed_file (Path): Path to the processed .ndjson.zst file to upload.
-        nucleotide_alignment (Path): Path to nucleotide alignment file. (e.g., .bam)
-        keycloak_token_url (str | None): Keycloak token URL. If None, uses environment.
-        submission_url (str | None): Submission URL. If None, uses environment.
-        group_id (int | None): Group ID for submission. If None, uses environment.
-        organism (str | None): Organism identifier for submission. If None, uses environment.
-        username (str | None): Username for authentication. If None, uses environment.
-        password (str | None): Password for authentication. If None, uses environment.
-        submission_url (str | None): Submission URL. If None, uses environment.
-        group_id (int | None): Group ID for submission. If None, uses environment.
-        username (str | None): Username for authentication. If None, uses environment.
-        password (str | None): Password for authentication. If None, uses environment.
+        processed_file: Path to the processed .ndjson.zst file to upload.
+        nucleotide_alignment: Path to nucleotide alignment file. (e.g., .bam)
+        keycloak_token_url: Keycloak token URL. If None, uses environment.
+        submission_url: Submission URL. If None, uses environment.
+        group_id: Group ID for submission. If None, uses environment.
+        organism : Organism identifier for submission. If None, uses environment.
+        username: Username for authentication. If None, uses environment.
+        password: Password for authentication. If None, uses environment.
+        submission_url: Submission URL. If None, uses environment.
+        group_id: Group ID for submission. If None, uses environment.
+        username: Username for authentication. If None, uses environment.
+        password: Password for authentication. If None, uses environment.
 
     Returns:
         bool: True if submission was successful, False otherwise.

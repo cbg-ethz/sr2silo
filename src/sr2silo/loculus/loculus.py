@@ -141,7 +141,8 @@ class LoculusClient:
 
         if len(upload_responses) != 2:
             raise Exception(
-                f"Failed to get upload URLs for both files. Expected 2, got {len(upload_responses)}"
+                f"Failed to get upload URLs for both files. "
+                f"Expected 2, got {len(upload_responses)}"
             )
 
         # Upload each file to S3 using pre-signed URLs
