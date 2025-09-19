@@ -9,7 +9,7 @@ import csv
 from pathlib import Path
 from datetime import datetime
 
-CONFIG = "workflow/config_prod.yaml"
+CONFIG = "workflow/config.yaml"
 
 
 configfile: CONFIG
