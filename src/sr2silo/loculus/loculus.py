@@ -598,8 +598,23 @@ def released_samples(client: LoculusClient) -> List[str]:
     sample_ids = []
     if isinstance(response, list):
         for entry in response:
-            if isinstance(entry, dict) and "sampleId" in entry:
-                sample_ids.append(entry["sampleId"])
+            if isinstance(entry, dict):
+                # Check if entry has the expected structure with originalMetadata
+                if "originalMetadata" in entry and isinstance(entry["originalMetadata"], dict):
+                    original_metadata = entry["originalMetadata"]
+                    if "sampleId" in original_metadata:
+                        sample_ids.append(original_metadata["sampleId"])
+                    else:
+                        logging.warning(f"No sampleId found in originalMetadata: {original_metadata}")
+                # Skip revoked entries silently (they have originalMetadata: None)
+                elif "originalMetadata" in entry and entry["originalMetadata"] is None and entry.get("isRevocation", False):
+                    # This is a revoked entry, skip silently
+                    continue
+                # Legacy support: check for sampleId at top level
+                elif "sampleId" in entry:
+                    sample_ids.append(entry["sampleId"])
+                else:
+                    logging.warning(f"Unexpected entry format - no sampleId found: {entry}")
             else:
                 logging.warning(f"Unexpected entry format: {entry}")
     else:
@@ -639,61 +654,56 @@ def get_original_metadata(
     try:
         response = requests.get(url, headers=headers, params=params)
 
-        print(f"Status code: {response.status_code}")
-        print(f"Request ID: {request_id}")
-        print(f"URL: {response.url}")
-        print(f"Content-Type: {response.headers.get('Content-Type', 'Not specified')}")
-        print(
-            f"Content-Length: {response.headers.get('Content-Length', 'Not specified')}"
-        )
+        logging.debug(f"Status code: {response.status_code}")
+        logging.debug(f"Request ID: {request_id}")
+        logging.debug(f"URL: {response.url}")
+        logging.debug(f"Content-Type: {response.headers.get('Content-Type', 'Not specified')}")
 
         response.raise_for_status()
 
         # Debug: Print raw response first
         raw_text = response.text
-        print(f"Raw response (first 500 chars): {raw_text[:500]}")
-        print(f"Raw response (last 500 chars): {raw_text[-500:]}")
+        logging.debug(f"Raw response length: {len(raw_text)} characters")
+        
+        # Check if response is empty
+        if not raw_text.strip():
+            logging.warning("Received empty response from get-original-metadata API")
+            return []
 
         # Try to parse as JSON
         try:
             return response.json()
         except json.JSONDecodeError as json_error:
-            print(f"JSON decode error: {json_error}")
-            print("Response might be NDJSON or multiple JSON objects")
+            logging.debug(f"JSON decode error: {json_error}")
+            logging.debug("Response appears to be NDJSON format")
 
             # Try to parse as NDJSON (one JSON object per line)
             lines = raw_text.strip().split("\n")
-            print(f"Found {len(lines)} lines in response")
+            logging.debug(f"Found {len(lines)} lines in NDJSON response")
 
             if len(lines) > 0:
                 try:
-                    # Try to parse first line as JSON
-                    first_obj = json.loads(lines[0])
-                    print(f"First line parsed successfully: {type(first_obj)}")
-                    if isinstance(first_obj, dict):
-                        print(f"Keys in first object: {list(first_obj.keys())}")
-
-                    # Return all parsed objects
+                    # Parse all lines as JSON objects
                     parsed_objects = []
                     for i, line in enumerate(lines):
                         if line.strip():
                             try:
                                 parsed_objects.append(json.loads(line))
                             except json.JSONDecodeError:
-                                print(f"Failed to parse line {i}: {line[:100]}...")
+                                logging.warning(f"Failed to parse line {i}: {line[:100]}...")
                                 break
 
-                    print(f"Successfully parsed {len(parsed_objects)} JSON objects")
+                    logging.debug(f"Successfully parsed {len(parsed_objects)} JSON objects")
                     return parsed_objects
 
                 except json.JSONDecodeError:
-                    print("Could not parse as NDJSON either")
-                    return raw_text
+                    logging.error("Could not parse response as JSON or NDJSON")
+                    return []
             else:
-                return raw_text
+                return []
 
     except requests.exceptions.RequestException as e:
-        print(f"Error making request: {e}")
+        logging.error(f"Error making request: {e}")
         if hasattr(e, "response") and e.response is not None:
-            print(f"Response text: {e.response.text}")
+            logging.error(f"Response text: {e.response.text}")
         return None
