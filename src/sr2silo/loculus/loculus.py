@@ -117,7 +117,11 @@ class LoculusClient:
         # log warning if duplicate submission detected and resubmit_duplicate is False
         metadata = Submission.parse_metadata(processed_file_path)
         sample_id = metadata.get("sample_id")
-        if not resubmit_duplicate and sample_id in released_samples(self):
+        if (
+            not resubmit_duplicate
+            and sample_id is not None
+            and sample_id in released_samples(self)
+        ):
             logging.warning(
                 f"Duplicate submission detected for sample_id '{sample_id}'. "
                 f"Skipping submission."
