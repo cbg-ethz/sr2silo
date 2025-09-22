@@ -115,7 +115,7 @@ class LoculusClient:
             )
 
         # log warning if duplicate submission detected and resubmit_duplicate is False
-        metadata = Submission.parse_metadata(metadata_file_path)
+        metadata = Submission.parse_metadata(processed_file_path)
         sample_id = metadata.get("sample_id")
         if not resubmit_duplicate and sample_id in released_samples(self):
             logging.warning(
@@ -622,7 +622,7 @@ def get_original_metadata(
     if client.token is None:
         raise Exception("Authentication required. Please call authenticate() first.")
 
-    url = f"{client.submission_url}/backend/{client.organism}/get-original-metadata"
+    url = f"{client.submission_url}/{client.organism}/get-original-metadata"
 
     # Generate a unique request ID
     request_id = str(uuid.uuid4())
