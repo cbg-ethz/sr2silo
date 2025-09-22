@@ -90,6 +90,7 @@ class LoculusClient:
         nucleotide_alignment: Path,
         submission_id: str | None = None,
         data_use_terms_type: str = "OPEN",
+        resubmit_duplicate: bool = False,
     ) -> SubmitResponse:
         """Submit data to the Lapis API using pre-signed upload approach.
 
@@ -112,6 +113,20 @@ class LoculusClient:
             raise Exception(
                 "Authentication required. Please call authenticate() first."
             )
+
+        # log warning if duplicate submission detected and resubmit_duplicate is False
+        metadata = Submission.parse_metadata(metadata_file_path)
+        sample_id = metadata.get("sample_id")
+        if not resubmit_duplicate and sample_id in released_samples(self):
+            logging.warning(
+                f"Duplicate submission detected for sample_id '{sample_id}'. "
+                f"Skipping submission."
+                f"Use resubmit_duplicate=True to override."
+            )
+            return {
+                "status": "skipped",
+                "message": f"Duplicate submission for sample_id '{sample_id}' skipped.",
+            }
 
         # Use provided submission_id or generate if not provided
         if submission_id is None:
@@ -565,3 +580,120 @@ class Submission:
                 return count + 1
             else:
                 return count
+
+
+def released_samples(client: LoculusClient) -> List[str]:
+    """Fetch the list of released sample IDs from the Loculus API.
+
+    Args:
+        client: An authenticated LoculusClient instance
+    Returns:
+        List of released sample IDs
+    """
+    response = get_original_metadata(client, statuses_filter="APPROVED_FOR_RELEASE")
+    if response is None:
+        logging.error("Failed to fetch released samples.")
+        return []
+
+    sample_ids = []
+    if isinstance(response, list):
+        for entry in response:
+            if isinstance(entry, dict) and "sampleId" in entry:
+                sample_ids.append(entry["sampleId"])
+            else:
+                logging.warning(f"Unexpected entry format: {entry}")
+    else:
+        logging.error(f"Unexpected response format: {response}")
+
+    logging.info(f"Fetched {len(sample_ids)} released sample IDs.")
+    return sample_ids
+
+
+def get_original_metadata(
+    client: LoculusClient, statuses_filter: str = "APPROVED_FOR_RELEASE", **params
+):
+    """
+    Fetch original metadata from the GenSpectrum API
+
+    Args:
+        statuses_filter: Filter by status (default: "APPROVED_FOR_RELEASE")
+        **params: Additional query parameters for the API request
+    """
+    if client.token is None:
+        raise Exception("Authentication required. Please call authenticate() first.")
+
+    url = f"{client.submission_url}/backend/{client.organism}/get-original-metadata"
+
+    # Generate a unique request ID
+    request_id = str(uuid.uuid4())
+
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {client.token}",
+        "x-request-id": request_id,
+    }
+
+    # Add the statusesFilter parameter
+    params["statusesFilter"] = statuses_filter
+
+    try:
+        response = requests.get(url, headers=headers, params=params)
+
+        print(f"Status code: {response.status_code}")
+        print(f"Request ID: {request_id}")
+        print(f"URL: {response.url}")
+        print(f"Content-Type: {response.headers.get('Content-Type', 'Not specified')}")
+        print(
+            f"Content-Length: {response.headers.get('Content-Length', 'Not specified')}"
+        )
+
+        response.raise_for_status()
+
+        # Debug: Print raw response first
+        raw_text = response.text
+        print(f"Raw response (first 500 chars): {raw_text[:500]}")
+        print(f"Raw response (last 500 chars): {raw_text[-500:]}")
+
+        # Try to parse as JSON
+        try:
+            return response.json()
+        except json.JSONDecodeError as json_error:
+            print(f"JSON decode error: {json_error}")
+            print("Response might be NDJSON or multiple JSON objects")
+
+            # Try to parse as NDJSON (one JSON object per line)
+            lines = raw_text.strip().split("\n")
+            print(f"Found {len(lines)} lines in response")
+
+            if len(lines) > 0:
+                try:
+                    # Try to parse first line as JSON
+                    first_obj = json.loads(lines[0])
+                    print(f"First line parsed successfully: {type(first_obj)}")
+                    if isinstance(first_obj, dict):
+                        print(f"Keys in first object: {list(first_obj.keys())}")
+
+                    # Return all parsed objects
+                    parsed_objects = []
+                    for i, line in enumerate(lines):
+                        if line.strip():
+                            try:
+                                parsed_objects.append(json.loads(line))
+                            except json.JSONDecodeError:
+                                print(f"Failed to parse line {i}: {line[:100]}...")
+                                break
+
+                    print(f"Successfully parsed {len(parsed_objects)} JSON objects")
+                    return parsed_objects
+
+                except json.JSONDecodeError:
+                    print("Could not parse as NDJSON either")
+                    return raw_text
+            else:
+                return raw_text
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error making request: {e}")
+        if hasattr(e, "response") and e.response is not None:
+            print(f"Response text: {e.response.text}")
+        return None
