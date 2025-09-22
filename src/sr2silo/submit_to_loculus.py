@@ -115,5 +115,7 @@ def submit(
             return False
 
     except Exception as e:
+        import traceback
         logging.error(f"Error during submission: {e}")
+        logging.error(f"Full traceback: {traceback.format_exc()}")
         return False

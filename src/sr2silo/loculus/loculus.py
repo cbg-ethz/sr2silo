@@ -588,31 +588,61 @@ def released_samples(client: LoculusClient) -> List[str]:
     Args:
         client: An authenticated LoculusClient instance
     Returns:
-        List of released sample IDs
+        List of released sample IDs (including duplicates, excluding revoked ones)
     """
     response = get_original_metadata(client, statuses_filter="APPROVED_FOR_RELEASE")
     if response is None:
         logging.error("Failed to fetch released samples.")
         return []
 
-    sample_ids = []
+    sample_entries = []  # List of (sample_id, accession) tuples
+    revoked_accessions = set()  # Track revoked accessions
+    
     if isinstance(response, list):
+        # First pass: collect all revoked accessions
+        for entry in response:
+            if isinstance(entry, dict) and entry.get("isRevocation", False):
+                accession = entry.get("accession")
+                if accession:
+                    revoked_accessions.add(accession)
+                    logging.debug(f"Found revoked accession: {accession}")
+        
+        # Second pass: process entries and handle revocations
         for entry in response:
             if isinstance(entry, dict):
-                # Check if entry has the expected structure with originalMetadata
+                accession = entry.get("accession")
+                is_revocation = entry.get("isRevocation", False)
+                
+                if is_revocation:
+                    # This is a revocation entry - remove the specific accession if we had it
+                    if "originalMetadata" in entry and isinstance(entry["originalMetadata"], dict):
+                        original_metadata = entry["originalMetadata"]
+                        if "sampleId" in original_metadata:
+                            sample_id = original_metadata["sampleId"]
+                            # Remove the specific (sample_id, accession) pair
+                            sample_entries = [(sid, acc) for sid, acc in sample_entries 
+                                            if not (sid == sample_id and acc == accession)]
+                            logging.debug(f"Removed revoked entry: {sample_id} (accession: {accession})")
+                    # Skip processing this entry further
+                    continue
+                
+                # Skip entries that have been revoked (by checking accession)
+                if accession and accession in revoked_accessions:
+                    logging.debug(f"Skipping entry with revoked accession: {accession}")
+                    continue
+                
+                # Process valid (non-revoked) entries
                 if "originalMetadata" in entry and isinstance(entry["originalMetadata"], dict):
                     original_metadata = entry["originalMetadata"]
                     if "sampleId" in original_metadata:
-                        sample_ids.append(original_metadata["sampleId"])
+                        sample_id = original_metadata["sampleId"]
+                        sample_entries.append((sample_id, accession))
                     else:
                         logging.warning(f"No sampleId found in originalMetadata: {original_metadata}")
-                # Skip revoked entries silently (they have originalMetadata: None)
-                elif "originalMetadata" in entry and entry["originalMetadata"] is None and entry.get("isRevocation", False):
-                    # This is a revoked entry, skip silently
-                    continue
                 # Legacy support: check for sampleId at top level
                 elif "sampleId" in entry:
-                    sample_ids.append(entry["sampleId"])
+                    sample_id = entry["sampleId"]
+                    sample_entries.append((sample_id, accession))
                 else:
                     logging.warning(f"Unexpected entry format - no sampleId found: {entry}")
             else:
@@ -620,7 +650,18 @@ def released_samples(client: LoculusClient) -> List[str]:
     else:
         logging.error(f"Unexpected response format: {response}")
 
-    logging.info(f"Fetched {len(sample_ids)} released sample IDs.")
+    # Extract just the sample_ids (may contain duplicates)
+    sample_ids = [sample_id for sample_id, _ in sample_entries]
+    
+    logging.debug(f"Fetched {len(sample_ids)} released sample entries (after removing revocations).")
+    if revoked_accessions:
+        logging.debug(f"Found {len(revoked_accessions)} revoked accessions.")
+    
+    # Count unique sample_ids vs total entries
+    unique_sample_ids = len(set(sample_ids))
+    if unique_sample_ids != len(sample_ids):
+        logging.debug(f"Found {unique_sample_ids} unique sample_ids with {len(sample_ids) - unique_sample_ids} duplicates.")
+    
     return sample_ids
 
 
