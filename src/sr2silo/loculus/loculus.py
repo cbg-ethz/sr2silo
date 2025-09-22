@@ -597,7 +597,7 @@ def released_samples(client: LoculusClient) -> List[str]:
 
     sample_entries = []  # List of (sample_id, accession) tuples
     revoked_accessions = set()  # Track revoked accessions
-    
+
     if isinstance(response, list):
         # First pass: collect all revoked accessions
         for entry in response:
@@ -606,45 +606,54 @@ def released_samples(client: LoculusClient) -> List[str]:
                 if accession:
                     revoked_accessions.add(accession)
                     logging.debug(f"Found revoked accession: {accession}")
-        
+
         # Second pass: process entries and handle revocations
         for entry in response:
             if isinstance(entry, dict):
                 accession = entry.get("accession")
                 is_revocation = entry.get("isRevocation", False)
-                
+
                 if is_revocation:
                     # This is a revocation entry - remove the specific accession if we had it
-                    if "originalMetadata" in entry and isinstance(entry["originalMetadata"], dict):
+                    if "originalMetadata" in entry and isinstance(
+                        entry["originalMetadata"], dict
+                    ):
                         original_metadata = entry["originalMetadata"]
                         if "sampleId" in original_metadata:
                             sample_id = original_metadata["sampleId"]
                             # Remove the specific (sample_id, accession) pair
-                            sample_entries = [(sid, acc) for sid, acc in sample_entries 
-                                            if not (sid == sample_id and acc == accession)]
-                            logging.debug(f"Removed revoked entry: {sample_id} (accession: {accession})")
+                            sample_entries = [
+                                (sid, acc)
+                                for sid, acc in sample_entries
+                                if not (sid == sample_id and acc == accession)
+                            ]
+                            logging.debug(
+                                f"Removed revoked entry: {sample_id} (accession: {accession})"
+                            )
                     # Skip processing this entry further
                     continue
-                
+
                 # Skip entries that have been revoked (by checking accession)
                 if accession and accession in revoked_accessions:
                     logging.debug(f"Skipping entry with revoked accession: {accession}")
                     continue
-                
+
                 # Process valid (non-revoked) entries
-                if "originalMetadata" in entry and isinstance(entry["originalMetadata"], dict):
+                if "originalMetadata" in entry and isinstance(
+                    entry["originalMetadata"], dict
+                ):
                     original_metadata = entry["originalMetadata"]
                     if "sampleId" in original_metadata:
                         sample_id = original_metadata["sampleId"]
                         sample_entries.append((sample_id, accession))
                     else:
-                        logging.warning(f"No sampleId found in originalMetadata: {original_metadata}")
-                # Legacy support: check for sampleId at top level
-                elif "sampleId" in entry:
-                    sample_id = entry["sampleId"]
-                    sample_entries.append((sample_id, accession))
+                        logging.warning(
+                            f"No sampleId found in originalMetadata: {original_metadata}"
+                        )
                 else:
-                    logging.warning(f"Unexpected entry format - no sampleId found: {entry}")
+                    logging.warning(
+                        f"Unexpected entry format - no sampleId found: {entry}"
+                    )
             else:
                 logging.warning(f"Unexpected entry format: {entry}")
     else:
@@ -652,16 +661,20 @@ def released_samples(client: LoculusClient) -> List[str]:
 
     # Extract just the sample_ids (may contain duplicates)
     sample_ids = [sample_id for sample_id, _ in sample_entries]
-    
-    logging.debug(f"Fetched {len(sample_ids)} released sample entries (after removing revocations).")
+
+    logging.debug(
+        f"Fetched {len(sample_ids)} released sample entries (after removing revocations)."
+    )
     if revoked_accessions:
         logging.debug(f"Found {len(revoked_accessions)} revoked accessions.")
-    
+
     # Count unique sample_ids vs total entries
     unique_sample_ids = len(set(sample_ids))
     if unique_sample_ids != len(sample_ids):
-        logging.debug(f"Found {unique_sample_ids} unique sample_ids with {len(sample_ids) - unique_sample_ids} duplicates.")
-    
+        logging.debug(
+            f"Found {unique_sample_ids} unique sample_ids with {len(sample_ids) - unique_sample_ids} duplicates."
+        )
+
     return sample_ids
 
 
@@ -698,14 +711,16 @@ def get_original_metadata(
         logging.debug(f"Status code: {response.status_code}")
         logging.debug(f"Request ID: {request_id}")
         logging.debug(f"URL: {response.url}")
-        logging.debug(f"Content-Type: {response.headers.get('Content-Type', 'Not specified')}")
+        logging.debug(
+            f"Content-Type: {response.headers.get('Content-Type', 'Not specified')}"
+        )
 
         response.raise_for_status()
 
         # Debug: Print raw response first
         raw_text = response.text
         logging.debug(f"Raw response length: {len(raw_text)} characters")
-        
+
         # Check if response is empty
         if not raw_text.strip():
             logging.warning("Received empty response from get-original-metadata API")
@@ -731,10 +746,14 @@ def get_original_metadata(
                             try:
                                 parsed_objects.append(json.loads(line))
                             except json.JSONDecodeError:
-                                logging.warning(f"Failed to parse line {i}: {line[:100]}...")
+                                logging.warning(
+                                    f"Failed to parse line {i}: {line[:100]}..."
+                                )
                                 break
 
-                    logging.debug(f"Successfully parsed {len(parsed_objects)} JSON objects")
+                    logging.debug(
+                        f"Successfully parsed {len(parsed_objects)} JSON objects"
+                    )
                     return parsed_objects
 
                 except json.JSONDecodeError:
