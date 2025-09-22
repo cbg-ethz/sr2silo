@@ -87,6 +87,99 @@ class GenSpectrumClient:
                 print(f"Response text: {e.response.text}")
             return None
 
+    def get_original_metadata(
+        self, statuses_filter: str = "APPROVED_FOR_RELEASE", **params
+    ):
+        """
+        Fetch original metadata from the GenSpectrum API
+
+        Args:
+            statuses_filter: Filter by status (default: "APPROVED_FOR_RELEASE")
+            **params: Additional query parameters for the API request
+        """
+        if self.token is None:
+            raise Exception(
+                "Authentication required. Please call authenticate() first."
+            )
+
+        url = f"{self.api_base_url}/backend/{self.organism}/get-original-metadata"
+
+        # Generate a unique request ID
+        request_id = str(uuid.uuid4())
+
+        headers = {
+            "accept": "application/json",
+            "Authorization": f"Bearer {self.token}",
+            "x-request-id": request_id,
+        }
+
+        # Add the statusesFilter parameter
+        params["statusesFilter"] = statuses_filter
+
+        try:
+            response = requests.get(url, headers=headers, params=params)
+
+            print(f"Status code: {response.status_code}")
+            print(f"Request ID: {request_id}")
+            print(f"URL: {response.url}")
+            print(
+                f"Content-Type: {response.headers.get('Content-Type', 'Not specified')}"
+            )
+            print(
+                f"Content-Length: {response.headers.get('Content-Length', 'Not specified')}"
+            )
+
+            response.raise_for_status()
+
+            # Debug: Print raw response first
+            raw_text = response.text
+            print(f"Raw response (first 500 chars): {raw_text[:500]}")
+            print(f"Raw response (last 500 chars): {raw_text[-500:]}")
+
+            # Try to parse as JSON
+            try:
+                return response.json()
+            except json.JSONDecodeError as json_error:
+                print(f"JSON decode error: {json_error}")
+                print("Response might be NDJSON or multiple JSON objects")
+
+                # Try to parse as NDJSON (one JSON object per line)
+                lines = raw_text.strip().split("\n")
+                print(f"Found {len(lines)} lines in response")
+
+                if len(lines) > 0:
+                    try:
+                        # Try to parse first line as JSON
+                        first_obj = json.loads(lines[0])
+                        print(f"First line parsed successfully: {type(first_obj)}")
+                        if isinstance(first_obj, dict):
+                            print(f"Keys in first object: {list(first_obj.keys())}")
+
+                        # Return all parsed objects
+                        parsed_objects = []
+                        for i, line in enumerate(lines):
+                            if line.strip():
+                                try:
+                                    parsed_objects.append(json.loads(line))
+                                except json.JSONDecodeError:
+                                    print(f"Failed to parse line {i}: {line[:100]}...")
+                                    break
+
+                        print(f"Successfully parsed {len(parsed_objects)} JSON objects")
+                        return parsed_objects
+
+                    except json.JSONDecodeError:
+                        print("Could not parse as NDJSON either")
+                        return raw_text
+                else:
+                    return raw_text
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error making request: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                print(f"Response text: {e.response.text}")
+            return None
+
 
 def main():
     """
@@ -118,24 +211,66 @@ def main():
         print("Authenticating...")
         client.authenticate(username, password)
 
-        # Fetch sequences
-        print("Fetching sequences from WASAP GenSpectrum API...")
-        data = client.get_sequences()
+        print("=" * 80)
+        print("EXPLORING: get-original-metadata endpoint")
+        print("=" * 80)
 
-        if data:
-            print("Request successful!")
-            print(f"Response type: {type(data)}")
+        # Fetch original metadata
+        print("Fetching original metadata from WASAP GenSpectrum API...")
+        metadata = client.get_original_metadata()
+
+        # set of sample_ids
+        sample_ids = set()
+
+        if metadata:
+            print("Original metadata request successful!")
+            print(f"Response type: {type(metadata)}")
 
             # Pretty print the JSON response (first few items if it's a list)
-            if isinstance(data, list) and len(data) > 0:
-                print(f"\nFound {len(data)} sequences")
-                print("First sequence:")
-                print(json.dumps(data[0], indent=2))
+            if isinstance(metadata, list) and len(metadata) > 0:
+                print(f"\nFound {len(metadata)} metadata entries")
+                print("\n" + "=" * 80)
+                print("COMPLETE LIST OF ALL METADATA ENTRIES:")
+                print("=" * 80)
+
+                for i, entry in enumerate(metadata, 1):
+                    print(f"\n--- Entry {i:3d} ---")
+                    print(f"Accession: {entry.get('accession', 'N/A')}")
+                    print(f"Version: {entry.get('version', 'N/A')}")
+                    print(f"Submitter: {entry.get('submitter', 'N/A')}")
+                    print(f"Is Revocation: {entry.get('isRevocation', 'N/A')}")
+
+                    if entry.get("isRevocation"):
+                        print("REVOCATION ENTRY - No original metadata available")
+                    else:
+                        orig_meta = entry.get("originalMetadata", {})
+                        sample_id = orig_meta.get("sampleId")
+                        if sample_id:
+                            sample_ids.add(sample_id)
+                        print(f"Sample ID: {orig_meta.get('sampleId', 'N/A')}")
+                        print(f"Batch ID: {orig_meta.get('batchId', 'N/A')}")
+                        print(
+                            f"Location: {orig_meta.get('locationName', 'N/A')} ({orig_meta.get('locationCode', 'N/A')})"
+                        )
+                        print(f"Sampling Date: {orig_meta.get('samplingDate', 'N/A')}")
+                        print(f"Submission Date: {orig_meta.get('date', 'N/A')}")
+                        print(f"Read Count: {orig_meta.get('countSiloReads', 'N/A')}")
+                        print(
+                            f"sr2silo Version: {orig_meta.get('sr2siloVersion', 'N/A')}"
+                        )
+
+                print("\n" + "=" * 80)
+                print(f"TOTAL: {len(metadata)} entries displayed")
+
+                print(f"UNIQUE SAMPLE IDs found: {len(sample_ids)}")
+                print("=" * 80)
             else:
-                print("\nResponse data:")
-                print(json.dumps(data, indent=2))
+                print("\nMetadata response:")
+                print(json.dumps(metadata, indent=2))
         else:
-            print("Request failed!")
+            print("Original metadata request failed!")
+
+        print("#     print('Request failed!')")
 
     except Exception as e:
         print(f"Error: {e}")
