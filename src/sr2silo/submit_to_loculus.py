@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import traceback
 from pathlib import Path
 
 from sr2silo.config import (
@@ -116,4 +117,5 @@ def submit(
 
     except Exception as e:
         logging.error(f"Error during submission: {e}")
+        logging.error(f"Full traceback: {traceback.format_exc()}")
         return False

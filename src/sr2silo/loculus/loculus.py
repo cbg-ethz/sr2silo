@@ -90,6 +90,7 @@ class LoculusClient:
         nucleotide_alignment: Path,
         submission_id: str | None = None,
         data_use_terms_type: str = "OPEN",
+        resubmit_duplicate: bool = False,
     ) -> SubmitResponse:
         """Submit data to the Lapis API using pre-signed upload approach.
 
@@ -112,6 +113,24 @@ class LoculusClient:
             raise Exception(
                 "Authentication required. Please call authenticate() first."
             )
+
+        # log warning if duplicate submission detected and resubmit_duplicate is False
+        metadata = Submission.parse_metadata(processed_file_path)
+        sample_id = metadata.get("sample_id")
+        if (
+            not resubmit_duplicate
+            and sample_id is not None
+            and sample_id in released_samples(self)
+        ):
+            logging.warning(
+                f"Duplicate submission detected for sample_id '{sample_id}'. "
+                f"Skipping submission."
+                f"Use resubmit_duplicate=True to override."
+            )
+            return {
+                "status": "skipped",
+                "message": f"Duplicate submission for sample_id '{sample_id}' skipped.",
+            }
 
         # Use provided submission_id or generate if not provided
         if submission_id is None:
@@ -565,3 +584,196 @@ class Submission:
                 return count + 1
             else:
                 return count
+
+
+def released_samples(client: LoculusClient) -> List[str]:
+    """Fetch the list of released sample IDs from the Loculus API.
+
+    Args:
+        client: An authenticated LoculusClient instance
+    Returns:
+        List of released sample IDs (including duplicates, excluding revoked ones)
+    """
+    response = get_original_metadata(client, statuses_filter="APPROVED_FOR_RELEASE")
+    if response is None:
+        logging.error("Failed to fetch released samples.")
+        return []
+
+    sample_entries = []  # List of (sample_id, accession) tuples
+    revoked_accessions = set()  # Track revoked accessions
+
+    if isinstance(response, list):
+        # First pass: collect all revoked accessions
+        for entry in response:
+            if isinstance(entry, dict) and entry.get("isRevocation", False):
+                accession = entry.get("accession")
+                if accession:
+                    revoked_accessions.add(accession)
+                    logging.debug(f"Found revoked accession: {accession}")
+
+        # Second pass: process entries and handle revocations
+        for entry in response:
+            if isinstance(entry, dict):
+                accession = entry.get("accession")
+                is_revocation = entry.get("isRevocation", False)
+
+                if is_revocation:
+                    # This is a revocation entry
+                    # remove the specific accession if we had it
+                    if "originalMetadata" in entry and isinstance(
+                        entry["originalMetadata"], dict
+                    ):
+                        original_metadata = entry["originalMetadata"]
+                        if "sampleId" in original_metadata:
+                            sample_id = original_metadata["sampleId"]
+                            # Remove the specific (sample_id, accession) pair
+                            sample_entries = [
+                                (sid, acc)
+                                for sid, acc in sample_entries
+                                if not (sid == sample_id and acc == accession)
+                            ]
+                            logging.debug(
+                                "Removed revoked entry: %s (accession: %s)",
+                                sample_id,
+                                accession,
+                            )
+                    # Skip processing this entry further
+                    continue
+
+                # Skip entries that have been revoked (by checking accession)
+                if accession and accession in revoked_accessions:
+                    logging.debug(f"Skipping entry with revoked accession: {accession}")
+                    continue
+
+                # Process valid (non-revoked) entries
+                if "originalMetadata" in entry and isinstance(
+                    entry["originalMetadata"], dict
+                ):
+                    original_metadata = entry["originalMetadata"]
+                    if "sampleId" in original_metadata:
+                        sample_id = original_metadata["sampleId"]
+                        sample_entries.append((sample_id, accession))
+                    else:
+                        logging.warning(
+                            "No sampleId found in originalMetadata: %s",
+                            original_metadata,
+                        )
+                else:
+                    logging.warning(
+                        f"Unexpected entry format - no sampleId found: {entry}"
+                    )
+            else:
+                logging.warning(f"Unexpected entry format: {entry}")
+    else:
+        logging.error(f"Unexpected response format: {response}")
+
+    # Extract just the sample_ids (may contain duplicates)
+    sample_ids = [sample_id for sample_id, _ in sample_entries]
+
+    logging.debug(
+        "Fetched %s released sample entries (after removing revocations).",
+        len(sample_ids),
+    )
+    if revoked_accessions:
+        logging.debug(f"Found {len(revoked_accessions)} revoked accessions.")
+
+    # Count unique sample_ids vs total entries
+    unique_sample_ids = len(set(sample_ids))
+    if unique_sample_ids != len(sample_ids):
+        logging.debug(
+            f"Found {unique_sample_ids} unique sample_ids with "
+            f"{len(sample_ids) - unique_sample_ids} duplicates."
+        )
+
+    return sample_ids
+
+
+def get_original_metadata(
+    client: LoculusClient, statuses_filter: str = "APPROVED_FOR_RELEASE", **params
+):
+    """
+    Fetch original metadata from the GenSpectrum API
+
+    Args:
+        statuses_filter: Filter by status (default: "APPROVED_FOR_RELEASE")
+        **params: Additional query parameters for the API request
+    """
+    if client.token is None:
+        raise Exception("Authentication required. Please call authenticate() first.")
+
+    url = f"{client.submission_url}/{client.organism}/get-original-metadata"
+
+    # Generate a unique request ID
+    request_id = str(uuid.uuid4())
+
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {client.token}",
+        "x-request-id": request_id,
+    }
+
+    # Add the statusesFilter parameter
+    params["statusesFilter"] = statuses_filter
+
+    try:
+        response = requests.get(url, headers=headers, params=params)
+
+        logging.debug(f"Status code: {response.status_code}")
+        logging.debug(f"Request ID: {request_id}")
+        logging.debug(f"URL: {response.url}")
+        logging.debug(
+            f"Content-Type: {response.headers.get('Content-Type', 'Not specified')}"
+        )
+
+        response.raise_for_status()
+
+        # Debug: Print raw response first
+        raw_text = response.text
+        logging.debug(f"Raw response length: {len(raw_text)} characters")
+
+        # Check if response is empty
+        if not raw_text.strip():
+            logging.warning("Received empty response from get-original-metadata API")
+            return []
+
+        # Try to parse as JSON
+        try:
+            return response.json()
+        except json.JSONDecodeError as json_error:
+            logging.debug(f"JSON decode error: {json_error}")
+            logging.debug("Response appears to be NDJSON format")
+
+            # Try to parse as NDJSON (one JSON object per line)
+            lines = raw_text.strip().split("\n")
+            logging.debug(f"Found {len(lines)} lines in NDJSON response")
+
+            if len(lines) > 0:
+                try:
+                    # Parse all lines as JSON objects
+                    parsed_objects = []
+                    for i, line in enumerate(lines):
+                        if line.strip():
+                            try:
+                                parsed_objects.append(json.loads(line))
+                            except json.JSONDecodeError:
+                                logging.warning(
+                                    f"Failed to parse line {i}: {line[:100]}..."
+                                )
+                                break
+
+                    logging.debug(
+                        f"Successfully parsed {len(parsed_objects)} JSON objects"
+                    )
+                    return parsed_objects
+
+                except json.JSONDecodeError:
+                    logging.error("Could not parse response as JSON or NDJSON")
+                    return []
+            else:
+                return []
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error making request: {e}")
+        if hasattr(e, "response") and e.response is not None:
+            logging.error(f"Response text: {e.response.text}")
+        return None
