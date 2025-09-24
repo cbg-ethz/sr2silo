@@ -349,14 +349,14 @@ def test_bam_to_fastq_handle_indels(dummy_alignment, tmp_path):
         "ACG\n"  # from match of 2 bases ("AC") and then match of 1 ("G")
         "+\n"
         "?@B\n"  # qualities: chr(30+33)="?" , chr(31+33)="@" , chr(33+33)="B"
-        "alignment_position:100\n"
+        "alignment_position:101\n"
     )
     fastq_content = fastq_file.read_text()
     assert (
         fastq_content == expected_fastq
     ), f"FASTQ output mismatch:\nExpected:\n{expected_fastq}\nGot:\n{fastq_content}"
 
-    expected_insertion = "read1\t102\tT\tA\n"
+    expected_insertion = "read1\t103\tT\tA\n"
     insertion_content = insertions_file.read_text()
     assert insertion_content == expected_insertion, (
         f"Insertion output mismatch:\nExpected:\n{expected_insertion}\n"

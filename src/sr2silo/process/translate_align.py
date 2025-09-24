@@ -158,7 +158,7 @@ def nuc_to_aa_alignment(
 
 
 def make_read_with_nuc_seq(
-    fastq_nuc_alignment_file: Path, nuc_reference_length: int, gene_set: GeneSet
+    fastq_nuc_alignment_file: Path, gene_set: GeneSet
 ) -> Dict[str, AlignedRead]:
     """Makes aligned reads from a FASTQ file, with alignment info, with indels.
 
@@ -166,7 +166,6 @@ def make_read_with_nuc_seq(
         fastq_nuc_alignment_file (Path): Path to the FASTQ file with alignment
                                         positions, produced by
                                         `bam_to_fastq_handle_indels`.
-        nuc_reference_length (int): Length of the nucleotide reference genome.
         gene_set (GeneSet): Set of genes for amino acid sequence alignment.
 
     Returns:
@@ -209,7 +208,8 @@ def make_read_with_nuc_seq(
                     read_id=read_id,
                     unaligned_nucleotide_sequence=seq,
                     aligned_nucleotide_sequence=seq,
-                    aligned_nucleotide_sequence_offset=pos,
+                    # offset = position - 1
+                    aligned_nucleotide_sequence_offset=pos - 1,
                     nucleotide_insertions=list(),
                     amino_acid_insertions=AAInsertionSet(gene_set.get_gene_name_list()),
                     aligned_amino_acid_sequences=AASequenceSet(
@@ -281,7 +281,10 @@ def enrich_read_with_aa_seq(
                     gene_name, aa_insertions
                 )
                 aligned_reads[read_id].aligned_amino_acid_sequences.set_sequence(
-                    gene_name, aa_aligned, pos
+                    gene_name,
+                    aa_aligned,
+                    # offset = position - 1
+                    pos - 1,
                 )
                 pbar.update(1)
     return aligned_reads
@@ -328,9 +331,7 @@ def parse_translate_align(
         logging.info(f"Loaded gene reference with genes: {gene_set}")
 
         logging.info("Processing nucleotide alignments")
-        aligned_reads = make_read_with_nuc_seq(
-            FASTQ_NUC_ALIGNMENT_FILE, nuc_reference_length, gene_set
-        )
+        aligned_reads = make_read_with_nuc_seq(FASTQ_NUC_ALIGNMENT_FILE, gene_set)
 
         logging.info("Adding nucleotide insertions to reads")
         aligned_reads = enrich_read_with_nuc_ins(
