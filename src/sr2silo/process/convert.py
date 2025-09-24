@@ -242,8 +242,9 @@ def bam_to_fastq_handle_indels(
                 insertion_positions = []
 
                 query_pos = 0
-                ref_align_start = read.reference_start
-                ref_pos = read.reference_start
+                # as we read bam it is 0-based but we want to report 1-based
+                ref_align_start = read.reference_start + 1  # 1-based coordinate
+                ref_pos = read.reference_start + 1  # 1-based coordinate
 
                 if read.cigartuples is None:
                     continue
