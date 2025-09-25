@@ -8,18 +8,6 @@ import os
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-# Load .env file from the project root if it exists
-env_path = Path(__file__).parent.parent.parent / ".env"
-if env_path.exists():
-    load_dotenv(dotenv_path=env_path)
-    logging.info(f"Loaded environment variables from {env_path} using python-dotenv")
-else:
-    logging.debug(
-        f"No .env file found at {env_path}, using only system environment variables"
-    )
-
 
 def is_ci_environment() -> bool:
     """Check if running in a CI environment."""
@@ -92,7 +80,16 @@ def get_organism() -> str:
     Returns:
         str: The organism identifier (e.g., 'sc2', 'sars-cov-2')
     """
-    return os.getenv("ORGANISM", "sc2")
+    try:
+        organism = os.getenv("ORGANISM")
+        if organism:
+            return organism
+        else:
+            logging.error("ORGANISM environment variable is not set.")
+            sys.exit(1)
+    except Exception as e:
+        logging.error(f"Error retrieving ORGANISM from environment: {e}")
+        sys.exit(1)
 
 
 def get_timeline_file(default: Path | str | None = None) -> Path | None:

@@ -86,9 +86,11 @@ class LoculusClient:
         self,
         group_id: int,
         metadata_file_path: Path,
-        processed_file_path: Path | None = None,
+        processed_file_path: Path,
+        nucleotide_alignment: Path,
         submission_id: str | None = None,
         data_use_terms_type: str = "OPEN",
+        resubmit_duplicate: bool = False,
     ) -> SubmitResponse:
         """Submit data to the Lapis API using pre-signed upload approach.
 
@@ -96,6 +98,7 @@ class LoculusClient:
             group_id: The group ID for the submission
             metadata_file_path: Path to the metadata TSV file
             processed_file_path: Path to the processed data file (e.g., .ndjson.zst)
+            nucleotide_alignment: Path to nucleotide alignment file (.bam)
             submission_id: Unique identifier for this submission
                            (auto-generated if not provided)
             data_use_terms_type: Data use terms type (default: "OPEN")
@@ -111,6 +114,24 @@ class LoculusClient:
                 "Authentication required. Please call authenticate() first."
             )
 
+        # log warning if duplicate submission detected and resubmit_duplicate is False
+        metadata = Submission.parse_metadata(processed_file_path)
+        sample_id = metadata.get("sample_id")
+        if (
+            not resubmit_duplicate
+            and sample_id is not None
+            and sample_id in released_samples(self)
+        ):
+            logging.warning(
+                f"Duplicate submission detected for sample_id '{sample_id}'. "
+                f"Skipping submission."
+                f"Use resubmit_duplicate=True to override."
+            )
+            return {
+                "status": "skipped",
+                "message": f"Duplicate submission for sample_id '{sample_id}' skipped.",
+            }
+
         # Use provided submission_id or generate if not provided
         if submission_id is None:
             submission_id = str(uuid.uuid4())
@@ -125,30 +146,39 @@ class LoculusClient:
                 "message": "Mock submission successful in CI environment",
             }
 
-        # Step 1: Upload processed file via pre-signed URL if provided
+        # Step 1: Upload both files via pre-signed URLs
         file_mapping_entries = {}
 
-        if processed_file_path is not None:
-            # Request pre-signed URL for processed file
-            upload_responses = self.request_upload(group_id=group_id, numberFiles=1)
+        # Always upload both files
+        files_to_upload = [
+            ("processed", processed_file_path),
+            ("nucleotide", nucleotide_alignment),
+        ]
 
-            if not upload_responses:
-                raise Exception("Failed to get upload URLs for processed file")
+        # Request pre-signed URLs for both files
+        upload_responses = self.request_upload(group_id=group_id, numberFiles=2)
 
-            processed_upload = upload_responses[0]
+        if len(upload_responses) != 2:
+            raise Exception(
+                f"Failed to get upload URLs for both files. "
+                f"Expected 2, got {len(upload_responses)}"
+            )
 
-            # Upload processed file to S3 using pre-signed URL
+        # Upload each file to S3 using pre-signed URLs
+        for i, (file_type, file_path) in enumerate(files_to_upload):
+            upload_info = upload_responses[i]
+
             try:
                 # Get file size for Content-Length header
-                file_size = processed_file_path.stat().st_size
+                file_size = file_path.stat().st_size
                 logging.info(
-                    f"Uploading processed file: {processed_file_path.name} "
+                    f"Uploading {file_type} file: {file_path.name} "
                     f"({file_size} bytes)"
                 )
 
-                with open(processed_file_path, "rb") as f:
+                with open(file_path, "rb") as f:
                     upload_response = requests.put(
-                        processed_upload["url"],
+                        upload_info["url"],
                         data=f,
                         headers={
                             "Content-Type": "application/octet-stream",
@@ -157,20 +187,29 @@ class LoculusClient:
                     )
                     upload_response.raise_for_status()
                     logging.info(
-                        f"Processed file uploaded successfully to S3: "
-                        f"{processed_file_path.name} ({file_size} bytes)"
+                        f"{file_type.capitalize()} file uploaded successfully to S3: "
+                        f"{file_path.name} ({file_size} bytes)"
                     )
 
-                # Add to file mapping
-                file_mapping_entries["silo_reads"] = [
-                    {
-                        "fileId": processed_upload["fileId"],
-                        "name": processed_file_path.name,
-                    }
-                ]
+                # Add to file mapping with correct key names
+                if file_type == "processed":
+                    file_mapping_entries["siloReads"] = [
+                        {
+                            "fileId": upload_info["fileId"],
+                            "name": file_path.name,
+                        }
+                    ]
+                elif file_type == "nucleotide":
+                    file_mapping_entries["nucleotideAlignment"] = [
+                        {
+                            "fileId": upload_info["fileId"],
+                            "name": file_path.name,
+                        }
+                    ]
+
             except Exception as e:
-                logging.error(f"Failed to upload processed file: {e}")
-                raise Exception(f"Processed file upload failed: {e}")
+                logging.error(f"Failed to upload {file_type} file: {e}")
+                raise Exception(f"{file_type.capitalize()} file upload failed: {e}")
 
         # Step 2: Create file mapping
         file_mapping = {submission_id: file_mapping_entries}
@@ -398,14 +437,30 @@ class Submission:
             columns = ["submissionId", "date"]
             values = [submission_id, submission_date]
 
-            # Add metadata fields as columns
-            for key, value in metadata.items():
-                columns.append(key)
-                values.append(str(value) if value is not None else "")
+            # Define mapping from snake_case to camelCase for specific fields
+            field_mapping = {
+                "sample_id": "sampleId",
+                "batch_id": "batchId",
+                "location_code": "locationCode",
+                "sampling_date": "samplingDate",
+                "location_name": "locationName",
+                "sr2silo_version": "sr2siloVersion",
+            }
+
+            # Add mapped metadata fields as columns (only the specified ones)
+            for snake_field, camel_field in field_mapping.items():
+                if snake_field in metadata:
+                    columns.append(camel_field)
+                    value = metadata[snake_field]
+                    values.append(str(value) if value is not None else "")
+                else:
+                    # Add empty column even if field is missing
+                    columns.append(camel_field)
+                    values.append("")
 
             # Add countReads column if requested
             if count is not None:
-                columns.append("countReads")
+                columns.append("countSiloReads")
                 values.append(str(count))
 
             # Write header row
@@ -421,11 +476,11 @@ class Submission:
     @staticmethod
     def parse_metadata(silo_input: Path) -> Dict:
         """Parses the metadata from a silo input .ndjson.zstd or .ndjson
-        returning all metadata fields but readId as a dictoriary with keys
-        in camel case.
+        returning all metadata fields but readId as a dictionary with keys
+        in snake_case format.
 
         Assumptions:
-         - the metaddata is stored in the root of the object under the keys
+         - the metadata is stored in the root of the object under the keys
          - each read has the same metadata, up to readId
         """
         # check if the file is compressed or not
@@ -481,20 +536,10 @@ class Submission:
                 )
                 metadata[field] = None
 
-        # convert keys to camel case
-        def to_camel_case(snake_str):
-            """Convert snake_case string to camelCase string."""
-            components = snake_str.split("_")
-            return components[0] + "".join(word.capitalize() for word in components[1:])
-
-        camel_case_metadata = {}
-        for key, value in metadata.items():
-            if key != "read_id":  # exclude readId as specified
-                camel_case_key = to_camel_case(key)
-                camel_case_metadata[camel_case_key] = value
-
-        # return the metadata dictionary
-        return camel_case_metadata
+        # return the metadata dictionary with snake_case keys
+        # (excluding read_id as specified)
+        filtered_metadata = {k: v for k, v in metadata.items() if k != "read_id"}
+        return filtered_metadata
 
     @staticmethod
     def count_reads(silo_input: Path) -> int:
@@ -539,3 +584,196 @@ class Submission:
                 return count + 1
             else:
                 return count
+
+
+def released_samples(client: LoculusClient) -> List[str]:
+    """Fetch the list of released sample IDs from the Loculus API.
+
+    Args:
+        client: An authenticated LoculusClient instance
+    Returns:
+        List of released sample IDs (including duplicates, excluding revoked ones)
+    """
+    response = get_original_metadata(client, statuses_filter="APPROVED_FOR_RELEASE")
+    if response is None:
+        logging.error("Failed to fetch released samples.")
+        return []
+
+    sample_entries = []  # List of (sample_id, accession) tuples
+    revoked_accessions = set()  # Track revoked accessions
+
+    if isinstance(response, list):
+        # First pass: collect all revoked accessions
+        for entry in response:
+            if isinstance(entry, dict) and entry.get("isRevocation", False):
+                accession = entry.get("accession")
+                if accession:
+                    revoked_accessions.add(accession)
+                    logging.debug(f"Found revoked accession: {accession}")
+
+        # Second pass: process entries and handle revocations
+        for entry in response:
+            if isinstance(entry, dict):
+                accession = entry.get("accession")
+                is_revocation = entry.get("isRevocation", False)
+
+                if is_revocation:
+                    # This is a revocation entry
+                    # remove the specific accession if we had it
+                    if "originalMetadata" in entry and isinstance(
+                        entry["originalMetadata"], dict
+                    ):
+                        original_metadata = entry["originalMetadata"]
+                        if "sampleId" in original_metadata:
+                            sample_id = original_metadata["sampleId"]
+                            # Remove the specific (sample_id, accession) pair
+                            sample_entries = [
+                                (sid, acc)
+                                for sid, acc in sample_entries
+                                if not (sid == sample_id and acc == accession)
+                            ]
+                            logging.debug(
+                                "Removed revoked entry: %s (accession: %s)",
+                                sample_id,
+                                accession,
+                            )
+                    # Skip processing this entry further
+                    continue
+
+                # Skip entries that have been revoked (by checking accession)
+                if accession and accession in revoked_accessions:
+                    logging.debug(f"Skipping entry with revoked accession: {accession}")
+                    continue
+
+                # Process valid (non-revoked) entries
+                if "originalMetadata" in entry and isinstance(
+                    entry["originalMetadata"], dict
+                ):
+                    original_metadata = entry["originalMetadata"]
+                    if "sampleId" in original_metadata:
+                        sample_id = original_metadata["sampleId"]
+                        sample_entries.append((sample_id, accession))
+                    else:
+                        logging.warning(
+                            "No sampleId found in originalMetadata: %s",
+                            original_metadata,
+                        )
+                else:
+                    logging.warning(
+                        f"Unexpected entry format - no sampleId found: {entry}"
+                    )
+            else:
+                logging.warning(f"Unexpected entry format: {entry}")
+    else:
+        logging.error(f"Unexpected response format: {response}")
+
+    # Extract just the sample_ids (may contain duplicates)
+    sample_ids = [sample_id for sample_id, _ in sample_entries]
+
+    logging.debug(
+        "Fetched %s released sample entries (after removing revocations).",
+        len(sample_ids),
+    )
+    if revoked_accessions:
+        logging.debug(f"Found {len(revoked_accessions)} revoked accessions.")
+
+    # Count unique sample_ids vs total entries
+    unique_sample_ids = len(set(sample_ids))
+    if unique_sample_ids != len(sample_ids):
+        logging.debug(
+            f"Found {unique_sample_ids} unique sample_ids with "
+            f"{len(sample_ids) - unique_sample_ids} duplicates."
+        )
+
+    return sample_ids
+
+
+def get_original_metadata(
+    client: LoculusClient, statuses_filter: str = "APPROVED_FOR_RELEASE", **params
+):
+    """
+    Fetch original metadata from the GenSpectrum API
+
+    Args:
+        statuses_filter: Filter by status (default: "APPROVED_FOR_RELEASE")
+        **params: Additional query parameters for the API request
+    """
+    if client.token is None:
+        raise Exception("Authentication required. Please call authenticate() first.")
+
+    url = f"{client.submission_url}/{client.organism}/get-original-metadata"
+
+    # Generate a unique request ID
+    request_id = str(uuid.uuid4())
+
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {client.token}",
+        "x-request-id": request_id,
+    }
+
+    # Add the statusesFilter parameter
+    params["statusesFilter"] = statuses_filter
+
+    try:
+        response = requests.get(url, headers=headers, params=params)
+
+        logging.debug(f"Status code: {response.status_code}")
+        logging.debug(f"Request ID: {request_id}")
+        logging.debug(f"URL: {response.url}")
+        logging.debug(
+            f"Content-Type: {response.headers.get('Content-Type', 'Not specified')}"
+        )
+
+        response.raise_for_status()
+
+        # Debug: Print raw response first
+        raw_text = response.text
+        logging.debug(f"Raw response length: {len(raw_text)} characters")
+
+        # Check if response is empty
+        if not raw_text.strip():
+            logging.warning("Received empty response from get-original-metadata API")
+            return []
+
+        # Try to parse as JSON
+        try:
+            return response.json()
+        except json.JSONDecodeError as json_error:
+            logging.debug(f"JSON decode error: {json_error}")
+            logging.debug("Response appears to be NDJSON format")
+
+            # Try to parse as NDJSON (one JSON object per line)
+            lines = raw_text.strip().split("\n")
+            logging.debug(f"Found {len(lines)} lines in NDJSON response")
+
+            if len(lines) > 0:
+                try:
+                    # Parse all lines as JSON objects
+                    parsed_objects = []
+                    for i, line in enumerate(lines):
+                        if line.strip():
+                            try:
+                                parsed_objects.append(json.loads(line))
+                            except json.JSONDecodeError:
+                                logging.warning(
+                                    f"Failed to parse line {i}: {line[:100]}..."
+                                )
+                                break
+
+                    logging.debug(
+                        f"Successfully parsed {len(parsed_objects)} JSON objects"
+                    )
+                    return parsed_objects
+
+                except json.JSONDecodeError:
+                    logging.error("Could not parse response as JSON or NDJSON")
+                    return []
+            else:
+                return []
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error making request: {e}")
+        if hasattr(e, "response") and e.response is not None:
+            logging.error(f"Response text: {e.response.text}")
+        return None

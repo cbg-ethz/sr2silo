@@ -49,7 +49,7 @@ def test_submit_to_loculus():
             "python",
             "-m",
             "snakemake",
-            "results/uploads/sampleId-A1_05_2024_10_08_batchId-20241024_2411515907.uploaded",
+            "results/uploads/sampleId-A1_05_2024_10_08.uploaded",
             "-n",  # dry-run mode - this will check the rule without executing
             "-j1",
             "--use-conda",  # Force use of conda environments
@@ -90,7 +90,7 @@ def test_submit_to_loculus():
             # Check for log file
             log_file = (
                 workdir / "logs/sr2silo/submit_to_loculus/"
-                "sampleId_A1_05_2024_10_08_batchId_20241024_2411515907.log"
+                "sampleId_A1_05_2024_10_08.log"
             )
             if log_file.exists():
                 with open(log_file) as f:

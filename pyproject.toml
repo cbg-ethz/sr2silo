@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sr2silo"
-version = "1.4.0"
+version = "1.5.0"
 description = "ETL tool for importing short-read sequencing data into SILO database (v0.8.0+), powering Loculus."
 authors = ["Gordon Julian Koehn <gordon.koehn@dbsse.ethz.ch>"]
 readme = "README.md"
@@ -20,7 +20,6 @@ zstandard = "^0.23.0"
 typer = "^0.15.1"
 biopython = "^1.83"
 pysam = "^0.23.0"
-python-dotenv = "^1.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
