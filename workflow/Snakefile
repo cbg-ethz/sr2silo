@@ -24,6 +24,47 @@ configfile: str(CONFIG)
 with open(CONFIG, "r") as file:
     config = yaml.safe_load(file)
 
+def resolve_date(date_str):
+    """Resolve date string, supporting 'TODAY' and relative dates like '2_WEEKS_AGO', '1_MONTH_AGO'."""
+    date_upper = date_str.upper()
+    
+    if date_upper == "TODAY":
+        return datetime.now().strftime("%Y-%m-%d")
+    
+    # Handle relative dates: N_WEEKS_AGO, N_MONTHS_AGO, N_DAYS_AGO
+    import re
+    from datetime import timedelta
+    from dateutil.relativedelta import relativedelta
+    
+    # Match patterns like "2_WEEKS_AGO", "1_MONTH_AGO", "30_DAYS_AGO"
+    weeks_match = re.match(r"(\d+)_WEEKS?_AGO", date_upper)
+    months_match = re.match(r"(\d+)_MONTHS?_AGO", date_upper)
+    days_match = re.match(r"(\d+)_DAYS?_AGO", date_upper)
+    
+    now = datetime.now()
+    
+    if weeks_match:
+        weeks = int(weeks_match.group(1))
+        target_date = now - timedelta(weeks=weeks)
+        return target_date.strftime("%Y-%m-%d")
+    
+    elif months_match:
+        months = int(months_match.group(1))
+        target_date = now - relativedelta(months=months)
+        return target_date.strftime("%Y-%m-%d")
+    
+    elif days_match:
+        days = int(days_match.group(1))
+        target_date = now - timedelta(days=days)
+        return target_date.strftime("%Y-%m-%d")
+    
+    # If no special pattern, return as-is (assume explicit date)
+    return date_str
+
+# Resolve dynamic dates in config
+config["START_DATE"] = resolve_date(config["START_DATE"])
+config["END_DATE"] = resolve_date(config["END_DATE"])
+
 
 def get_sample_list():
     """Read timeline file and filter by date range and location codes."""
