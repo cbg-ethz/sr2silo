@@ -9,7 +9,11 @@ import csv
 from pathlib import Path
 from datetime import datetime
 
-WORKFLOW_DIR = Path(__file__).resolve().parent
+# Prefer Snakemake's notion of the workflow base directory, but fall back to this file's directory for direct execution.
+try:
+    WORKFLOW_DIR = Path(workflow.basedir)
+except NameError:
+    WORKFLOW_DIR = Path(__file__).resolve().parent
 
 # Single source of truth: require production config next to this Snakefile
 CONFIG = WORKFLOW_DIR / "config_prod.yaml"

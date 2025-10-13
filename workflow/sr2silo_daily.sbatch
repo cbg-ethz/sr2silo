@@ -51,7 +51,7 @@ CONDA_ENV="sr2silo-workflow"
 WORKFLOW_SCRIPT="./sr2silo_workflow.sbatch"
 
 # Path to this script (for resubmission)
-DAILY_SCRIPT="${BASH_SOURCE[0]}"
+DAILY_SCRIPT_NAME="sr2silo_daily.sbatch"
 
 # =============================================================================
 # Script Execution
@@ -71,20 +71,34 @@ echo "=============================================="
 # Create log directory if it doesn't exist
 mkdir -p "$LOG_DIR"
 
-# Always run from the directory of this script so Snakefile and config paths resolve
-SCRIPT_DIR="$(cd "$(dirname "$DAILY_SCRIPT")" && pwd)"
-echo "Workflow directory: $SCRIPT_DIR"
-cd "$SCRIPT_DIR" || { echo "ERROR: Failed to cd to $SCRIPT_DIR"; exit 1; }
+# Determine the workflow directory.
+# Prefer SLURM_SUBMIT_DIR because sbatch copies the script to /var/spool, which lacks the Snakefile.
+if [ -n "$SLURM_SUBMIT_DIR" ] && [ -d "$SLURM_SUBMIT_DIR" ]; then
+    CANDIDATE_DIR="$SLURM_SUBMIT_DIR"
+else
+    CANDIDATE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
+
+# If the Snakefile is not directly in the submit directory, fall back to a workflow/ subdirectory.
+if [ ! -f "$CANDIDATE_DIR/Snakefile" ] && [ -f "$CANDIDATE_DIR/workflow/Snakefile" ]; then
+    CANDIDATE_DIR="$CANDIDATE_DIR/workflow"
+fi
+
+WORKFLOW_DIR="$CANDIDATE_DIR"
+DAILY_SCRIPT="$WORKFLOW_DIR/$DAILY_SCRIPT_NAME"
+
+echo "Workflow directory: $WORKFLOW_DIR"
+cd "$WORKFLOW_DIR" || { echo "ERROR: Failed to cd to $WORKFLOW_DIR"; exit 1; }
 
 # Quick sanity checks
 if [ ! -f "Snakefile" ]; then
-    echo "ERROR: No Snakefile found in $SCRIPT_DIR"
+    echo "ERROR: No Snakefile found in $WORKFLOW_DIR"
     echo "Contents of directory:" && ls -la
     exit 1
 fi
 
 # Prefer explicit snakefile path to avoid CWD ambiguity
-SNAKEFILE="$SCRIPT_DIR/Snakefile"
+SNAKEFILE="$WORKFLOW_DIR/Snakefile"
 
 # Load eth_proxy module for internet access on ETH cluster
 echo "Loading eth_proxy module..."
@@ -142,8 +156,11 @@ echo "=============================================="
 echo "Resubmitting for tomorrow at 23:00..."
 echo "=============================================="
 
-# Change to the workflow directory to ensure correct path for resubmission
-cd "$SCRIPT_DIR"
+if [ ! -f "$DAILY_SCRIPT" ]; then
+    echo "ERROR: Could not locate daily script at $DAILY_SCRIPT"
+    echo "The daily workflow cycle has been interrupted."
+    exit 1
+fi
 
 NEW_JOB_ID=$(sbatch "$DAILY_SCRIPT" | awk '{print $4}')
 
