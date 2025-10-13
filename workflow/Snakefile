@@ -16,7 +16,7 @@ except NameError:
     WORKFLOW_DIR = Path(__file__).resolve().parent
 
 # Single source of truth: require production config next to this Snakefile
-CONFIG = WORKFLOW_DIR / "config.yaml"
+CONFIG = WORKFLOW_DIR / "config_prod.yaml"
 if not CONFIG.exists():
     print(f"❌ ERROR: Expected config file not found: {CONFIG}")
     sys.exit(1)
@@ -358,9 +358,9 @@ rule subsample_bam:
         SUBSAMPLED_READS=$(samtools view -c {output.bam})
         echo "Subsampled reads: $SUBSAMPLED_READS" >> {log}
 
-    # Append aggregation summary to log for downstream parsing
-    DATE=$(date +%Y-%m-%d)
-    echo -e "SUMMARY\t{params.sample_id}\t$DATE\t$ORIGINAL_READS\t$SUBSAMPLED_READS\t$ACTUAL_FRACTION" >> {log}
+        # Append aggregation summary to log for downstream parsing
+        DATE=$(date +%Y-%m-%d)
+        echo -e "SUMMARY\t{params.sample_id}\t$DATE\t$ORIGINAL_READS\t$SUBSAMPLED_READS\t$ACTUAL_FRACTION" >> {log}
 
         echo "Subsampling completed successfully" >> {log}
         """
