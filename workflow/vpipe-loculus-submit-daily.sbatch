@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Sr2Silo Daily Workflow SLURM Batch Script (Self-Submitting)
+# VPipe → Loculus Submit Daily Workflow SLURM Batch Script (Self-Submitting)
 # =============================================================================
 #
 # This script runs the sr2silo workflow daily at 23:00 (11 PM) and automatically
@@ -20,7 +20,7 @@
 #
 # =============================================================================
 
-#SBATCH --job-name=sr2silo-daily
+#SBATCH --job-name=vpipe-loculus-submit-daily
 #SBATCH --mail-type=END,FAIL
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=20
@@ -28,8 +28,8 @@
 #SBATCH --tmp=800G
 #SBATCH --time=12:00:00
 #SBATCH --begin=23:00
-#SBATCH --output=/cluster/project/pangolin/research/W-ASAP/logs/sr2silo-daily-%j.out
-#SBATCH --error=/cluster/project/pangolin/research/W-ASAP/logs/sr2silo-daily-%j.err
+#SBATCH --output=/cluster/project/pangolin/research/W-ASAP/logs/vpipe-loculus-submit-daily-%j.out
+#SBATCH --error=/cluster/project/pangolin/research/W-ASAP/logs/vpipe-loculus-submit-daily-%j.err
 
 # =============================================================================
 # Configuration Variables - Edit these as needed
@@ -51,14 +51,14 @@ CONDA_ENV="sr2silo-workflow"
 WORKFLOW_SCRIPT="./sr2silo_workflow.sbatch"
 
 # Path to this script (for resubmission)
-DAILY_SCRIPT_NAME="sr2silo_daily.sbatch"
+DAILY_SCRIPT_NAME="vpipe-loculus-submit-daily.sbatch"
 
 # =============================================================================
 # Script Execution
 # =============================================================================
 
 echo "=============================================="
-echo "Sr2Silo Daily Workflow Starting"
+echo "VPipe → Loculus Submit Daily Workflow Starting"
 echo "Job ID: $SLURM_JOB_ID"
 echo "Node: $SLURM_NODELIST"
 echo "Date: $(date)"
@@ -145,7 +145,7 @@ WORKFLOW_EXIT_CODE=$?
 
 echo ""
 echo "=============================================="
-echo "Sr2Silo Workflow Completed"
+echo "VPipe → Loculus Submit Workflow Completed"
 echo "Exit code: $WORKFLOW_EXIT_CODE"
 echo "Completed at: $(date)"
 echo "=============================================="
