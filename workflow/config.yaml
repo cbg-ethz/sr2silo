@@ -24,8 +24,8 @@ START_DATE: "1_MONTH_AGO"
 END_DATE: "TODAY"
 
 ### Input Files
-BASE_SAMPLE_DIR:  "../results" # "tests/data/samples_large"
-TIMELINE_FILE: "/cluster/project/pangolin/processes/lollipop/variants/timeline.tsv" # "tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
+BASE_SAMPLE_DIR: "tests/data/samples_large"
+TIMELINE_FILE: "tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
 ### Output Files
 RESULTS_DIR:  "../silo-inputs"
 
