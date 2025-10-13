@@ -16,7 +16,7 @@ except NameError:
     WORKFLOW_DIR = Path(__file__).resolve().parent
 
 # Single source of truth: require production config next to this Snakefile
-CONFIG = WORKFLOW_DIR / "config_prod.yaml"
+CONFIG = WORKFLOW_DIR / "config.yaml"
 if not CONFIG.exists():
     print(f"❌ ERROR: Expected config file not found: {CONFIG}")
     sys.exit(1)
