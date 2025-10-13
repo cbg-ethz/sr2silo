@@ -269,9 +269,6 @@ rule subsample_bam:
         bam=lambda wildcards: get_input_file_path(wildcards.sample_id),
     output:
         bam=f"{config['RESULTS_DIR']}/subsampled/{{sample_id}}/REF_aln_trim.bam",
-        log_entry=temp(
-            f"{config['RESULTS_DIR']}/subsampled/{{sample_id}}/read_count.tmp"
-        ),
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
         subsample_fraction=config.get("SUBSAMPLE_FRACTION", "None"),
@@ -361,10 +358,9 @@ rule subsample_bam:
         SUBSAMPLED_READS=$(samtools view -c {output.bam})
         echo "Subsampled reads: $SUBSAMPLED_READS" >> {log}
 
-        # Create log entry for aggregation
-        DATE=$(date +%Y-%m-%d)
-        WEEK=$(date +%Y-W%U)
-        echo -e "{params.sample_id}\t$DATE\t$ORIGINAL_READS\t$SUBSAMPLED_READS\t$ACTUAL_FRACTION\t$WEEK" > {output.log_entry}
+    # Append aggregation summary to log for downstream parsing
+    DATE=$(date +%Y-%m-%d)
+    echo -e "SUMMARY\t{params.sample_id}\t$DATE\t$ORIGINAL_READS\t$SUBSAMPLED_READS\t$ACTUAL_FRACTION" >> {log}
 
         echo "Subsampling completed successfully" >> {log}
         """
@@ -373,9 +369,9 @@ rule subsample_bam:
 rule aggregate_read_counts:
     """Aggregate read count statistics from all subsampled files into a single log file."""
     input:
-        log_entries=(
+        subsample_logs=(
             [
-                f"{config['RESULTS_DIR']}/subsampled/{sample_id}/read_count.tmp"
+                f"logs/sr2silo/subsample/sampleId_{sample_id}.log"
                 for sample_id in SAMPLE_IDS
             ]
             if config.get("ENABLE_SUBSAMPLING", False)
@@ -383,20 +379,37 @@ rule aggregate_read_counts:
         ),
     output:
         summary="logs/subsampling/read_counts.tsv",
-    shell:
-        """
-        mkdir -p logs/subsampling
+    run:
+        from pathlib import Path
 
-        # Create header
-        echo -e "sample_id\tdate\toriginal_reads\tsubsampled_reads\tsubsample_fraction\tweek_of_year" > {output.summary}
+        summary_path = Path(output.summary)
+        summary_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Aggregate all log entries
-        if [ "{input.log_entries}" != "" ]; then
-            cat {input.log_entries} >> {output.summary}
-        fi
+        lines = [
+            "sample_id\tdate\toriginal_reads\tsubsampled_reads\tsubsample_fraction"
+        ]
 
-        echo "Read count summary created: {output.summary}"
-        """
+        log_entries = input.subsample_logs
+        if isinstance(log_entries, str):
+            log_entries = [log_entries]
+
+        for log_path in map(Path, log_entries):
+            if not log_path.exists():
+                continue
+
+            summary_line = None
+            with log_path.open() as handle:
+                for line in handle:
+                    if line.startswith("SUMMARY\t"):
+                        # Keep the latest SUMMARY line emitted by the subsample job
+                        summary_line = line.strip().split("\t")
+
+            if summary_line:
+                lines.append("\t".join(summary_line[1:]))
+                continue
+
+        summary_path.write_text("\n".join(lines) + "\n")
+        print(f"Read count summary created: {output.summary}")
 
 
 rule process_sample:
