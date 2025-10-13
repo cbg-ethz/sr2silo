@@ -71,6 +71,21 @@ echo "=============================================="
 # Create log directory if it doesn't exist
 mkdir -p "$LOG_DIR"
 
+# Always run from the directory of this script so Snakefile and config paths resolve
+SCRIPT_DIR="$(cd "$(dirname "$DAILY_SCRIPT")" && pwd)"
+echo "Workflow directory: $SCRIPT_DIR"
+cd "$SCRIPT_DIR" || { echo "ERROR: Failed to cd to $SCRIPT_DIR"; exit 1; }
+
+# Quick sanity checks
+if [ ! -f "Snakefile" ]; then
+    echo "ERROR: No Snakefile found in $SCRIPT_DIR"
+    echo "Contents of directory:" && ls -la
+    exit 1
+fi
+
+# Prefer explicit snakefile path to avoid CWD ambiguity
+SNAKEFILE="$SCRIPT_DIR/Snakefile"
+
 # Load eth_proxy module for internet access on ETH cluster
 echo "Loading eth_proxy module..."
 module load eth_proxy
@@ -103,13 +118,13 @@ echo "=============================================="
 if [ "$USE_EXISTING_ENV" = true ]; then
     # Use the active conda environment
     echo "Using existing conda environment"
-    echo "Running: snakemake -c $CORES --rerun-incomplete --keep-going"
-    snakemake -c $CORES --rerun-incomplete --keep-going
+    echo "Running: snakemake -s $SNAKEFILE -c $CORES --rerun-incomplete --keep-going"
+    snakemake -s "$SNAKEFILE" -c $CORES --rerun-incomplete --keep-going
 else
     # Use the conda environments defined in the workflow
     echo "Using workflow-defined conda environments"
-    echo "Running: snakemake --use-conda --conda-frontend conda -c $CORES --rerun-incomplete --keep-going"
-    snakemake --use-conda --conda-frontend conda -c $CORES --rerun-incomplete --keep-going
+    echo "Running: snakemake -s $SNAKEFILE --use-conda --conda-frontend conda -c $CORES --rerun-incomplete --keep-going"
+    snakemake -s "$SNAKEFILE" --use-conda --conda-frontend conda -c $CORES --rerun-incomplete --keep-going
 fi
 
 WORKFLOW_EXIT_CODE=$?
@@ -127,8 +142,8 @@ echo "=============================================="
 echo "Resubmitting for tomorrow at 23:00..."
 echo "=============================================="
 
-# Change to the workflow directory to ensure correct path
-cd "$(dirname "$DAILY_SCRIPT")"
+# Change to the workflow directory to ensure correct path for resubmission
+cd "$SCRIPT_DIR"
 
 NEW_JOB_ID=$(sbatch "$DAILY_SCRIPT" | awk '{print $4}')
 

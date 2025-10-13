@@ -9,10 +9,15 @@ import csv
 from pathlib import Path
 from datetime import datetime
 
-CONFIG = "workflow/config.yaml"
+WORKFLOW_DIR = Path(__file__).resolve().parent
 
+# Single source of truth: require production config next to this Snakefile
+CONFIG = WORKFLOW_DIR / "config_prod.yaml"
+if not CONFIG.exists():
+    print(f"❌ ERROR: Expected config file not found: {CONFIG}")
+    sys.exit(1)
 
-configfile: CONFIG
+configfile: str(CONFIG)
 
 
 # Load configuration
