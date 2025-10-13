@@ -15,11 +15,29 @@ try:
 except NameError:
     WORKFLOW_DIR = Path(__file__).resolve().parent
 
-# Single source of truth: require production config next to this Snakefile
-CONFIG = WORKFLOW_DIR / "config.yaml"
+# Configuration and path resolution notes:
+# - When running tests, the suite copies a workflow/config.yaml into a temporary workdir and
+#   invokes Snakemake with `--directory <workdir>`. In that case we prefer the runtime
+#   config at `<workdir>/workflow/config.yaml` so tests remain self-contained.
+# - For file paths provided in config (e.g., TIMELINE_FILE, BASE_SAMPLE_DIR), we resolve
+#   relative paths first against the runtime workdir, then the config directory, and finally
+#   this repository's workflow directory. This keeps CLI runs and CI tests consistent.
+
+# Also capture Snakemake's runtime workdir (when --directory is used), fall back to current CWD
+try:
+    RUNTIME_DIR = Path(workflow.workdir)
+except Exception:
+    RUNTIME_DIR = Path.cwd()
+
+# Prefer a config from the runtime workdir (tests copy theirs into workdir/workflow/config.yaml),
+# and fall back to the repository's workflow/config.yaml
+DEFAULT_CONFIG = WORKFLOW_DIR / "config.yaml"
+RUNTIME_CONFIG = RUNTIME_DIR / "workflow" / "config.yaml"
+CONFIG = RUNTIME_CONFIG if RUNTIME_CONFIG.exists() else DEFAULT_CONFIG
 if not CONFIG.exists():
     print(f"❌ ERROR: Expected config file not found: {CONFIG}")
     sys.exit(1)
+
 
 configfile: str(CONFIG)
 
@@ -28,42 +46,64 @@ configfile: str(CONFIG)
 with open(CONFIG, "r") as file:
     config = yaml.safe_load(file)
 
+# Helper to resolve relative paths from workdir/config/workflow dirs
+CONFIG_DIR = CONFIG.parent
+
+
+def resolve_path(p):
+    """Resolve a path string relative to (in order): runtime workdir, config dir, workflow dir.
+
+    - Absolute paths are returned unchanged.
+    - For relative paths, we return the first existing candidate; if none exist,
+      we return the path relative to the config directory (so subsequent creation works).
+    """
+    p = Path(p)
+    if p.is_absolute():
+        return p
+    for base in (RUNTIME_DIR, CONFIG_DIR, WORKFLOW_DIR):
+        candidate = base / p
+        if candidate.exists():
+            return candidate
+    return CONFIG_DIR / p
+
+
 def resolve_date(date_str):
     """Resolve date string, supporting 'TODAY' and relative dates like '2_WEEKS_AGO', '1_MONTH_AGO'."""
     date_upper = date_str.upper()
-    
+
     if date_upper == "TODAY":
         return datetime.now().strftime("%Y-%m-%d")
-    
+
     # Handle relative dates: N_WEEKS_AGO, N_MONTHS_AGO, N_DAYS_AGO
     import re
     from datetime import timedelta
     from dateutil.relativedelta import relativedelta
-    
+
     # Match patterns like "2_WEEKS_AGO", "1_MONTH_AGO", "30_DAYS_AGO"
     weeks_match = re.match(r"(\d+)_WEEKS?_AGO", date_upper)
     months_match = re.match(r"(\d+)_MONTHS?_AGO", date_upper)
     days_match = re.match(r"(\d+)_DAYS?_AGO", date_upper)
-    
+
     now = datetime.now()
-    
+
     if weeks_match:
         weeks = int(weeks_match.group(1))
         target_date = now - timedelta(weeks=weeks)
         return target_date.strftime("%Y-%m-%d")
-    
+
     elif months_match:
         months = int(months_match.group(1))
         target_date = now - relativedelta(months=months)
         return target_date.strftime("%Y-%m-%d")
-    
+
     elif days_match:
         days = int(days_match.group(1))
         target_date = now - timedelta(days=days)
         return target_date.strftime("%Y-%m-%d")
-    
+
     # If no special pattern, return as-is (assume explicit date)
     return date_str
+
 
 # Resolve dynamic dates in config
 config["START_DATE"] = resolve_date(config["START_DATE"])
@@ -76,7 +116,8 @@ def get_sample_list():
     # Read the timeline file
     sample_list = []
 
-    with open(config["TIMELINE_FILE"], "r") as f:
+    timeline_fp = resolve_path(config["TIMELINE_FILE"])
+    with open(timeline_fp, "r") as f:
         reader = csv.reader(f, delimiter="\t")
         # Skip header row if it exists
         first_row = next(reader, None)
@@ -147,13 +188,16 @@ def get_sample_list():
 
 def get_input_file_path(sample_id):
     """Get the input file path for the sample, trying both with and without batch structure."""
+    base_dir = resolve_path(config["BASE_SAMPLE_DIR"])
+
     # First try without batch_id structure
-    simple_path = f"{config['BASE_SAMPLE_DIR']}/{sample_id}/alignments/REF_aln_trim.bam"
-    if Path(simple_path).exists():
-        return simple_path
+    simple_path = base_dir / sample_id / "alignments" / "REF_aln_trim.bam"
+    if simple_path.exists():
+        return str(simple_path)
 
     # If that doesn't exist, we need to find the batch_id by checking the timeline
-    with open(config["TIMELINE_FILE"], "r") as f:
+    timeline_fp = resolve_path(config["TIMELINE_FILE"])
+    with open(timeline_fp, "r") as f:
         reader = csv.reader(f, delimiter="\t")
         # Skip header row if it exists
         first_row = next(reader, None)
@@ -164,21 +208,33 @@ def get_input_file_path(sample_id):
             if first_row and len(first_row) >= 2 and first_row[0] == sample_id:
                 batch_id = first_row[1]
                 if batch_id:  # If batch_id exists, try that path
-                    batch_path = f"{config['BASE_SAMPLE_DIR']}/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam"
-                    if Path(batch_path).exists():
-                        return batch_path
+                    batch_path = (
+                        base_dir
+                        / sample_id
+                        / batch_id
+                        / "alignments"
+                        / "REF_aln_trim.bam"
+                    )
+                    if batch_path.exists():
+                        return str(batch_path)
 
         # Process remaining rows
         for row in reader:
             if len(row) >= 2 and row[0] == sample_id:
                 batch_id = row[1]
                 if batch_id:  # If batch_id exists, try that path
-                    batch_path = f"{config['BASE_SAMPLE_DIR']}/{sample_id}/{batch_id}/alignments/REF_aln_trim.bam"
-                    if Path(batch_path).exists():
-                        return batch_path
+                    batch_path = (
+                        base_dir
+                        / sample_id
+                        / batch_id
+                        / "alignments"
+                        / "REF_aln_trim.bam"
+                    )
+                    if batch_path.exists():
+                        return str(batch_path)
 
     # Default to simple path if nothing else works
-    return simple_path
+    return str(simple_path)
 
 
 def get_processing_input_path(sample_id):
