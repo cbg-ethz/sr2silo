@@ -31,7 +31,7 @@ except Exception:
 
 # Prefer a config from the runtime workdir (tests copy theirs into workdir/workflow/config.yaml),
 # and fall back to the repository's workflow/config.yaml
-DEFAULT_CONFIG = WORKFLOW_DIR / "config.yaml"
+DEFAULT_CONFIG = WORKFLOW_DIR / "config_prod.yaml"
 RUNTIME_CONFIG = RUNTIME_DIR / "workflow" / "config.yaml"
 CONFIG = RUNTIME_CONFIG if RUNTIME_CONFIG.exists() else DEFAULT_CONFIG
 if not CONFIG.exists():
