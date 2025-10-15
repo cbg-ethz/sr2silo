@@ -263,11 +263,7 @@ def enrich_read_with_aa_seq(
                 pos = int(fields[3])
                 cigar = fields[5]
                 seq = fields[9]
-                (
-                    aa_aligned,
-                    insertions,
-                    aa_deletions,
-                ) = convert.sam_to_seq_and_indels(seq, cigar)
+                (aa_aligned, insertions) = convert.sam_to_seq_and_indels(seq, cigar)
 
                 # Convert generic Insertion objects to AAInsertion objects
                 # Note: Insertions without a context sequence are non-sense
