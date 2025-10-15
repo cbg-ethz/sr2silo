@@ -272,29 +272,24 @@ def test_sam_to_seq_and_indels():
     # - Cleartext: "AGCTTGCTAGCTT" [matches from 5M, 5M, 3M]
     # - Insertion: one insertion at position 5 with base "A"
     # - Deletion: one deletion at position 10 with length 1
-    expected_cleartext = "AGCTTGCTAGCTT"
-    expected_deletions = [(10, 1)]
+    expected_cleartext = "AGCTTGCTAG-CTT"
 
-    cleartext, insertions, deletions = sam_to_seq_and_indels(seq, cigar)
+    cleartext, insertions = sam_to_seq_and_indels(seq, cigar)
 
     # assert the types of the outputs
     assert isinstance(cleartext, str), "cleartext is not a string"
     assert isinstance(insertions, list), "insertions is not a list"
-    assert isinstance(deletions, list), "deletions is not a list"
 
     # assert the elements of insertiosn and deletions
     for ins in insertions:
         assert isinstance(ins, Insertion), "insertions contains a non-Insertion object"
-    for del_ in deletions:
-        assert isinstance(del_, tuple), "deletions contains a non-tuple object"
 
     assert (
         cleartext == expected_cleartext
     ), f"Expected cleartext {expected_cleartext}, got {cleartext}"
-    assert (
-        deletions == expected_deletions
-    ), f"Expected deletions {expected_deletions}, got {deletions}"
+
     assert len(insertions) == 1, f"Expected 1 insertion, got {len(insertions)}"
+
     # Check that the insertion is an instance of Insertion and has correct attributes.
     ins = insertions[0]
     assert isinstance(ins, Insertion), "Insertion is not an instance of Insertion"
