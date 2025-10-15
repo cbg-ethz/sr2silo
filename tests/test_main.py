@@ -354,7 +354,7 @@ def test_submit_to_loculus_cli_overrides_env():
                 "/tmp/test.bam",
                 "--keycloak-token-url",
                 "https://cli.auth.com/token",
-                "--submission-url",
+                "--backend-url",
                 "https://cli.submit.com/api",
             ],
         )
