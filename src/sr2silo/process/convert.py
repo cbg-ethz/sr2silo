@@ -334,7 +334,8 @@ def sam_to_seq_and_indels(
     Returns:
         tuple: A tuple containing:
             - cleartext_sequence (str): The sequence aligned to the reference,
-                                         with deletions as '-' and skipped regions as 'N',
+                                         with deletions as '-'
+                                         and skipped regions as 'N',
                                          excluding insertions.
             - insertions (list of Insertion): A list of Insertion objects
 
