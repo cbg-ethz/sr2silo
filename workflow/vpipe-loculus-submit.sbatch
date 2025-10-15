@@ -18,7 +18,7 @@
 #    - true:  Use your currently active conda environment
 # 3. Edit the LOG_DIR variable to set custom log directory if needed
 # 4. Edit the CONDA_ENV variable if you want to use a different environment
-# 5. Submit with: sbatch sr2silo_workflow.sbatch
+# 5. Submit with: sbatch vpipe-loculus-submit.sbatch
 #
 # =============================================================================
 

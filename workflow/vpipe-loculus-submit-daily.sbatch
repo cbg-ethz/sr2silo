@@ -14,7 +14,7 @@
 # HOW TO USE:
 # -----------
 # 1. Edit the configuration variables below as needed
-# 2. Submit the job once: sbatch sr2silo_daily.sbatch
+# 2. Submit the job once: sbatch vpipe-loculus-submit.sbatch
 # 3. The job will run at 23:00 and automatically resubmit itself
 # 4. To stop the cycle, use: scancel <job_id>
 #
