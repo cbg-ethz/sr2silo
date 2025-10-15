@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from sr2silo.config import (
     get_keycloak_token_url,
-    get_submission_url,
+    get_backend_url,
     get_timeline_file,
     get_version,
     is_ci_environment,
@@ -134,20 +134,20 @@ def test_get_keycloak_token_url():
             mock_exit.assert_called_once_with(1)
 
 
-def test_get_submission_url():
-    """Test get_submission_url function."""
+def test_get_backend_url():
+    """Test get_backend_url function."""
     # Test with environment variable set
-    with patch.dict(os.environ, {"SUBMISSION_URL": "https://submit.example.com"}):
-        result = get_submission_url()
+    with patch.dict(os.environ, {"BACKEND_URL": "https://submit.example.com"}):
+        result = get_backend_url()
         assert result == "https://submit.example.com"
 
     # Test with environment variable not set, with default
     with patch.dict(os.environ, {}, clear=True):
-        result = get_submission_url("https://default.submit.com")
+        result = get_backend_url("https://default.submit.com")
         assert result == "https://default.submit.com"
 
     # Test with environment variable not set, no default - should exit
     with patch.dict(os.environ, {}, clear=True):
         with patch("sys.exit") as mock_exit:
-            get_submission_url()
+            get_backend_url()
             mock_exit.assert_called_once_with(1)

@@ -13,7 +13,7 @@ from sr2silo.config import (
     get_mock_urls,
     get_organism,
     get_password,
-    get_submission_url,
+    get_backend_url,
     get_username,
     is_ci_environment,
 )
@@ -38,7 +38,7 @@ def submit(
     processed_file: Path,
     nucleotide_alignment: Path,
     keycloak_token_url: str | None = None,
-    submission_url: str | None = None,
+    backend_url: str | None = None,
     group_id: int | None = None,
     organism: str | None = None,
     username: str | None = None,
@@ -50,13 +50,9 @@ def submit(
         processed_file: Path to the processed .ndjson.zst file to upload.
         nucleotide_alignment: Path to nucleotide alignment file. (e.g., .bam)
         keycloak_token_url: Keycloak token URL. If None, uses environment.
-        submission_url: Submission URL. If None, uses environment.
+        backend_url: Backend URL. If None, uses environment.
         group_id: Group ID for submission. If None, uses environment.
         organism : Organism identifier for submission. If None, uses environment.
-        username: Username for authentication. If None, uses environment.
-        password: Password for authentication. If None, uses environment.
-        submission_url: Submission URL. If None, uses environment.
-        group_id: Group ID for submission. If None, uses environment.
         username: Username for authentication. If None, uses environment.
         password: Password for authentication. If None, uses environment.
 
@@ -75,13 +71,13 @@ def submit(
             "CI environment active; using mock URLs but executing submission mechanics."
         )
         # Get mock URLs for CI environment, then continue with LAPIS submission
-        KEYCLOAK_TOKEN_URL, SUBMISSION_URL = get_mock_urls()
+        KEYCLOAK_TOKEN_URL, BACKEND_URL = get_mock_urls()
     else:
         # Get URLs from parameters or environment
         KEYCLOAK_TOKEN_URL = keycloak_token_url or get_keycloak_token_url()
-        SUBMISSION_URL = submission_url or get_submission_url()
+        BACKEND_URL = backend_url or get_backend_url()
         logging.info(f"Using Keycloak URL: {KEYCLOAK_TOKEN_URL}")
-        logging.info(f"Using submission URL: {SUBMISSION_URL}")
+        logging.info(f"Using backend URL: {BACKEND_URL}")
 
     # Resolve authentication parameters with environment fallback
     resolved_group_id = group_id if group_id is not None else get_group_id()
@@ -96,7 +92,7 @@ def submit(
 
     try:
         # Create client with organism parameter
-        client = LoculusClient(KEYCLOAK_TOKEN_URL, SUBMISSION_URL, resolved_organism)
+        client = LoculusClient(KEYCLOAK_TOKEN_URL, BACKEND_URL, resolved_organism)
         client.authenticate(username=resolved_username, password=resolved_password)
 
         # Submit using new API with both metadata and processed file

@@ -10,7 +10,7 @@ RESULTS_DIR: "results"
 
 # Environment variables for submit_to_loculus rule
 KEYCLOAK_TOKEN_URL: "https://test.keycloak.token.url"
-SUBMISSION_URL: "https://test.submission.url"
+BACKEND_URL: "https://test.submission.url"
 GROUP_ID: 1
 USERNAME: "testuser"
 PASSWORD: "testuser"
