@@ -40,16 +40,16 @@ class FileReference(TypedDict):
 class LoculusClient:
     """Client for interacting with the Loculus API."""
 
-    def __init__(self, token_url: str, submission_url: str, organism: str) -> None:
+    def __init__(self, token_url: str, backend_url: str, organism: str) -> None:
         """Initialize the Loculus client.
 
         Args:
             token_url: URL for authentication token endpoint
-            submission_url: Base URL for submission endpoint
+            backend_url: Base URL for backend endpoint
             organism: Organism identifier (e.g., 'sc2', 'sars-cov-2')
         """
         self.token_url = token_url
-        self.submission_url = submission_url
+        self.backend_url = backend_url
         self.organism = organism
         self.is_ci_environment = is_ci_environment()
         self.token = None
@@ -218,7 +218,7 @@ class LoculusClient:
         request_id = str(uuid.uuid4())
 
         # Step 4: Submit to the API
-        url = f"{self.submission_url}/{self.organism}/submit"
+        url = f"{self.backend_url}/{self.organism}/submit"
         params = {"groupId": group_id, "dataUseTermsType": data_use_terms_type}
 
         headers = {
@@ -311,7 +311,7 @@ class LoculusClient:
         request_id = str(uuid.uuid4())
 
         # Construct the URL with query parameters
-        url = f"{self.submission_url}/files/request-upload"
+        url = f"{self.backend_url}/files/request-upload"
         params = {"groupId": group_id, "numberFiles": numberFiles}
 
         headers = {
@@ -701,7 +701,7 @@ def get_original_metadata(
     if client.token is None:
         raise Exception("Authentication required. Please call authenticate() first.")
 
-    url = f"{client.submission_url}/{client.organism}/get-original-metadata"
+    url = f"{client.backend_url}/{client.organism}/get-original-metadata"
 
     # Generate a unique request ID
     request_id = str(uuid.uuid4())

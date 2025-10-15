@@ -202,7 +202,7 @@ sr2silo process-from-vpipe \
 
 # Example: Submit to Loculus (use environment variables for credentials)
 export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
-export SUBMISSION_URL=https://api.example.com/submit
+export BACKEND_URL=https://api.example.com/submit
 export GROUP_ID=123
 export USERNAME=your-username
 export PASSWORD=your-password
@@ -226,7 +226,7 @@ sr2silo supports flexible configuration through environment variables, making it
 ```bash
 # Authentication credentials (recommended approach for security)
 export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
-export SUBMISSION_URL=https://backend.example.com/api
+export BACKEND_URL=https://backend.example.com/api
 export GROUP_ID=123
 export USERNAME=your-username
 export PASSWORD=your-password

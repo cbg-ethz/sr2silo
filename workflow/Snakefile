@@ -392,7 +392,7 @@ rule submit_to_loculus:
 
     Required configuration (via config file or environment variables):
         - KEYCLOAK_TOKEN_URL
-        - SUBMISSION_URL
+        - BACKEND_URL
         - GROUP_ID
         - USERNAME
         - PASSWORD
@@ -409,7 +409,7 @@ rule submit_to_loculus:
         flag=f"{config['RESULTS_DIR']}/uploads/sampleId-{{sample_id}}.uploaded",
     params:
         keycloak_url=config.get("KEYCLOAK_TOKEN_URL", ""),
-        submission_url=config.get("SUBMISSION_URL", ""),
+        backend_url=config.get("BACKEND_URL", ""),
         group_id=config.get("GROUP_ID", ""),
         username=config.get("USERNAME", ""),
         password=config.get("PASSWORD", ""),
@@ -424,7 +424,7 @@ rule submit_to_loculus:
             --processed-file {input.result_fp} \
             --nucleotide-alignment {input.nucleotide_alignment} \
             --keycloak-token-url "{params.keycloak_url}" \
-            --submission-url "{params.submission_url}" \
+            --backend-url "{params.backend_url}" \
             --group-id {params.group_id} \
             --organism "{params.organism}" \
             --username {params.username} \
