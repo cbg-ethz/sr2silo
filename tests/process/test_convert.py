@@ -280,7 +280,7 @@ def test_sam_to_seq_and_indels():
     assert isinstance(cleartext, str), "cleartext is not a string"
     assert isinstance(insertions, list), "insertions is not a list"
 
-    # assert the elements of insertiosn and deletions
+    # assert the elements of insertions
     for ins in insertions:
         assert isinstance(ins, Insertion), "insertions contains a non-Insertion object"
 
