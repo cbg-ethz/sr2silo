@@ -18,7 +18,7 @@
 #    - true:  Use your currently active conda environment
 # 3. Edit the LOG_DIR variable to set custom log directory if needed
 # 4. Edit the CONDA_ENV variable if you want to use a different environment
-# 5. Submit with: sbatch vpipe-loculus-submit.sbatch
+# 5. Submit with: sbatch sr2silo_workflow.sbatch
 #
 # =============================================================================
 
@@ -88,44 +88,17 @@ echo "Snakemake version: $(snakemake --version)"
 # Create log directory if it doesn't exist
 mkdir -p "$LOG_DIR"
 
-# Determine the workflow directory.
-# Prefer SLURM_SUBMIT_DIR because sbatch copies the script to /var/spool, which lacks the Snakefile.
-if [ -n "$SLURM_SUBMIT_DIR" ] && [ -d "$SLURM_SUBMIT_DIR" ]; then
-    CANDIDATE_DIR="$SLURM_SUBMIT_DIR"
-else
-    CANDIDATE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-fi
-
-# If the Snakefile is not directly in the submit directory, fall back to a workflow/ subdirectory.
-if [ ! -f "$CANDIDATE_DIR/Snakefile" ] && [ -f "$CANDIDATE_DIR/workflow/Snakefile" ]; then
-    CANDIDATE_DIR="$CANDIDATE_DIR/workflow"
-fi
-
-WORKFLOW_DIR="$CANDIDATE_DIR"
-echo "Workflow directory: $WORKFLOW_DIR"
-cd "$WORKFLOW_DIR" || { echo "ERROR: Failed to cd to $WORKFLOW_DIR"; exit 1; }
-
-# Quick sanity checks
-if [ ! -f "Snakefile" ]; then
-    echo "ERROR: No Snakefile found in $WORKFLOW_DIR"
-    echo "Contents of directory:" && ls -la
-    exit 1
-fi
-
-# Prefer explicit snakefile path to avoid CWD ambiguity
-SNAKEFILE="$WORKFLOW_DIR/Snakefile"
-
-# Then update the snakemake commands to use -s "$SNAKEFILE":
+# Prepare and execute Snakemake command
 if [ "$USE_EXISTING_ENV" = true ]; then
     # Use the active conda environment
     echo "Using existing conda environment"
-    echo "Running: snakemake -s $SNAKEFILE -c $CORES --rerun-incomplete --keep-going"
-    snakemake -s "$SNAKEFILE" -c $CORES --rerun-incomplete --keep-going
+    echo "Running: snakemake -c $CORES --rerun-incomplete --keep-going"
+    snakemake -c $CORES --rerun-incomplete --keep-going
 else
     # Use the conda environments defined in the workflow
     echo "Using workflow-defined conda environments"
-    echo "Running: snakemake -s $SNAKEFILE --use-conda --conda-frontend conda -c $CORES --rerun-incomplete --keep-going"
-    snakemake -s "$SNAKEFILE" --use-conda --conda-frontend conda -c $CORES --rerun-incomplete --keep-going
+    echo "Running: snakemake --use-conda --conda-frontend conda -c $CORES --rerun-incomplete --keep-going"
+    snakemake --use-conda --conda-frontend conda -c $CORES --rerun-incomplete --keep-going
 fi
 
 SNAKEMAKE_EXIT_CODE=$?

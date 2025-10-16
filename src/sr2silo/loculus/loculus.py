@@ -128,7 +128,7 @@ class LoculusClient:
                 f"Use resubmit_duplicate=True to override."
             )
             return {
-                "status": "success",
+                "status": "skipped",
                 "message": f"Duplicate submission for sample_id '{sample_id}' skipped.",
             }
 
