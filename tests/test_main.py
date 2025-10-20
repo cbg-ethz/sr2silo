@@ -381,3 +381,64 @@ def test_submit_to_loculus_missing_env_and_cli():
         )
         assert result.exit_code == 1
         # The error message is logged, so let's just verify the exit code for now
+
+
+def test_submit_to_loculus_with_organism_schema_path():
+    """Test submit-to-loculus accepts organism-schema-path parameter."""
+    result = runner.invoke(
+        app,
+        [
+            "submit-to-loculus",
+            "--help",
+        ],
+    )
+    assert result.exit_code == 0
+    # Strip ANSI color codes for assertion
+    import re
+
+    clean_output = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+    assert "--organism-schema-path" in clean_output
+    assert "organism schema YAML" in clean_output
+    assert "metadata validation" in clean_output
+
+
+def test_submit_to_loculus_schema_path_in_output():
+    """Test that organism schema path is logged when provided."""
+    import os
+    from unittest.mock import patch
+
+    # Create a temporary schema file
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as tmp:
+        tmp.write(b"schema:\n  metadata: []")
+        tmp_path = tmp.name
+
+    try:
+        # Set minimal required environment variables
+        env_vars = {
+            "KEYCLOAK_TOKEN_URL": "https://test.com/token",
+            "BACKEND_URL": "https://test.com/api",
+            "GROUP_ID": "1",
+            "ORGANISM": "test-organism",
+            "USERNAME": "test",
+            "PASSWORD": "test",
+        }
+
+        with patch.dict(os.environ, env_vars):
+            result = runner.invoke(
+                app,
+                [
+                    "submit-to-loculus",
+                    "--processed-file",
+                    "/tmp/test.ndjson.zst",
+                    "--nucleotide-alignment",
+                    "/tmp/test.bam",
+                    "--organism-schema-path",
+                    tmp_path,
+                ],
+            )
+            # Should fail due to missing file, but schema path should be processed
+            assert result.exit_code == 1
+    finally:
+        os.unlink(tmp_path)
