@@ -41,6 +41,12 @@ ORGANISM: "covid"  # "sars-cov-2"
 USERNAME: "<<URSERNAME>>"
 PASSWORD: "<<PASSWORD>>"
 
+## Organism Schema (optional)
+# Optional: Path to organism schema YAML file for metadata validation
+# If not provided, no schema validation is performed during submission
+# Example: "resources/silo/database_config.yaml"
+# ORGANISM_SCHEMA_PATH: ""
+
 ### LAPIS – hosting the SILO database (to query reference from)
 # Optional: specify LAPIS URL for custom reference genomes
 # If not provided, uses default SARS-CoV-2 references (NCBI Reference Sequence: NC_045512.2)

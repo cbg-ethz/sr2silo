@@ -204,8 +204,11 @@ sr2silo process-from-vpipe \
 export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
 export BACKEND_URL=https://api.example.com/submit
 export GROUP_ID=123
+export ORGANISM=covid
 export USERNAME=your-username
 export PASSWORD=your-password
+# Optional: Set organism schema path for metadata validation
+export ORGANISM_SCHEMA_PATH=/path/to/schema.yaml
 
 sr2silo submit-to-loculus --processed-file output.ndjson.zst
 ```
@@ -228,8 +231,12 @@ sr2silo supports flexible configuration through environment variables, making it
 export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
 export BACKEND_URL=https://backend.example.com/api
 export GROUP_ID=123
+export ORGANISM=covid
 export USERNAME=your-username
 export PASSWORD=your-password
+
+# Optional: Organism schema for metadata validation
+export ORGANISM_SCHEMA_PATH=/path/to/organism/schema.yaml
 
 # Run with environment variables set
 sr2silo process-from-vpipe \
@@ -242,6 +249,27 @@ sr2silo process-from-vpipe \
 sr2silo submit-to-loculus \
     --processed-file output.ndjson.zst
 ```
+
+### Schema-Driven Metadata Validation
+
+sr2silo supports optional organism-specific schema validation for metadata before submission. This ensures that the metadata conforms to the expected format for the target organism database.
+
+**Using organism schema:**
+```bash
+# Via CLI parameter
+sr2silo submit-to-loculus \
+    --processed-file output.ndjson.zst \
+    --nucleotide-alignment input.bam \
+    --organism-schema-path /path/to/schema.yaml
+
+# Via environment variable
+export ORGANISM_SCHEMA_PATH=/path/to/schema.yaml
+sr2silo submit-to-loculus --processed-file output.ndjson.zst --nucleotide-alignment input.bam
+```
+
+**Schema format:** The schema should be a YAML file following the SILO database schema format (see `resources/silo/database_config.yaml` for an example).
+
+**Note:** Schema validation is optional. If no schema path is provided, submission proceeds without validation.
 
 ### Tool Sections
 The code quality checks run on GitHub can be seen in
