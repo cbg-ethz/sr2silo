@@ -12,6 +12,7 @@ from sr2silo.config import (
     get_keycloak_token_url,
     get_mock_urls,
     get_organism,
+    get_organism_schema_path,
     get_password,
     get_backend_url,
     get_username,
@@ -43,6 +44,7 @@ def submit(
     organism: str | None = None,
     username: str | None = None,
     password: str | None = None,
+    organism_schema_path: Path | None = None,
 ) -> bool:
     """Submit data to SILO using the new pre-signed upload approach.
 
@@ -55,15 +57,19 @@ def submit(
         organism : Organism identifier for submission. If None, uses environment.
         username: Username for authentication. If None, uses environment.
         password: Password for authentication. If None, uses environment.
+        organism_schema_path: Path to organism schema file. If None, uses environment.
 
     Returns:
         bool: True if submission was successful, False otherwise.
     """
     logging.info("Submitting to Loculus...")
 
+    # Resolve organism_schema_path with environment fallback
+    resolved_schema_path = organism_schema_path or get_organism_schema_path()
+
     # Create the new metadata file format and get the submission ID
     metadata_fp, submission_id = Submission.create_metadata_file(
-        processed_file, count_reads=True
+        processed_file, count_reads=True, schema_path=resolved_schema_path
     )
 
     if is_ci_environment():

@@ -517,6 +517,9 @@ rule submit_to_loculus:
         - PASSWORD
         - ORGANISM
 
+    Optional configuration:
+        - ORGANISM_SCHEMA_PATH (for metadata validation)
+
     CLI parameters take precedence over environment variables.
 
     Note: On ETH cluster, internet access is provided by eth_proxy module loaded at job level.
@@ -533,21 +536,31 @@ rule submit_to_loculus:
         username=config.get("USERNAME", ""),
         password=config.get("PASSWORD", ""),
         organism=config.get("ORGANISM", ""),
+        organism_schema_path=config.get("ORGANISM_SCHEMA_PATH", ""),
     log:
         "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}.log",
     conda:
         "envs/sr2silo.yaml"
     shell:
         """
-        sr2silo submit-to-loculus \
+        # Build the base command
+        CMD="sr2silo submit-to-loculus \
             --processed-file {input.result_fp} \
             --nucleotide-alignment {input.nucleotide_alignment} \
-            --keycloak-token-url "{params.keycloak_url}" \
-            --backend-url "{params.backend_url}" \
+            --keycloak-token-url \"{params.keycloak_url}\" \
+            --backend-url \"{params.backend_url}\" \
             --group-id {params.group_id} \
-            --organism "{params.organism}" \
+            --organism \"{params.organism}\" \
             --username {params.username} \
-            --password {params.password} > {log} 2>&1 && \
+            --password {params.password}"
+        
+        # Add organism schema path if provided
+        if [ -n "{params.organism_schema_path}" ]; then
+            CMD="$CMD --organism-schema-path {params.organism_schema_path}"
+        fi
+        
+        # Execute the command
+        $CMD > {log} 2>&1 && \
         mkdir -p $(dirname {output.flag}) && \
         touch {output.flag}
         """

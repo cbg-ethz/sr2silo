@@ -179,6 +179,23 @@ def get_password(default: str | None = None) -> str:
     return password
 
 
+def get_organism_schema_path(default: Path | str | None = None) -> Path | None:
+    """Get the organism schema path from environment, or return default if not set.
+
+    Args:
+        default: Optional default path to use if environment variable is not set
+
+    Returns:
+        Path | None: The organism schema path, or None if not available
+    """
+    schema_path = os.getenv("ORGANISM_SCHEMA_PATH")
+    if schema_path:
+        return Path(schema_path)
+    elif default:
+        return Path(default) if isinstance(default, str) else default
+    return None
+
+
 def get_mock_urls() -> tuple[str, str]:
     """Get mock URLs for CI environment.
 

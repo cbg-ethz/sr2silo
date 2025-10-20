@@ -14,6 +14,7 @@ from sr2silo.config import (
     get_group_id,
     get_keycloak_token_url,
     get_organism,
+    get_organism_schema_path,
     get_password,
     get_backend_url,
     get_timeline_file,
@@ -287,6 +288,14 @@ def submit_to_loculus(
             "PASSWORD environment variable.",
         ),
     ] = None,
+    organism_schema_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--organism-schema-path",
+            help="Path to organism schema YAML file for metadata validation. "
+            "Falls back to ORGANISM_SCHEMA_PATH environment variable.",
+        ),
+    ] = None,
 ) -> None:
     """
     Upload processed file to S3 and submit to SILO/Loculus.
@@ -317,12 +326,20 @@ def submit_to_loculus(
     if password is None:
         password = get_password()
 
+    # Resolve organism_schema_path with environment fallback
+    if organism_schema_path is None:
+        organism_schema_path = get_organism_schema_path()
+
     logging.info(f"Processing file: {processed_file}")
     logging.info(f"Using Keycloak token URL: {keycloak_token_url}")
     logging.info(f"Using backend URL: {backend_url}")
     logging.info(f"Using group ID: {group_id}")
     logging.info(f"Using organism: {organism}")
     logging.info(f"Using username: {username}")
+    if organism_schema_path:
+        logging.info(f"Using organism schema: {organism_schema_path}")
+    else:
+        logging.info("No organism schema specified - skipping schema validation")
 
     # Check if the processed file exists
     if not processed_file.exists():
@@ -355,6 +372,7 @@ def submit_to_loculus(
         organism=organism,
         username=username,
         password=password,
+        organism_schema_path=organism_schema_path,
     )
 
     if success:

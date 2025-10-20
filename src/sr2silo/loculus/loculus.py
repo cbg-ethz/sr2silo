@@ -346,7 +346,7 @@ class LoculusClient:
 
 
 class Submission:
-    """Submission-related utilities.
+    """ClassName for Submission-related utilities.
     Methods for generating placeholder FASTA files containing "NNN" sequences,
     and S3 links"""
 
@@ -354,6 +354,79 @@ class Submission:
         """Initialize the Submission object."""
         self.fasta = fasta
         self.s3_link = s3_link
+
+    @staticmethod
+    def validate_metadata_against_schema(
+        metadata: Dict, schema_path: Path
+    ) -> tuple[bool, str]:
+        """Validate metadata fields against an organism schema.
+
+        Args:
+            metadata: Dictionary of metadata fields to validate
+            schema_path: Path to the organism schema YAML file
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        import yaml
+
+        try:
+            # Load the schema file
+            with open(schema_path, "r") as f:
+                schema_data = yaml.safe_load(f)
+
+            if not schema_data or "schema" not in schema_data:
+                return False, f"Invalid schema file format: {schema_path}"
+
+            schema = schema_data["schema"]
+            if "metadata" not in schema:
+                return False, "Schema does not contain 'metadata' section"
+
+            # Get list of required metadata field names from schema
+            schema_fields = {
+                field["name"] for field in schema["metadata"] if "name" in field
+            }
+
+            # Define mapping from snake_case (in processed file) to camelCase (in schema)
+            field_mapping = {
+                "sample_id": "sampleId",
+                "batch_id": "batchId",
+                "location_code": "locationCode",
+                "sampling_date": "samplingDate",
+                "location_name": "locationName",
+                "sr2silo_version": "sr2siloVersion",
+                "read_id": "read_id",  # Keep as is
+                "read_length": "read_length",  # Keep as is
+                "primer_protocol": "primer_protocol",  # Keep as is
+            }
+
+            # Validate that all metadata fields match schema fields
+            for snake_field, camel_field in field_mapping.items():
+                if snake_field in metadata:
+                    # Check if the camelCase version exists in schema
+                    if camel_field not in schema_fields:
+                        logging.warning(
+                            f"Metadata field '{camel_field}' (from '{snake_field}') "
+                            f"not found in schema. Available fields: {schema_fields}"
+                        )
+
+            logging.info(
+                f"Metadata validation successful against schema: {schema_path}"
+            )
+            return True, ""
+
+        except FileNotFoundError:
+            error_msg = f"Schema file not found: {schema_path}"
+            logging.error(error_msg)
+            return False, error_msg
+        except yaml.YAMLError as e:
+            error_msg = f"Error parsing schema YAML: {e}"
+            logging.error(error_msg)
+            return False, error_msg
+        except Exception as e:
+            error_msg = f"Error validating metadata against schema: {e}"
+            logging.error(error_msg)
+            return False, error_msg
 
     @staticmethod
     def generate_placeholder_fasta(submission_ids: list[str]) -> str:
@@ -394,7 +467,9 @@ class Submission:
 
     @staticmethod
     def create_metadata_file(
-        processed_file: Path, count_reads: bool = False
+        processed_file: Path,
+        count_reads: bool = False,
+        schema_path: Path | None = None,
     ) -> tuple[Path, str]:
         """Create a metadata TSV file with the required submissionId header.
 
@@ -404,6 +479,7 @@ class Submission:
         Args:
             processed_file: Path to the processed file.
             count_reads: Whether to include a countReads column (default: False)
+            schema_path: Optional path to organism schema for validation
 
         Returns:
             Tuple of (Path to the created metadata file, submission ID)
@@ -428,6 +504,17 @@ class Submission:
         # extract metadata from the processed file
         metadata = Submission.parse_metadata(processed_file)
         logging.debug(f"Extracted metadata: {metadata}")
+
+        # Validate metadata against schema if provided
+        if schema_path is not None:
+            is_valid, error_msg = Submission.validate_metadata_against_schema(
+                metadata, schema_path
+            )
+            if not is_valid:
+                logging.warning(
+                    f"Metadata validation failed: {error_msg}. "
+                    "Continuing with submission..."
+                )
 
         # Create the metadata file path
 
