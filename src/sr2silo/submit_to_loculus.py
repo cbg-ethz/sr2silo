@@ -61,9 +61,12 @@ def submit(
     """
     logging.info("Submitting to Loculus...")
 
+    # Resolve organism parameter with environment fallback
+    resolved_organism = organism or get_organism()
+    
     # Create the new metadata file format and get the submission ID
     metadata_fp, submission_id = Submission.create_metadata_file(
-        processed_file, count_reads=True
+        processed_file, organism=resolved_organism, count_reads=True
     )
 
     if is_ci_environment():
@@ -81,7 +84,6 @@ def submit(
 
     # Resolve authentication parameters with environment fallback
     resolved_group_id = group_id if group_id is not None else get_group_id()
-    resolved_organism = organism or get_organism()
     resolved_username = username or get_username()
     resolved_password = password or get_password()
 

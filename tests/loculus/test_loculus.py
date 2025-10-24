@@ -98,7 +98,7 @@ def test_create_metadata_file(test_silo_input_uncompressed):
 
         # Test without count_reads
         metadata_file, submission_id = Submission.create_metadata_file(
-            temp_processed_file
+            temp_processed_file, organism="covid"
         )
 
         # Check that file was created
@@ -142,7 +142,7 @@ def test_create_metadata_file(test_silo_input_uncompressed):
 
         # Test with count_reads=True
         metadata_file2, submission_id2 = Submission.create_metadata_file(
-            temp_processed_file, count_reads=True
+            temp_processed_file, organism="covid", count_reads=True
         )
 
         # Should create a different file with different submission ID
