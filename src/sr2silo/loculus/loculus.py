@@ -394,7 +394,7 @@ class Submission:
 
     @staticmethod
     def create_metadata_file(
-        processed_file: Path, count_reads: bool = False
+        processed_file: Path, organism: str, count_reads: bool = False
     ) -> tuple[Path, str]:
         """Create a metadata TSV file with the required submissionId header.
 
@@ -403,6 +403,7 @@ class Submission:
 
         Args:
             processed_file: Path to the processed file.
+            organism: Organism identifier (e.g., 'covid', 'mpox')
             count_reads: Whether to include a countReads column (default: False)
 
         Returns:
@@ -437,15 +438,9 @@ class Submission:
             columns = ["submissionId", "date"]
             values = [submission_id, submission_date]
 
-            # Define mapping from snake_case to camelCase for specific fields
-            field_mapping = {
-                "sample_id": "sampleId",
-                "batch_id": "batchId",
-                "location_code": "locationCode",
-                "sampling_date": "samplingDate",
-                "location_name": "locationName",
-                "sr2silo_version": "sr2siloVersion",
-            }
+            # Get organism-specific field mapping
+            from sr2silo.schema import get_field_mapping
+            field_mapping = get_field_mapping(organism)
 
             # Add mapped metadata fields as columns (only the specified ones)
             for snake_field, camel_field in field_mapping.items():
