@@ -34,27 +34,24 @@ def test_skip_merge_option(
     mock_merged_sam.write_text("# Mock SAM content")
 
     # We'll patch multiple functions to isolate the test and prevent file system errors
-    with patch(
-        "sr2silo.process_from_vpipe.paired_end_read_merger"
-    ) as mock_merger, patch(
-        "sr2silo.process_from_vpipe.parse_translate_align_in_batches",
-        return_value=output_fp,
-    ) as _mock_parse, patch(  # ruff: noqa: E501
-        "sr2silo.process_from_vpipe.Path.mkdir", return_value=None
-    ) as _mock_mkdir, patch(
-        "sr2silo.process_from_vpipe.sort_bam_file"
-    ) as _mock_sort, patch(
-        "sr2silo.process_from_vpipe.bam_to_sam"
-    ) as _mock_bam_to_sam, patch(
-        "sr2silo.process_from_vpipe.sam_to_bam"
-    ) as _mock_sam_to_bam, patch(
-        "sr2silo.process_from_vpipe.Path.unlink"
-    ) as _mock_unlink, patch(
-        "pathlib.Path.exists", return_value=True
-    ), patch(
-        "sr2silo.process_from_vpipe.Path.parent", new_callable=MagicMock
-    ) as mock_parent:
-
+    with (
+        patch("sr2silo.process_from_vpipe.paired_end_read_merger") as mock_merger,
+        patch(
+            "sr2silo.process_from_vpipe.parse_translate_align_in_batches",
+            return_value=output_fp,
+        ) as _mock_parse,
+        patch(  # ruff: noqa: E501
+            "sr2silo.process_from_vpipe.Path.mkdir", return_value=None
+        ) as _mock_mkdir,
+        patch("sr2silo.process_from_vpipe.sort_bam_file") as _mock_sort,
+        patch("sr2silo.process_from_vpipe.bam_to_sam") as _mock_bam_to_sam,
+        patch("sr2silo.process_from_vpipe.sam_to_bam") as _mock_sam_to_bam,
+        patch("sr2silo.process_from_vpipe.Path.unlink") as _mock_unlink,
+        patch("pathlib.Path.exists", return_value=True),
+        patch(
+            "sr2silo.process_from_vpipe.Path.parent", new_callable=MagicMock
+        ) as mock_parent,
+    ):
         # Set up the mock for Path.parent to return a Path that contains a
         # 'results' directory
         mock_parent_path = MagicMock()
@@ -102,15 +99,17 @@ def test_skip_merge_file_handling(
     test_sam_path.write_text("# Test SAM file")
 
     # Set up common mocks
-    with patch(
-        "sr2silo.process_from_vpipe.parse_translate_align_in_batches",
-        return_value=output_fp,
-    ), patch("sr2silo.process_from_vpipe.Path.mkdir", return_value=None), patch(
-        "pathlib.Path.exists", return_value=True
-    ), patch(
-        "sr2silo.process_from_vpipe.Path.parent", new_callable=MagicMock
-    ) as mock_parent:
-
+    with (
+        patch(
+            "sr2silo.process_from_vpipe.parse_translate_align_in_batches",
+            return_value=output_fp,
+        ),
+        patch("sr2silo.process_from_vpipe.Path.mkdir", return_value=None),
+        patch("pathlib.Path.exists", return_value=True),
+        patch(
+            "sr2silo.process_from_vpipe.Path.parent", new_callable=MagicMock
+        ) as mock_parent,
+    ):
         # Set up the mock for Path.parent to return a Path that contains a
         # 'results' directory
         mock_parent_path = MagicMock()

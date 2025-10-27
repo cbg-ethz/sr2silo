@@ -172,8 +172,7 @@ class LoculusClient:
                 # Get file size for Content-Length header
                 file_size = file_path.stat().st_size
                 logging.info(
-                    f"Uploading {file_type} file: {file_path.name} "
-                    f"({file_size} bytes)"
+                    f"Uploading {file_type} file: {file_path.name} ({file_size} bytes)"
                 )
 
                 with open(file_path, "rb") as f:
