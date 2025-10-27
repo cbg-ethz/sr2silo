@@ -23,9 +23,6 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Run black formatting check
-        uses: psf/black@stable
-
       - name: Set up Conda
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -49,11 +46,17 @@ jobs:
           conda activate sr2silo-dev
           poetry run pytest
 
-      - name: Run Ruff
+      - name: Run Ruff check
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate sr2silo-dev
           poetry run ruff check .
+
+      - name: Run Ruff format check
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate sr2silo-dev
+          poetry run ruff format --check .
 
       - name: Run interrogate
         run: |

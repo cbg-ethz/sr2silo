@@ -178,9 +178,10 @@ def bam_to_sam(bam_file: Path, sam_file: Path) -> None:
       sam_file: Path to the output SAM file.
       sam_file: Path to the output SAM file.
     """
-    with pysam.AlignmentFile(str(bam_file), "rb") as in_bam, pysam.AlignmentFile(
-        str(sam_file), "w", template=in_bam
-    ) as out_sam:
+    with (
+        pysam.AlignmentFile(str(bam_file), "rb") as in_bam,
+        pysam.AlignmentFile(str(sam_file), "w", template=in_bam) as out_sam,
+    ):
         for read in in_bam:
             out_sam.write(read)
     logging.info(f"BAM file {bam_file} has been converted to SAM file {sam_file}")
@@ -229,9 +230,11 @@ def bam_to_fastq_handle_indels(
     :param deletion_char: Special character to use for deletions/skipped regions
     :param skipped_char: Special character to use for skipped regions
     """
-    with pysam.AlignmentFile(str(bam_file), "rb") as bam, open(
-        out_fastq_fp, "w"
-    ) as fastq, open(out_insertions_fp, "w") as insertions:
+    with (
+        pysam.AlignmentFile(str(bam_file), "rb") as bam,
+        open(out_fastq_fp, "w") as fastq,
+        open(out_insertions_fp, "w") as insertions,
+    ):
         for read in bam.fetch():
             if not read.is_unmapped:
                 logging.debug(f"Processing read: {read.query_name}")
@@ -250,7 +253,6 @@ def bam_to_fastq_handle_indels(
                     continue
 
                 for cigar in read.cigartuples:
-
                     # Handle the CIGAR operations
                     if cigar[0] == 0:  # Match or mismatch
                         new_sequence.extend(

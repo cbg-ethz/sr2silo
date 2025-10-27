@@ -89,8 +89,7 @@ def test_submit_to_loculus():
 
             # Check for log file
             log_file = (
-                workdir / "logs/sr2silo/submit_to_loculus/"
-                "sampleId_A1_05_2024_10_08.log"
+                workdir / "logs/sr2silo/submit_to_loculus/sampleId_A1_05_2024_10_08.log"
             )
             if log_file.exists():
                 with open(log_file) as f:
