@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sr2silo"
-version = "1.5.0"
+version = "1.6.0"
 description = "ETL tool for importing short-read sequencing data into SILO database (v0.8.0+), powering Loculus."
 authors = ["Gordon Julian Koehn <gordon.koehn@dbsse.ethz.ch>"]
 readme = "README.md"
