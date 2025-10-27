@@ -14,7 +14,14 @@ import logging
 import re
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, RootModel, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    RootModel,
+    field_validator,
+    model_validator,
+)
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -24,17 +31,24 @@ logging.basicConfig(
 class ReadMetadata(BaseModel):
     """V-Pipe SILO-specific pydantic schema for ReadMetadata JSON format.
     (specific to WISE / run at ETHZ)
+
+    Uses camelCase aliases for serialization to match SILO database schema,
+    while maintaining snake_case field names for Python conventions.
     """
 
-    read_id: str
-    sample_id: str
-    batch_id: str  # Can be empty string for samples without batch_id
-    sampling_date: str
-    location_name: str
-    read_length: str
-    primer_protocol: str
-    location_code: str
-    sr2silo_version: str
+    model_config = ConfigDict(populate_by_name=True)
+
+    read_id: str = Field(alias="readId")
+    sample_id: str = Field(alias="sampleId")
+    batch_id: str = Field(
+        alias="batchId"
+    )  # Can be empty string for samples without batch_id
+    sampling_date: str = Field(alias="samplingDate")
+    location_name: str = Field(alias="locationName")
+    read_length: str = Field(alias="readLength")
+    primer_protocol: str = Field(alias="primerProtocol")
+    location_code: str = Field(alias="locationCode")
+    sr2silo_version: str = Field(alias="sr2siloVersion")
 
 
 class AlignedNucleotideSequences(BaseModel):
@@ -188,27 +202,32 @@ class AlignedReadSchema(BaseModel):
     """SILO-specific pydantic schema for AlignedRead JSON format.
 
     This schema validates the new SILO format where:
-    - read_id is a required field at the root level
-    - Metadata fields are at the root level
+    - readId is a required field at the root level (uses camelCase alias)
+    - Metadata fields are at the root level (use camelCase aliases)
     - 'main' is a nucleotide segment with nucleotide-specific validation
     - Gene segments are amino acid segments with amino acid-specific validation
     - Unaligned sequences are prefixed with 'unaligned_'
     """
 
-    # Required read_id field
-    read_id: str
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    # Required readId field (uses alias for camelCase serialization)
+    read_id: str = Field(alias="readId")
 
     # Main nucleotide segment (required)
     main: NucleotideSegment
 
-    # Additional fields will be validated dynamically
-    model_config = {"extra": "allow"}
-
     @model_validator(mode="after")
     def validate_dynamic_fields(self) -> "AlignedReadSchema":
         """Validate gene segments, unaligned sequences, and metadata fields."""
-        # Get ReadMetadata field names for validation
+        # Get ReadMetadata field names (snake_case)
+        # and aliases (camelCase) for validation
         metadata_fields = set(ReadMetadata.model_fields.keys())
+        metadata_aliases = {
+            field_info.alias
+            for field_info in ReadMetadata.model_fields.values()
+            if field_info.alias
+        }
 
         for field_name, field_value in self.__dict__.items():
             if field_name in ["read_id", "main"]:
@@ -238,18 +257,23 @@ class AlignedReadSchema(BaseModel):
                         f"characters. Expected nucleotides (ACGTN-) only."
                     )
 
-            # Validate metadata fields if they match ReadMetadata field names
-            elif field_name in metadata_fields:
-                # Validate individual metadata field types and constraints
-                metadata_field_info = ReadMetadata.model_fields[field_name]
-                expected_type = metadata_field_info.annotation
+            # Validate metadata fields if they match ReadMetadata field names or aliases
+            elif field_name in metadata_fields or field_name in metadata_aliases:
+                # Find the field info either by name or alias
+                metadata_field_info = None
+                for name, info in ReadMetadata.model_fields.items():
+                    if name == field_name or info.alias == field_name:
+                        metadata_field_info = info
+                        break
 
-                # Basic type checking for string fields
-                if expected_type is str and not isinstance(field_value, str):
-                    raise ValueError(
-                        f"Metadata field '{field_name}' should be a string, "
-                        f"got {type(field_value).__name__}"
-                    )
+                if metadata_field_info:
+                    expected_type = metadata_field_info.annotation
+                    # Basic type checking for string fields
+                    if expected_type is str and not isinstance(field_value, str):
+                        raise ValueError(
+                            f"Metadata field '{field_name}' should be a string, "
+                            f"got {type(field_value).__name__}"
+                        )
 
             # Allow other metadata fields (strings, numbers)
             elif isinstance(field_value, (str, int, float)):
