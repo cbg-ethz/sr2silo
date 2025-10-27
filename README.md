@@ -230,9 +230,7 @@ sr2silo submit-to-loculus --processed-file output.ndjson.zst
 
 sr2silo supports flexible configuration through environment variables, making it easy to use in different deployment scenarios including conda packages and pip installations.
 
-**Key features:**
-- CLI parameters override environment variables
-- **Recommended for credentials to avoid exposing sensitive information in command history**
+**Note:** CLI parameters override environment variables
 
 **Common configuration via environment variables:**
 ```bash
