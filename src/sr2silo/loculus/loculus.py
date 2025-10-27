@@ -175,6 +175,9 @@ class LoculusClient:
                     f"Uploading {file_type} file: {file_path.name} ({file_size} bytes)"
                 )
 
+                # Stream file content to S3 using httpx.put()
+                # For synchronous httpx, the file is read during the put() call
+                # while still inside the 'with' block, so the file remains open
                 with open(file_path, "rb") as f:
                     upload_response = httpx.put(
                         upload_info["url"],
