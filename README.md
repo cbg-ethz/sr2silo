@@ -254,20 +254,3 @@ sr2silo process-from-vpipe \
 sr2silo submit-to-loculus \
     --processed-file output.ndjson.zst
 ```
-
-### Tool Sections
-The code quality checks run on GitHub can be seen in
- - ``.github/workflows/test.yml`` for the python package CI/CD,
-
-We are using:
-
-  * [Ruff](https://github.com/charliermarsh/ruff) to lint the code.
-  * [Black](https://github.com/psf/black) to format the code.
-  * [Pyright](https://github.com/microsoft/pyright) to check the types.
-  * [Pytest](https://docs.pytest.org/) to run the unit tests code and workflows.
-  * [Interrogate](https://interrogate.readthedocs.io/) to check the documentation.
-
-
-## Contributing
-
-This project welcomes contributions and suggestions. For details, visit the repository's [Contributor License Agreement (CLA)](https://cla.opensource.microsoft.com) and [Code of Conduct](https://opensource.microsoft.com/codeofconduct/) pages.
