@@ -1,6 +1,6 @@
 # conda recipe
 {% set name = "sr2silo" %}
-{% set version = "2.0.0" %}
+{% set version = "1.6.0" %}
 
 package:
   name: {{ name|lower }}
