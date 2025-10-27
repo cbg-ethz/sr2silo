@@ -142,12 +142,12 @@ def test_field_mapping_consistency():
 
     # Check that all aliases are camelCase
     for field_name, alias in schema_aliases.items():
-        assert re.match(
-            r"^[a-z][a-z0-9_]*$", field_name
-        ), f"Field name '{field_name}' should be snake_case"
-        assert (
-            alias[0].islower() and "_" not in alias
-        ), f"Alias '{alias}' should be camelCase"
+        assert re.match(r"^[a-z][a-z0-9_]*$", field_name), (
+            f"Field name '{field_name}' should be snake_case"
+        )
+        assert alias[0].islower() and "_" not in alias, (
+            f"Alias '{alias}' should be camelCase"
+        )
 
 
 # === Helper for manual validation ===
