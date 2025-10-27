@@ -18,7 +18,7 @@
 [![Pyright](https://img.shields.io/badge/type%20checked-pyright-blue.svg)](https://github.com/microsoft/pyright)
 
 ### General Use: Convert Nucleotide Alignment Reads - CIGAR in .BAM to Cleartext JSON
-sr2silo can convert millions of Short-Read nucleotide reads in the form of .bam CIGAR
+sr2silo can convert millions of Short-Read nucleotide reads in the form of `.bam` CIGAR
 alignments to cleartext alignments compatible with LAPIS-SILO v0.8.0+. It gracefully extracts insertions
 and deletions. Optionally, sr2silo can translate and align each read using [diamond / blastX](https://github.com/bbuchfink/diamond), handling insertions and deletions in amino acid sequences as well.
 
@@ -31,19 +31,20 @@ sr2silo outputs per read a JSON (compatible with LAPIS-SILO v0.8.0+):
 
 ```json
 {
-  "read_id": "AV233803:AV044:2411515907:1:10805:5199:3294",
-  "sample_id": "A1_05_2024_10_08",
-  "batch_id": "20241024_2411515907",
-  "sampling_date": "2024-10-08",
-  "location_name": "Lugano (TI)",
-  "read_length": "250",
-  "location_code": "05",
+  "readId": "AV233803:AV044:2411515907:1:10805:5199:3294",
+  "sampleId": "A1_05_2024_10_08",
+  "batchId": "20241024_2411515907",
+  "samplingDate": "2024-10-08",
+  "locationName": "Lugano (TI)",
+  "readLength": "250",
+  "primerProtocol": "v532",
+  "locationCode": "5",
+  "sr2siloVersion": "1.3.0",
   "main": {
     "sequence": "CGGTTTCGTCCGTGTTGCAGCCG...GTGTCAACATCTTAAAGATGGCACTTGTG",
     "insertions": ["10:ACTG", "456:TACG"],
     "offset": 4545
   },
-  "unaligned_main": "CGGTTTCGTCCGTGTTGCAGCCGATCATCTAGGT...TACAGGTTCGCGACGTGCTCGTGTGAAAGATGGCACTTGTG",
   "S": {
     "sequence": "MESLVPGFNEKTHVQLSLPVLQVRVRGFGDSVEEVLSEARQHLKDGTCGLVEVEKGV",
     "insertions": ["23:A", "145:KLM"],
@@ -85,24 +86,36 @@ Originally this was started for wrangling short-read genomic alignments from was
 
 sr2silo is designed to process nucleotide alignments from `.bam` files with metadata, translate and align reads in amino acids, gracefully handling all insertions and deletions and upload the results to the backend [LAPIS-SILO](https://github.com/GenSpectrum/LAPIS-SILO) v0.8.0+.
 
-**New Output Format for LAPIS-SILO v0.8.0+:**
-- Metadata fields are now at the root level (no nested "metadata" object)
+**Output Format for LAPIS-SILO v0.8.0+:**
+- Metadata fields use camelCase naming (e.g., `readId`, `sampleId`, `batchId`) to align with Loculus standards
+- Metadata fields are at the root level (no nested "metadata" object)
 - Genomic segments use a structured format with `sequence`, `insertions`, and `offset` fields
 - The main nucleotide segment is required and contains the primary alignment
 - Gene segments (S, ORF1a, etc.) contain amino acid sequences or `null` if empty
 - Insertions use the format `"position:sequence"` (e.g., `"123:ACGT"`)
-- Unaligned sequences are prefixed with `unaligned_` (e.g., `unaligned_main`)
+
+**Output Schema Configuration:**
+
+The output schema is defined in `src/sr2silo/silo_read_schema.py` using Pydantic models with field aliases for camelCase output. To modify the metadata fields:
+
+1. Edit `src/sr2silo/silo_read_schema.py` - Add/modify fields in `ReadMetadata` class
+2. Update `resources/silo/database_config.yaml` - Ensure field names match the Pydantic aliases
+3. Run validation: `python tests/test_database_config_validation.py`
+
+The validation ensures your Pydantic schema matches the SILO database configuration.
 
 For the V-Pipe to Silo implementation we include the following metadata fields at the root level:
 ```json
 {
-  "read_id": "AV233803:AV044:2411515907:1:10805:5199:3294",
-  "sample_id": "A1_05_2024_10_08",
-  "batch_id": "20241024_2411515907",
-  "sampling_date": "2024-10-08",
-  "location_name": "Lugano (TI)",
-  "read_length": "250",
-  "location_code": "05"
+  "readId": "AV233803:AV044:2411515907:1:10805:5199:3294",
+  "sampleId": "A1_05_2024_10_08",
+  "batchId": "20241024_2411515907",
+  "samplingDate": "2024-10-08",
+  "locationName": "Lugano (TI)",
+  "readLength": "250",
+  "primerProtocol": "v532",
+  "locationCode": "5",
+  "sr2siloVersion": "1.3.0"
 }
 ```
 

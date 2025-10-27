@@ -343,7 +343,7 @@ def test_aa_insertion_set_equality():
 
 
 def test_read_id_in_json_output():
-    """Test that read_id appears as the first field in JSON output."""
+    """Test that readId (camelCase) appears as the first field in JSON output."""
     from sr2silo.process.interface import (
         AAInsertionSet,
         AASequenceSet,
@@ -362,22 +362,22 @@ def test_read_id_in_json_output():
         aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
     )
 
-    # Test to_dict includes read_id
+    # Test to_dict includes readId (camelCase for SILO database compatibility)
     result_dict = read.to_dict()
 
-    # Check that read_id is present
-    assert "read_id" in result_dict, "read_id missing from to_dict() output"
+    # Check that readId is present (using camelCase)
+    assert "readId" in result_dict, "readId missing from to_dict() output"
     assert (
-        result_dict["read_id"] == read_id
-    ), f"Expected {read_id}, got {result_dict['read_id']}"
+        result_dict["readId"] == read_id
+    ), f"Expected {read_id}, got {result_dict['readId']}"
 
-    # Check that read_id is the first key
+    # Check that readId is the first key
     first_key = list(result_dict.keys())[0]
     assert (
-        first_key == "read_id"
-    ), f"read_id should be first key, but {first_key} was first"
+        first_key == "readId"
+    ), f"readId should be first key, but {first_key} was first"
 
-    # Test that the SILO JSON validation works with read_id
+    # Test that the SILO JSON validation works with readId
     try:
         json_output = read.to_silo_json()
         assert json_output is not None
@@ -386,8 +386,8 @@ def test_read_id_in_json_output():
         import json
 
         parsed = json.loads(json_output)
-        assert "read_id" in parsed
-        assert parsed["read_id"] == read_id
+        assert "readId" in parsed
+        assert parsed["readId"] == read_id
     except Exception as e:
         pytest.fail(f"SILO JSON validation failed with read_id: {e}")
 
