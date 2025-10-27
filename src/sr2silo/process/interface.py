@@ -184,7 +184,7 @@ class AlignedRead:
                 metadata_dict = {}
                 for snake_field, field_info in ReadMetadata.model_fields.items():
                     camel_field = field_info.alias
-                    if camel_field and snake_field in self.metadata:
+                    if camel_field is not None and snake_field in self.metadata:
                         metadata_dict[camel_field] = self.metadata[snake_field]
 
             for key, value in metadata_dict.items():
