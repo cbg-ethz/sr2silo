@@ -10,7 +10,7 @@ from datetime import date
 from pathlib import Path
 from typing import Dict, List, TypedDict
 
-import requests
+import httpx
 import zstandard as zstd
 
 from sr2silo.config import is_ci_environment
@@ -62,7 +62,7 @@ class LoculusClient:
             self.token = "dummy_token"
             return None
 
-        response = requests.post(
+        response = httpx.post(
             self.token_url,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             data={
@@ -176,9 +176,9 @@ class LoculusClient:
                 )
 
                 with open(file_path, "rb") as f:
-                    upload_response = requests.put(
+                    upload_response = httpx.put(
                         upload_info["url"],
-                        data=f,
+                        content=f.read(),
                         headers={
                             "Content-Type": "application/octet-stream",
                             "Content-Length": str(file_size),
@@ -238,7 +238,7 @@ class LoculusClient:
 
         response = None
         try:
-            response = requests.post(url, params=params, headers=headers, files=files)
+            response = httpx.post(url, params=params, headers=headers, files=files)
             response.raise_for_status()
 
             logging.info("Submission successful.")
@@ -256,7 +256,7 @@ class LoculusClient:
                 f"Accession: {accession}, Submission ID: {submission_id}",
             }
 
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             logging.error(f"Error submitting data to Lapis: {e}")
             if response is not None:
                 logging.error(f"Response: {response.text}")
@@ -265,7 +265,7 @@ class LoculusClient:
                 )
             else:
                 raise Exception(f"Failed to submit: {e}")
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logging.error(f"Network error during submission: {e}")
             raise Exception(f"Network error: {e}")
         finally:
@@ -321,7 +321,7 @@ class LoculusClient:
 
         response = None
         try:
-            response = requests.post(url, params=params, headers=headers, data="")
+            response = httpx.post(url, params=params, headers=headers, content="")
             response.raise_for_status()
 
             upload_responses = response.json()
@@ -329,7 +329,7 @@ class LoculusClient:
 
             return upload_responses
 
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             logging.error(f"Error requesting upload URLs: {e}")
             if response is not None:
                 logging.error(f"Response: {response.text}")
@@ -339,7 +339,7 @@ class LoculusClient:
                 )
             else:
                 raise Exception(f"Failed to request upload URLs: {e}")
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logging.error(f"Network error requesting upload URLs: {e}")
             raise Exception(f"Network error: {e}")
 
@@ -715,7 +715,7 @@ def get_original_metadata(
     params["statusesFilter"] = statuses_filter
 
     try:
-        response = requests.get(url, headers=headers, params=params)
+        response = httpx.get(url, headers=headers, params=params)
 
         logging.debug(f"Status code: {response.status_code}")
         logging.debug(f"Request ID: {request_id}")
@@ -771,7 +771,7 @@ def get_original_metadata(
             else:
                 return []
 
-    except requests.exceptions.RequestException as e:
+    except httpx.HTTPError as e:
         logging.error(f"Error making request: {e}")
         if hasattr(e, "response") and e.response is not None:
             logging.error(f"Response text: {e.response.text}")
