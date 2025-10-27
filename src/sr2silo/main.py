@@ -11,11 +11,11 @@ from typing import Annotated
 import typer
 
 from sr2silo.config import (
+    get_backend_url,
     get_group_id,
     get_keycloak_token_url,
     get_organism,
     get_password,
-    get_backend_url,
     get_timeline_file,
     get_username,
     get_version,
@@ -193,8 +193,7 @@ def process_from_vpipe(
         temp_dir = Path(os.environ["TMPDIR"])
         logging.info(f"Recognize temporary directory set in Env: {temp_dir}")
         logging.info(
-            "This will be used for amino acid translation and "
-            "alignment - by diamond."
+            "This will be used for amino acid translation and alignment - by diamond."
         )
 
     ci_env = is_ci_environment()
@@ -251,8 +250,7 @@ def submit_to_loculus(
         str | None,
         typer.Option(
             "--backend-url",
-            help="Loculus backend URL. Falls back to "
-            "BACKEND_URL environment variable.",
+            help="Loculus backend URL. Falls back to BACKEND_URL environment variable.",
         ),
     ] = None,
     group_id: Annotated[

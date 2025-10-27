@@ -28,10 +28,10 @@ def test_valid_database_config_file():
     pydantic_schema = ReadMetadata.model_json_schema()
     assert pydantic_schema is not None, "ReadMetadata model schema is None"
     pydantic_names = pydantic_schema.get("properties")
-    assert (
-        pydantic_names is not None
-    ), "Missing properties section in ReadMetadata model schema"
+    assert pydantic_names is not None, (
+        "Missing properties section in ReadMetadata model schema"
+    )
 
-    assert sorted(field_names) == sorted(
-        pydantic_names.keys()
-    ), "Field names do not match"
+    assert sorted(field_names) == sorted(pydantic_names.keys()), (
+        "Field names do not match"
+    )

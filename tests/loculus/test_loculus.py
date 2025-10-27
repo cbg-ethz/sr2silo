@@ -135,9 +135,9 @@ def test_create_metadata_file(test_silo_input_uncompressed):
                 "sr2siloVersion",
             }
             for field in expected_metadata_fields:
-                assert (
-                    field in fieldnames
-                ), f"Expected metadata field '{field}' not found in columns"
+                assert field in fieldnames, (
+                    f"Expected metadata field '{field}' not found in columns"
+                )
                 assert first_row[field]  # Should have a value
 
         # Test with count_reads=True

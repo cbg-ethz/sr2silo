@@ -367,15 +367,15 @@ def test_read_id_in_json_output():
 
     # Check that read_id is present
     assert "read_id" in result_dict, "read_id missing from to_dict() output"
-    assert (
-        result_dict["read_id"] == read_id
-    ), f"Expected {read_id}, got {result_dict['read_id']}"
+    assert result_dict["read_id"] == read_id, (
+        f"Expected {read_id}, got {result_dict['read_id']}"
+    )
 
     # Check that read_id is the first key
     first_key = list(result_dict.keys())[0]
-    assert (
-        first_key == "read_id"
-    ), f"read_id should be first key, but {first_key} was first"
+    assert first_key == "read_id", (
+        f"read_id should be first key, but {first_key} was first"
+    )
 
     # Test that the SILO JSON validation works with read_id
     try:
