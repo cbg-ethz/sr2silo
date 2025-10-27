@@ -178,7 +178,7 @@ class LoculusClient:
                 with open(file_path, "rb") as f:
                     upload_response = httpx.put(
                         upload_info["url"],
-                        content=f.read(),
+                        content=f,
                         headers={
                             "Content-Type": "application/octet-stream",
                             "Content-Length": str(file_size),
