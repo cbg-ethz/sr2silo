@@ -436,18 +436,14 @@ class Submission:
             columns = ["submissionId", "date"]
             values = [submission_id, submission_date]
 
-            # Define mapping from snake_case to camelCase for specific fields
-            field_mapping = {
-                "sample_id": "sampleId",
-                "batch_id": "batchId",
-                "location_code": "locationCode",
-                "sampling_date": "samplingDate",
-                "location_name": "locationName",
-                "sr2silo_version": "sr2siloVersion",
-            }
+            # Get field aliases directly from ReadMetadata schema
+            from sr2silo.silo_read_schema import ReadMetadata
 
-            # Add mapped metadata fields as columns (only the specified ones)
-            for snake_field, camel_field in field_mapping.items():
+            # Add mapped metadata fields as columns
+            for snake_field, field_info in ReadMetadata.model_fields.items():
+                camel_field = field_info.alias
+                if camel_field is None:
+                    continue  # Skip fields without aliases
                 if snake_field in metadata:
                     columns.append(camel_field)
                     value = metadata[snake_field]
@@ -476,7 +472,10 @@ class Submission:
     def parse_metadata(silo_input: Path) -> Dict:
         """Parses the metadata from a silo input .ndjson.zstd or .ndjson
         returning all metadata fields but readId as a dictionary with keys
-        in snake_case format.
+        in snake_case format for internal Python use.
+
+        The input JSON uses camelCase (matching SILO database schema),
+        but this method returns snake_case keys for Python conventions.
 
         Assumptions:
          - the metadata is stored in the root of the object under the keys
@@ -511,32 +510,28 @@ class Submission:
                 # read the first line
                 first_line = f.readline().strip()
 
-        # parse the JSON and extract the metadata - look for fields sample_id, batch_id
-        # location_code, location_name, sampling_date, sr2silo_version
+        # parse the JSON and extract the metadata
+        # The JSON uses camelCase (e.g., sampleId, batchId, locationCode, etc.)
         data = json.loads(first_line)
 
-        # Extract specific metadata fields
-        metadata_fields = [
-            "sample_id",
-            "batch_id",
-            "location_code",
-            "location_name",
-            "sampling_date",
-            "sr2silo_version",
-        ]
+        # Get reverse mapping from ReadMetadata schema (camelCase -> snake_case)
+        from sr2silo.silo_read_schema import ReadMetadata
 
         metadata = {}
-        for field in metadata_fields:
-            if field in data:
-                metadata[field] = data[field]
+        for snake_field, field_info in ReadMetadata.model_fields.items():
+            camel_field = field_info.alias
+            if camel_field is None:
+                continue  # Skip fields without aliases
+            if camel_field in data:
+                metadata[snake_field] = data[camel_field]
             else:
                 logging.warning(
-                    f"Metadata field '{field}' not found in the input data."
+                    f"Metadata field '{camel_field}' not found in the input data."
                 )
-                metadata[field] = None
+                metadata[snake_field] = None
 
         # return the metadata dictionary with snake_case keys
-        # (excluding read_id as specified)
+        # (excluding readId as specified)
         filtered_metadata = {k: v for k, v in metadata.items() if k != "read_id"}
         return filtered_metadata
 
