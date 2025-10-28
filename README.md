@@ -35,8 +35,6 @@ sr2silo outputs per read a JSON (compatible with LAPIS-SILO v0.8.0+):
   "batchId": "20241024_2411515907",
   "samplingDate": "2024-10-08",
   "locationName": "Lugano (TI)",
-  "readLength": "250",
-  "primerProtocol": "v532",
   "locationCode": "5",
   "sr2siloVersion": "1.3.0",
   "main": {
@@ -111,8 +109,6 @@ For the V-Pipe to Silo implementation we include the following metadata fields a
   "batchId": "20241024_2411515907",
   "samplingDate": "2024-10-08",
   "locationName": "Lugano (TI)",
-  "readLength": "250",
-  "primerProtocol": "v532",
   "locationCode": "5",
   "sr2siloVersion": "1.3.0"
 }

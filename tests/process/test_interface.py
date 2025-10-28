@@ -118,7 +118,6 @@ def test_to_silo_json():
         "location_name": "Zürich (ZH)",
         "batch_id": "20241018_AAG55WNM5",
         "read_length": "250",
-        "primer_protocol": "v532",
         "location_code": "10",
         "flow_cell_serial_number": "AAG55WNM5",
         "nextclade_reference": "sars-cov-2",
@@ -455,3 +454,46 @@ def test_empty_gene_representation():
         assert "gene1" in parsed
     except Exception as e:
         pytest.fail(f"Schema validation failed for empty gene: {e}")
+
+
+def test_read_length_not_in_final_json_output():
+    """Test that readLength is not included in the final JSON output.
+
+    readLength is per-read metadata that should not be submitted to Loculus.
+    This test verifies it's excluded from the final ndjson output.
+    """
+    import json
+
+    read = AlignedRead(
+        read_id="test_read",
+        unaligned_nucleotide_sequence="ACTG",
+        aligned_nucleotide_sequence="ACTG",
+        aligned_nucleotide_sequence_offset=0,
+        nucleotide_insertions=[],
+        amino_acid_insertions=AAInsertionSet([GeneName("gene1")]),
+        aligned_amino_acid_sequences=AASequenceSet([GeneName("gene1")]),
+    )
+
+    # Create metadata without per-read fields
+    metadata = {
+        "sample_id": "test_sample",
+        "batch_id": "batch_001",
+        "sampling_date": "2024-10-18",
+        "location_name": "Test Location",
+        "location_code": "10",
+        "sr2silo_version": "1.0.0",
+        "read_id": "test_read",
+    }
+
+    validated_metadata = ReadMetadata(**metadata)
+    read.set_metadata(validated_metadata)
+
+    # Convert to JSON
+    json_output = read.to_silo_json()
+    parsed = json.loads(json_output)
+
+    # Verify that other metadata fields ARE present
+    assert "sampleId" in parsed
+    assert "samplingDate" in parsed
+    assert "locationName" in parsed
+    assert parsed["sampleId"] == "test_sample"

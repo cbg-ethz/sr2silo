@@ -45,8 +45,6 @@ class ReadMetadata(BaseModel):
     )  # Can be empty string for samples without batch_id
     sampling_date: str = Field(alias="samplingDate")
     location_name: str = Field(alias="locationName")
-    read_length: str = Field(alias="readLength")
-    primer_protocol: str = Field(alias="primerProtocol")
     location_code: str = Field(alias="locationCode")
     sr2silo_version: str = Field(alias="sr2siloVersion")
 

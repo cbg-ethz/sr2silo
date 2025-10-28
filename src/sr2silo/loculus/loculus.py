@@ -439,8 +439,14 @@ class Submission:
             # Get field aliases directly from ReadMetadata schema
             from sr2silo.silo_read_schema import ReadMetadata
 
+            # Fields that should NOT be included in metadata submission
+            # read_id is the primary key per read and varies for each read
+            excluded_fields = {"read_id"}
+
             # Add mapped metadata fields as columns
             for snake_field, field_info in ReadMetadata.model_fields.items():
+                if snake_field in excluded_fields:
+                    continue  # Skip per-read primary key
                 camel_field = field_info.alias
                 if camel_field is None:
                     continue  # Skip fields without aliases
@@ -531,7 +537,7 @@ class Submission:
                 metadata[snake_field] = None
 
         # return the metadata dictionary with snake_case keys
-        # (excluding readId as specified)
+        # (excluding read_id as it is the primary key per read, not sample metadata)
         filtered_metadata = {k: v for k, v in metadata.items() if k != "read_id"}
         return filtered_metadata
 
