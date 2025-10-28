@@ -176,7 +176,11 @@ class AlignedRead:
         if self.metadata:
             if isinstance(self.metadata, BaseModel):
                 # Pydantic model - use by_alias=True to get camelCase
-                metadata_dict = self.metadata.model_dump(by_alias=True)
+                # Exclude readId which is already added above
+                full_metadata_dict = self.metadata.model_dump(by_alias=True)
+                metadata_dict = {
+                    k: v for k, v in full_metadata_dict.items() if k != "readId"
+                }
             else:
                 # Plain dict with snake_case keys - convert to camelCase
                 from sr2silo.silo_read_schema import ReadMetadata
@@ -188,7 +192,7 @@ class AlignedRead:
                         metadata_dict[camel_field] = self.metadata[snake_field]
 
             for key, value in metadata_dict.items():
-                # Skip readId as it's already added above
+                # Skip readId as it's already added above (defensive check)
                 if key == "readId":
                     continue
                 if isinstance(value, str):
