@@ -178,9 +178,10 @@ def bam_to_sam(bam_file: Path, sam_file: Path) -> None:
       sam_file: Path to the output SAM file.
       sam_file: Path to the output SAM file.
     """
-    with pysam.AlignmentFile(str(bam_file), "rb") as in_bam, pysam.AlignmentFile(
-        str(sam_file), "w", template=in_bam
-    ) as out_sam:
+    with (
+        pysam.AlignmentFile(str(bam_file), "rb") as in_bam,
+        pysam.AlignmentFile(str(sam_file), "w", template=in_bam) as out_sam,
+    ):
         for read in in_bam:
             out_sam.write(read)
     logging.info(f"BAM file {bam_file} has been converted to SAM file {sam_file}")
@@ -229,9 +230,11 @@ def bam_to_fastq_handle_indels(
     :param deletion_char: Special character to use for deletions/skipped regions
     :param skipped_char: Special character to use for skipped regions
     """
-    with pysam.AlignmentFile(str(bam_file), "rb") as bam, open(
-        out_fastq_fp, "w"
-    ) as fastq, open(out_insertions_fp, "w") as insertions:
+    with (
+        pysam.AlignmentFile(str(bam_file), "rb") as bam,
+        open(out_fastq_fp, "w") as fastq,
+        open(out_insertions_fp, "w") as insertions,
+    ):
         for read in bam.fetch():
             if not read.is_unmapped:
                 logging.debug(f"Processing read: {read.query_name}")
@@ -250,7 +253,6 @@ def bam_to_fastq_handle_indels(
                     continue
 
                 for cigar in read.cigartuples:
-
                     # Handle the CIGAR operations
                     if cigar[0] == 0:  # Match or mismatch
                         new_sequence.extend(
@@ -317,8 +319,8 @@ def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
 
 
 def sam_to_seq_and_indels(
-    seq: str, cigar: str
-) -> Tuple[str, List[Insertion], List[Tuple[int, int]]]:
+    seq: str, cigar: str, deletion_char: str = "-", skipped_char: str = "N"
+) -> Tuple[str, List[Insertion]]:
     """
     Processes a SAM file-style sequence (nuclitide / amino acids) and a CIGAR
     string to return the cleartext sequence, along with detailed information
@@ -328,25 +330,24 @@ def sam_to_seq_and_indels(
         seq (str): The sequence string from the SAM file, representing the read.
         cigar (str): The CIGAR string that describes how the sequence aligns
                     to a reference.
+        deletion_char (str): Special character to use for deletions (default: "-").
+        skipped_char (str): Special character to use for skipped regions (default: "N").
 
     Returns:
         tuple: A tuple containing:
             - cleartext_sequence (str): The sequence aligned to the reference,
-                                         excluding insertions and deletions.
+                                         with deletions as '-'
+                                         and skipped regions as 'N',
+                                         excluding insertions.
             - insertions (list of Insertion): A list of Insertion objects
-            - deletions (list of tuples): A list of tuples, each containing:
-                - position (int): The position in the reference where the
-                                  deletion starts.
-                - length (int): The length of the deletion.
 
     Example:
         sequence = "AGCTTAGCTAGCTT"
         cigar = "5M1I5M1D3M"
 
         # Output:
-        # Cleartext Sequence: AGCTTAGCTAGC
+        # Cleartext Sequence: AGCTTAGCTA-GCT
         # Insertions: [(5, 'A')]
-        # Deletions: [(11, 1)]
 
     Notes:
         - The function assumes that the input sequence and CIGAR string are
@@ -377,9 +378,11 @@ def sam_to_seq_and_indels(
             insertions.append((ref_position, seq[seq_index : seq_index + length]))
             seq_index += length
         elif op == "D":  # Deletion from the reference
+            cleartext_sequence.append(deletion_char * length)
             deletions.append((ref_position, length))
             ref_position += length
         elif op == "N":  # Skipped region from the reference
+            cleartext_sequence.append(skipped_char * length)
             ref_position += length
         elif op == "S":  # Soft clipping (clipped sequences present in SEQ)
             seq_index += length
@@ -392,7 +395,7 @@ def sam_to_seq_and_indels(
         Insertion(position=ins_pos, sequence=ins_seq) for ins_pos, ins_seq in insertions
     ]
 
-    return "".join(cleartext_sequence), insertions, deletions
+    return "".join(cleartext_sequence), insertions
 
 
 def get_gene_set_from_ref(reference_fp: Path) -> GeneSet:

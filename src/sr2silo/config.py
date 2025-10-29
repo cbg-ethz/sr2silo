@@ -53,22 +53,22 @@ def get_keycloak_token_url(default: str | None = None) -> str:
     return url
 
 
-def get_submission_url(default: str | None = None) -> str:
-    """Get the LAPIS submission URL from environment, or return default if not set.
+def get_backend_url(default: str | None = None) -> str:
+    """Get the backend URL from environment, or return default if not set.
 
     Args:
         default: Optional default value to use if environment variable is not set
 
     Returns:
-        str: The submission URL with group_id placeholder
+        str: The backend URL with group_id placeholder
 
     Raises:
         SystemExit: If no URL is available from environment or default
     """
-    url = os.getenv("SUBMISSION_URL", default)
+    url = os.getenv("BACKEND_URL", default)
     if url is None:
         logging.error(
-            "SUBMISSION_URL environment variable is not set and no default provided"
+            "BACKEND_URL environment variable is not set and no default provided"
         )
         sys.exit(1)
     return url
@@ -183,14 +183,14 @@ def get_mock_urls() -> tuple[str, str]:
     """Get mock URLs for CI environment.
 
     Returns:
-        tuple[str, str]: The Keycloak token URL and submission URL
+        tuple[str, str]: The Keycloak token URL and backend URL
     """
     mock_keycloak_url = (
         "https://authentication-wise-seqs.loculus.org/realms/loculus/"
         "protocol/openid-connect/token"
     )
-    mock_submission_url = (
+    mock_backend_url = (
         "https://backend-wise-seqs.loculus.org/test/submit?"
         "groupId={group_id}&dataUseTermsType=OPEN"
     )
-    return mock_keycloak_url, mock_submission_url
+    return mock_keycloak_url, mock_backend_url

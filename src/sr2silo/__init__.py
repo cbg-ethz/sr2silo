@@ -3,6 +3,7 @@
 #   Licensed under the MIT License. See LICENSE in project root for information.
 #   -------------------------------------------------------------
 """sr2silo connects pairs, normalizes reads, and converts BAM to SAM files."""
+
 from __future__ import annotations
 
 import importlib.metadata

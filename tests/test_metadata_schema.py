@@ -14,8 +14,6 @@ VALID_METADATA = {
     "batch_id": "batch001",
     "sampling_date": "2024-10-08",
     "location_name": "Lugano (TI)",
-    "read_length": "250",
-    "primer_protocol": "v532",
     "location_code": "05",
     "sr2silo_version": "v1.0.0",
 }

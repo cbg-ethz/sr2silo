@@ -46,9 +46,9 @@ def test_bam_to_sam(bam_data: Path):
             first_line = f.readline()
             assert first_line.startswith("@")
         # assert that the file is larger than the original BAM file
-        assert (
-            sam_file.stat().st_size > bam_data.stat().st_size
-        ), "The SAM file is smaller than the BAM file"
+        assert sam_file.stat().st_size > bam_data.stat().st_size, (
+            "The SAM file is smaller than the BAM file"
+        )
 
 
 def test_sort_bam_file(tmp_path, monkeypatch):
@@ -91,17 +91,17 @@ def test_sort_bam_file(tmp_path, monkeypatch):
     # Check coordinate sort call
     coord_sort_args = sort_calls[0]
     assert "-o" in coord_sort_args, "Missing -o flag in coordinate sort"
-    assert (
-        str(output_coord_bam) in coord_sort_args
-    ), "Output path not in coordinate sort arguments"
+    assert str(output_coord_bam) in coord_sort_args, (
+        "Output path not in coordinate sort arguments"
+    )
     assert "-n" not in coord_sort_args, "Should not have -n flag in coordinate sort"
 
     # Check qname sort call
     qname_sort_args = sort_calls[1]
     assert "-o" in qname_sort_args, "Missing -o flag in qname sort"
-    assert (
-        str(output_qname_bam) in qname_sort_args
-    ), "Output path not in qname sort arguments"
+    assert str(output_qname_bam) in qname_sort_args, (
+        "Output path not in qname sort arguments"
+    )
     assert "-n" in qname_sort_args, "Missing -n flag in qname sort"
 
     # Test output files exist
@@ -164,21 +164,21 @@ def test_is_sorted_qname(tmp_path, monkeypatch):
     error_bam.write_text("")
 
     # Run tests
-    assert (
-        is_sorted_qname(coordinate_bam) is False
-    ), "Should not detect coordinate sorted BAM as queryname sorted"
-    assert (
-        is_sorted_qname(queryname_bam) is True
-    ), "Should detect queryname sorted BAM correctly"
-    assert (
-        is_sorted_qname(no_so_bam) is False
-    ), "Should not detect BAM with no SO tag as queryname sorted"
-    assert (
-        is_sorted_qname(no_hd_bam) is False
-    ), "Should not detect BAM with no HD section as queryname sorted"
-    assert (
-        is_sorted_qname(error_bam) is None
-    ), "Should return None for file that raises error"
+    assert is_sorted_qname(coordinate_bam) is False, (
+        "Should not detect coordinate sorted BAM as queryname sorted"
+    )
+    assert is_sorted_qname(queryname_bam) is True, (
+        "Should detect queryname sorted BAM correctly"
+    )
+    assert is_sorted_qname(no_so_bam) is False, (
+        "Should not detect BAM with no SO tag as queryname sorted"
+    )
+    assert is_sorted_qname(no_hd_bam) is False, (
+        "Should not detect BAM with no HD section as queryname sorted"
+    )
+    assert is_sorted_qname(error_bam) is None, (
+        "Should return None for file that raises error"
+    )
 
 
 def test_sort_bam_file_and_check_sorting(tmp_path):
@@ -254,9 +254,9 @@ def test_bam_to_fasta_query(micro_bam_fp, tmp_path):
         output_content = f.read()
     with open(expected_fasta, "r") as f:
         expected_content = f.read()
-    assert (
-        output_content == expected_content
-    ), f"Expected:\n{expected_content}\nGot:\n{output_content}"
+    assert output_content == expected_content, (
+        f"Expected:\n{expected_content}\nGot:\n{output_content}"
+    )
 
 
 def test_sam_to_seq_and_indels():
@@ -272,29 +272,24 @@ def test_sam_to_seq_and_indels():
     # - Cleartext: "AGCTTGCTAGCTT" [matches from 5M, 5M, 3M]
     # - Insertion: one insertion at position 5 with base "A"
     # - Deletion: one deletion at position 10 with length 1
-    expected_cleartext = "AGCTTGCTAGCTT"
-    expected_deletions = [(10, 1)]
+    expected_cleartext = "AGCTTGCTAG-CTT"
 
-    cleartext, insertions, deletions = sam_to_seq_and_indels(seq, cigar)
+    cleartext, insertions = sam_to_seq_and_indels(seq, cigar)
 
     # assert the types of the outputs
     assert isinstance(cleartext, str), "cleartext is not a string"
     assert isinstance(insertions, list), "insertions is not a list"
-    assert isinstance(deletions, list), "deletions is not a list"
 
-    # assert the elements of insertiosn and deletions
+    # assert the elements of insertions
     for ins in insertions:
         assert isinstance(ins, Insertion), "insertions contains a non-Insertion object"
-    for del_ in deletions:
-        assert isinstance(del_, tuple), "deletions contains a non-tuple object"
 
-    assert (
-        cleartext == expected_cleartext
-    ), f"Expected cleartext {expected_cleartext}, got {cleartext}"
-    assert (
-        deletions == expected_deletions
-    ), f"Expected deletions {expected_deletions}, got {deletions}"
+    assert cleartext == expected_cleartext, (
+        f"Expected cleartext {expected_cleartext}, got {cleartext}"
+    )
+
     assert len(insertions) == 1, f"Expected 1 insertion, got {len(insertions)}"
+
     # Check that the insertion is an instance of Insertion and has correct attributes.
     ins = insertions[0]
     assert isinstance(ins, Insertion), "Insertion is not an instance of Insertion"
@@ -315,9 +310,9 @@ def test_get_gene_set_from_ref():
     for expected in ["E", "S", "ORF1a", "ORF7a"]:
         assert expected in gene_names, f"Expected gene {expected} to be in gene set"
         gene_length = gene_set.get_gene_length(expected)
-        assert (
-            gene_length > 0
-        ), f"Expected gene length for {expected} to be > 0, got {gene_length}"
+        assert gene_length > 0, (
+            f"Expected gene length for {expected} to be > 0, got {gene_length}"
+        )
 
 
 def test_bam_to_fastq_handle_indels(dummy_alignment, tmp_path):
@@ -352,9 +347,9 @@ def test_bam_to_fastq_handle_indels(dummy_alignment, tmp_path):
         "alignment_position:101\n"
     )
     fastq_content = fastq_file.read_text()
-    assert (
-        fastq_content == expected_fastq
-    ), f"FASTQ output mismatch:\nExpected:\n{expected_fastq}\nGot:\n{fastq_content}"
+    assert fastq_content == expected_fastq, (
+        f"FASTQ output mismatch:\nExpected:\n{expected_fastq}\nGot:\n{fastq_content}"
+    )
 
     expected_insertion = "read1\t103\tT\tA\n"
     insertion_content = insertions_file.read_text()
@@ -411,9 +406,9 @@ def test_get_gene_set_from_ref_malformed_no_sequence(tmp_path):
 
     gene_set = get_gene_set_from_ref(malformed)
     # Expect GeneSet to be empty since no sequence was provided.
-    assert (
-        gene_set.get_gene_name_list() == []
-    ), "Expected empty gene set for header without sequence"
+    assert gene_set.get_gene_name_list() == [], (
+        "Expected empty gene set for header without sequence"
+    )
 
     # Create file with headers with blank sequence lines
     content = """>GeneA
@@ -429,12 +424,12 @@ def test_get_gene_set_from_ref_malformed_no_sequence(tmp_path):
     # Expect only GeneB to be added (GeneA and GeneC have blank sequences)
     gene_names = gene_set.get_gene_name_list()
     assert "GeneB" in gene_names, "Expected GeneB to be parsed"
-    assert (
-        "GeneA" not in gene_names
-    ), "Expected GeneA to be skipped due to missing sequence"
-    assert (
-        "GeneC" not in gene_names
-    ), "Expected GeneC to be skipped due to missing sequence"
+    assert "GeneA" not in gene_names, (
+        "Expected GeneA to be skipped due to missing sequence"
+    )
+    assert "GeneC" not in gene_names, (
+        "Expected GeneC to be skipped due to missing sequence"
+    )
 
 
 def test_sort_sam_by_qname(tmp_path, monkeypatch):

@@ -1,33 +1,27 @@
 schema:
   metadata:
-    - name: sample_id
+    - name: sampleId
       type: string
-      generateIndex: false
-    - name: batch_id
+      generateIndex: true
+    - name: batchId
       type: string
-      generateIndex: false
-    - name: location_code
+      generateIndex: true
+    - name: locationCode
       type: string
-      generateIndex: false
-    - name: sampling_date
+      generateIndex: true
+    - name: samplingDate
       type: date
-      generateIndex: false
-    - name: read_length
-      type: number
-      generateIndex: false
-    - name: primer_protocol
+      generateIndex: true
+    - name: locationName
       type: string
-      generateIndex: false
-    - name: location_name
+      generateIndex: true
+    - name: readId
       type: string
-      generateIndex: false
-    - name: read_id
-      type: string
-      generateIndex: false
-    - name: sr2silo_version
+      generateIndex: true
+    - name: sr2siloVersion
       type: string
       generateIndex: true
   opennessLevel: OPEN
   instanceName: wise-sarsCoV2
   features: []
-  primaryKey: read_id
+  primaryKey: readId

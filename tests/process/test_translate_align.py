@@ -85,7 +85,7 @@ def test_enrich_read_with_aa_seq_basic(tmp_path, monkeypatch):
 
     # Mock the convert function to return predictable results
     def mock_sam_to_seq_and_indels(seq, cigar):
-        return ("MKT", [AAInsertion(2, "X")], [])
+        return ("MKT", [AAInsertion(2, "X")])
 
     monkeypatch.setattr(
         "sr2silo.process.convert.sam_to_seq_and_indels", mock_sam_to_seq_and_indels

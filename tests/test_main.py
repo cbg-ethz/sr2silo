@@ -314,7 +314,7 @@ def test_submit_to_loculus_environment_variables():
     # Test with environment variables set
     env_vars = {
         "KEYCLOAK_TOKEN_URL": "https://env.auth.com/token",
-        "SUBMISSION_URL": "https://env.submit.com/api",
+        "BACKEND_URL": "https://env.submit.com/api",
     }
 
     with patch.dict(os.environ, env_vars):
@@ -340,7 +340,7 @@ def test_submit_to_loculus_cli_overrides_env():
     # Set environment variables
     env_vars = {
         "KEYCLOAK_TOKEN_URL": "https://env.auth.com/token",
-        "SUBMISSION_URL": "https://env.submit.com/api",
+        "BACKEND_URL": "https://env.submit.com/api",
     }
 
     with patch.dict(os.environ, env_vars):
@@ -354,7 +354,7 @@ def test_submit_to_loculus_cli_overrides_env():
                 "/tmp/test.bam",
                 "--keycloak-token-url",
                 "https://cli.auth.com/token",
-                "--submission-url",
+                "--backend-url",
                 "https://cli.submit.com/api",
             ],
         )

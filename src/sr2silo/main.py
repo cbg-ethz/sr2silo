@@ -11,11 +11,11 @@ from typing import Annotated
 import typer
 
 from sr2silo.config import (
+    get_backend_url,
     get_group_id,
     get_keycloak_token_url,
     get_organism,
     get_password,
-    get_submission_url,
     get_timeline_file,
     get_username,
     get_version,
@@ -193,8 +193,7 @@ def process_from_vpipe(
         temp_dir = Path(os.environ["TMPDIR"])
         logging.info(f"Recognize temporary directory set in Env: {temp_dir}")
         logging.info(
-            "This will be used for amino acid translation and "
-            "alignment - by diamond."
+            "This will be used for amino acid translation and alignment - by diamond."
         )
 
     ci_env = is_ci_environment()
@@ -247,12 +246,11 @@ def submit_to_loculus(
             "KEYCLOAK_TOKEN_URL environment variable.",
         ),
     ] = None,
-    submission_url: Annotated[
+    backend_url: Annotated[
         str | None,
         typer.Option(
-            "--submission-url",
-            help="Loculus submission URL. Falls back to "
-            "SUBMISSION_URL environment variable.",
+            "--backend-url",
+            help="Loculus backend URL. Falls back to BACKEND_URL environment variable.",
         ),
     ] = None,
     group_id: Annotated[
@@ -297,9 +295,9 @@ def submit_to_loculus(
     if keycloak_token_url is None:
         keycloak_token_url = get_keycloak_token_url()
 
-    # Resolve submission_url with environment fallback
-    if submission_url is None:
-        submission_url = get_submission_url()
+    # Resolve backend_url with environment fallback
+    if backend_url is None:
+        backend_url = get_backend_url()
 
     # Resolve group_id with environment fallback
     if group_id is None:
@@ -319,7 +317,7 @@ def submit_to_loculus(
 
     logging.info(f"Processing file: {processed_file}")
     logging.info(f"Using Keycloak token URL: {keycloak_token_url}")
-    logging.info(f"Using submission URL: {submission_url}")
+    logging.info(f"Using backend URL: {backend_url}")
     logging.info(f"Using group ID: {group_id}")
     logging.info(f"Using organism: {organism}")
     logging.info(f"Using username: {username}")
@@ -350,7 +348,7 @@ def submit_to_loculus(
         processed_file,
         nucleotide_alignment,
         keycloak_token_url=keycloak_token_url,
-        submission_url=submission_url,
+        backend_url=backend_url,
         group_id=group_id,
         organism=organism,
         username=username,

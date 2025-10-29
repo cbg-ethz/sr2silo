@@ -8,19 +8,31 @@ LOCATIONS:
   - 10  # Zürich (ZH)
   - 16  # Geneva (GE)
   - 25  # Laupen (BE)
-START_DATE: "2025-07-20"
-END_DATE: "2025-09-11"
+
+# Date range for sample selection
+# Supports both explicit dates (YYYY-MM-DD) and relative dates:
+# - "TODAY" → current date
+# - "1_WEEK_AGO" or "1_WEEKS_AGO" → 1 week back
+# - "2_WEEKS_AGO" → 2 weeks back  
+# - "1_MONTH_AGO" or "1_MONTHS_AGO" → 1 month back
+# - "3_MONTHS_AGO" → 3 months back
+# - "30_DAYS_AGO" → 30 days back
+# Examples:
+#   START_DATE: "2_MONTHS_AGO"  # Process last 2 months
+#   END_DATE: "TODAY"           # Up to current date
+START_DATE: "1_MONTH_AGO"
+END_DATE: "TODAY"
 
 ### Input Files
-BASE_SAMPLE_DIR:  "../results" # "tests/data/samples_large"
-TIMELINE_FILE: "/cluster/project/pangolin/processes/lollipop/variants/timeline.tsv" # "tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
+BASE_SAMPLE_DIR: "tests/data/samples_large"
+TIMELINE_FILE: "tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
 ### Output Files
 RESULTS_DIR:  "../silo-inputs"
 
 ### Loculus (to submit results to)
 ## URLs for Loculus services
 KEYCLOAK_TOKEN_URL: "https://auth.db.wasap.genspectrum.org/realms/loculus/protocol/openid-connect/token"
-SUBMISSION_URL: "https://api.db.wasap.genspectrum.org/backend"
+BACKEND_URL: "https://api.db.wasap.genspectrum.org/backend"
 
 ## Authentication credentials
 GROUP_ID: 1

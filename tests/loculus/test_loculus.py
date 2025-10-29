@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+import yaml
 
 from sr2silo.loculus.loculus import Submission
 
@@ -44,7 +45,7 @@ def test_parse_metadata_uncompressed(test_silo_input_uncompressed):
         assert key in metadata
         assert metadata[key] == expected_value
 
-    # Ensure read_id is excluded (function should exclude it)
+    # Ensure primary key field is excluded
     assert "read_id" not in metadata
 
 
@@ -69,7 +70,7 @@ def test_parse_metadata_compressed(test_silo_input_compressed):
         assert key in metadata
         assert metadata[key] == expected_value
 
-    # Ensure read_id is excluded (function should exclude it)
+    # Ensure primary key field is excluded
     assert "read_id" not in metadata
 
 
@@ -135,9 +136,9 @@ def test_create_metadata_file(test_silo_input_uncompressed):
                 "sr2siloVersion",
             }
             for field in expected_metadata_fields:
-                assert (
-                    field in fieldnames
-                ), f"Expected metadata field '{field}' not found in columns"
+                assert field in fieldnames, (
+                    f"Expected metadata field '{field}' not found in columns"
+                )
                 assert first_row[field]  # Should have a value
 
         # Test with count_reads=True
@@ -160,3 +161,59 @@ def test_create_metadata_file(test_silo_input_uncompressed):
             first_row = rows[0]
             assert first_row["countSiloReads"]  # Should have a count value
             assert int(first_row["countSiloReads"]) > 0  # Should be a positive number
+
+
+def test_metadata_fields_match_organism_config(test_silo_input_uncompressed):
+    """Test that created metadata file fields match organism_conf.yml schema."""
+    # Load organism configuration
+    organism_conf_path = (
+        Path(__file__).parent.parent.parent
+        / "resources"
+        / "loculus"
+        / "organism_conf.yml"
+    )
+    assert organism_conf_path.exists(), (
+        f"organism_conf.yml not found at {organism_conf_path}"
+    )
+
+    with open(organism_conf_path) as f:
+        org_config = yaml.safe_load(f)
+
+    # Extract metadata fields from organism config
+    covid_schema = org_config["organisms"]["covid"]["schema"]
+    config_metadata_fields = {field["name"] for field in covid_schema["metadata"]}
+
+    # Remove primerProtocol from config fields as we no longer include it
+    config_metadata_fields.discard("primerProtocol")
+
+    # Create metadata file
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_processed_file = Path(temp_dir) / "test_processed.ndjson"
+        temp_processed_file.write_text(test_silo_input_uncompressed.read_text())
+
+        metadata_file, _ = Submission.create_metadata_file(
+            temp_processed_file, count_reads=True
+        )
+
+        # Read the created metadata file
+        with open(metadata_file, "r") as f:
+            reader = csv.DictReader(f, delimiter="\t")
+            fieldnames = set(reader.fieldnames or [])
+
+        # Extract metadata field names (excluding submissionId which is a special field)
+        created_metadata_fields = fieldnames - {"submissionId"}
+
+        # Check that all config fields are present in created file
+        missing_fields = config_metadata_fields - created_metadata_fields
+        assert not missing_fields, f"Missing fields in metadata file: {missing_fields}"
+
+        # Check that no unexpected fields are present
+        unexpected_fields = created_metadata_fields - config_metadata_fields
+        assert not unexpected_fields, (
+            f"Unexpected fields in metadata file: {unexpected_fields}"
+        )
+
+        # Verify exact match
+        assert created_metadata_fields == config_metadata_fields, (
+            f"Metadata fields don't match. Expected: {config_metadata_fields}, Got: {created_metadata_fields}"
+        )

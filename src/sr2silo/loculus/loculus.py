@@ -40,16 +40,16 @@ class FileReference(TypedDict):
 class LoculusClient:
     """Client for interacting with the Loculus API."""
 
-    def __init__(self, token_url: str, submission_url: str, organism: str) -> None:
+    def __init__(self, token_url: str, backend_url: str, organism: str) -> None:
         """Initialize the Loculus client.
 
         Args:
             token_url: URL for authentication token endpoint
-            submission_url: Base URL for submission endpoint
+            backend_url: Base URL for backend endpoint
             organism: Organism identifier (e.g., 'sc2', 'sars-cov-2')
         """
         self.token_url = token_url
-        self.submission_url = submission_url
+        self.backend_url = backend_url
         self.organism = organism
         self.is_ci_environment = is_ci_environment()
         self.token = None
@@ -128,7 +128,7 @@ class LoculusClient:
                 f"Use resubmit_duplicate=True to override."
             )
             return {
-                "status": "skipped",
+                "status": "success",
                 "message": f"Duplicate submission for sample_id '{sample_id}' skipped.",
             }
 
@@ -172,8 +172,7 @@ class LoculusClient:
                 # Get file size for Content-Length header
                 file_size = file_path.stat().st_size
                 logging.info(
-                    f"Uploading {file_type} file: {file_path.name} "
-                    f"({file_size} bytes)"
+                    f"Uploading {file_type} file: {file_path.name} ({file_size} bytes)"
                 )
 
                 with open(file_path, "rb") as f:
@@ -218,7 +217,7 @@ class LoculusClient:
         request_id = str(uuid.uuid4())
 
         # Step 4: Submit to the API
-        url = f"{self.submission_url}/{self.organism}/submit"
+        url = f"{self.backend_url}/{self.organism}/submit"
         params = {"groupId": group_id, "dataUseTermsType": data_use_terms_type}
 
         headers = {
@@ -311,7 +310,7 @@ class LoculusClient:
         request_id = str(uuid.uuid4())
 
         # Construct the URL with query parameters
-        url = f"{self.submission_url}/files/request-upload"
+        url = f"{self.backend_url}/files/request-upload"
         params = {"groupId": group_id, "numberFiles": numberFiles}
 
         headers = {
@@ -437,18 +436,20 @@ class Submission:
             columns = ["submissionId", "date"]
             values = [submission_id, submission_date]
 
-            # Define mapping from snake_case to camelCase for specific fields
-            field_mapping = {
-                "sample_id": "sampleId",
-                "batch_id": "batchId",
-                "location_code": "locationCode",
-                "sampling_date": "samplingDate",
-                "location_name": "locationName",
-                "sr2silo_version": "sr2siloVersion",
-            }
+            # Get field aliases directly from ReadMetadata schema
+            from sr2silo.silo_read_schema import ReadMetadata
 
-            # Add mapped metadata fields as columns (only the specified ones)
-            for snake_field, camel_field in field_mapping.items():
+            # Fields that should NOT be included in metadata submission
+            # read_id is the primary key per read and varies for each read
+            excluded_fields = {"read_id"}
+
+            # Add mapped metadata fields as columns
+            for snake_field, field_info in ReadMetadata.model_fields.items():
+                if snake_field in excluded_fields:
+                    continue  # Skip per-read primary key
+                camel_field = field_info.alias
+                if camel_field is None:
+                    continue  # Skip fields without aliases
                 if snake_field in metadata:
                     columns.append(camel_field)
                     value = metadata[snake_field]
@@ -477,7 +478,10 @@ class Submission:
     def parse_metadata(silo_input: Path) -> Dict:
         """Parses the metadata from a silo input .ndjson.zstd or .ndjson
         returning all metadata fields but readId as a dictionary with keys
-        in snake_case format.
+        in snake_case format for internal Python use.
+
+        The input JSON uses camelCase (matching SILO database schema),
+        but this method returns snake_case keys for Python conventions.
 
         Assumptions:
          - the metadata is stored in the root of the object under the keys
@@ -512,32 +516,28 @@ class Submission:
                 # read the first line
                 first_line = f.readline().strip()
 
-        # parse the JSON and extract the metadata - look for fields sample_id, batch_id
-        # location_code, location_name, sampling_date, sr2silo_version
+        # parse the JSON and extract the metadata
+        # The JSON uses camelCase (e.g., sampleId, batchId, locationCode, etc.)
         data = json.loads(first_line)
 
-        # Extract specific metadata fields
-        metadata_fields = [
-            "sample_id",
-            "batch_id",
-            "location_code",
-            "location_name",
-            "sampling_date",
-            "sr2silo_version",
-        ]
+        # Get reverse mapping from ReadMetadata schema (camelCase -> snake_case)
+        from sr2silo.silo_read_schema import ReadMetadata
 
         metadata = {}
-        for field in metadata_fields:
-            if field in data:
-                metadata[field] = data[field]
+        for snake_field, field_info in ReadMetadata.model_fields.items():
+            camel_field = field_info.alias
+            if camel_field is None:
+                continue  # Skip fields without aliases
+            if camel_field in data:
+                metadata[snake_field] = data[camel_field]
             else:
                 logging.warning(
-                    f"Metadata field '{field}' not found in the input data."
+                    f"Metadata field '{camel_field}' not found in the input data."
                 )
-                metadata[field] = None
+                metadata[snake_field] = None
 
         # return the metadata dictionary with snake_case keys
-        # (excluding read_id as specified)
+        # (excluding read_id as it is the primary key per read, not sample metadata)
         filtered_metadata = {k: v for k, v in metadata.items() if k != "read_id"}
         return filtered_metadata
 
@@ -701,7 +701,7 @@ def get_original_metadata(
     if client.token is None:
         raise Exception("Authentication required. Please call authenticate() first.")
 
-    url = f"{client.submission_url}/{client.organism}/get-original-metadata"
+    url = f"{client.backend_url}/{client.organism}/get-original-metadata"
 
     # Generate a unique request ID
     request_id = str(uuid.uuid4())

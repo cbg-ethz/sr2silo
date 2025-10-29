@@ -105,7 +105,7 @@ def test_process_sample():
         except sp.CalledProcessError as e:
             print(f"CalledProcessError: {e}")
             log_file = (
-                workdir / "logs/sr2silo/process_sample/" "sampleId_A1_05_2024_10_08.log"
+                workdir / "logs/sr2silo/process_sample/sampleId_A1_05_2024_10_08.log"
             )
             if log_file.exists():
                 with open(log_file) as f:

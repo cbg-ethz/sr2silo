@@ -141,11 +141,9 @@ class AlignedRead:
         return self.amino_acid_insertions
 
     def set_metadata(self, metadata: Union[Dict[str, str], BaseModel]):
-        """Set the metadata. If a BaseModel is provided, convert it to dict."""
-        if isinstance(metadata, ReadMetadata):
-            self.metadata = metadata.model_dump()
-        else:
-            self.metadata = metadata
+        """Set the metadata. Keep as ReadMetadata object to preserve alias information."""
+        # Store as-is to preserve Pydantic model with aliases
+        self.metadata = metadata
 
     def get_metadata(self) -> Optional[Union[Dict[str, str], ReadMetadata]]:
         """Return the metadata."""
@@ -157,7 +155,11 @@ class AlignedRead:
         return None
 
     def to_dict(self) -> Dict[str, Any]:
-        """Return a dictionary / json representation of the object."""
+        """Return a dictionary / json representation of the object.
+
+        Uses camelCase field names (via Pydantic aliases) for metadata fields
+        to match SILO database schema.
+        """
         formatted_nuc_ins = [
             f"{ins.position}:{ins.sequence}" for ins in self.nucleotide_insertions
         ]
@@ -167,17 +169,32 @@ class AlignedRead:
 
         json_representation = {}
 
-        # Add read_id as the first field
-        json_representation["read_id"] = self.read_id
+        # Add readId as the first field (using camelCase alias)
+        json_representation["readId"] = self.read_id
 
-        # Add metadata at the start if available
+        # Add metadata at the start if available (using camelCase aliases)
         if self.metadata:
-            metadata_dict = (
-                self.metadata.model_dump()
-                if isinstance(self.metadata, BaseModel)
-                else self.metadata
-            )
+            if isinstance(self.metadata, BaseModel):
+                # Pydantic model - use by_alias=True to get camelCase
+                # Exclude readId which is already added above
+                full_metadata_dict = self.metadata.model_dump(by_alias=True)
+                metadata_dict = {
+                    k: v for k, v in full_metadata_dict.items() if k != "readId"
+                }
+            else:
+                # Plain dict with snake_case keys - convert to camelCase
+                from sr2silo.silo_read_schema import ReadMetadata
+
+                metadata_dict = {}
+                for snake_field, field_info in ReadMetadata.model_fields.items():
+                    camel_field = field_info.alias
+                    if camel_field is not None and snake_field in self.metadata:
+                        metadata_dict[camel_field] = self.metadata[snake_field]
+
             for key, value in metadata_dict.items():
+                # Skip readId as it's already added above (defensive check)
+                if key == "readId":
+                    continue
                 if isinstance(value, str):
                     json_representation[key] = value
                 elif isinstance(value, (int, float)):
@@ -227,7 +244,7 @@ class AlignedRead:
             schema = AlignedReadSchema(**data_dict)
 
             return schema.model_dump_json(
-                indent=2 if indent else None, exclude_none=False
+                indent=2 if indent else None, exclude_none=False, by_alias=True
             )
         except Exception as e:
             # If validation fails, log the error and return the raw JSON

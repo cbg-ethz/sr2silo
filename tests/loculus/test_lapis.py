@@ -94,9 +94,9 @@ class TestReferenceJsonToFasta:
             ]
 
             for line in sequence_lines:
-                assert not line.endswith(
-                    "*"
-                ), f"Sequence should not end with asterisk: {line}"
+                assert not line.endswith("*"), (
+                    f"Sequence should not end with asterisk: {line}"
+                )
                 assert "*" not in line, f"Sequence should not contain asterisks: {line}"
 
     def test_invalid_json(self):

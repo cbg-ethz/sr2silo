@@ -40,7 +40,6 @@ def aligned_reads(aa_ref_sarscov2_fp, nuc_ref_sarscov2_fp) -> Dict[str, AlignedR
         "sampling_date": "",
         "location_name": "",
         "read_length": "",
-        "primer_protocol": "",
         "location_code": "",
         "sr2silo_version": "",
     }
