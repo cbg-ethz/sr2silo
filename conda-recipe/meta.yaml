@@ -36,7 +36,7 @@ requirements:
     - typer >=0.15.1
     - biopython >=1.83
     - pysam >=0.23.0
-    - requests >=2.25.0
+    - httpx >=0.28.0
     - moto >=5.0.22
 
 test:

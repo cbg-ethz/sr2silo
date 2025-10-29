@@ -6,7 +6,7 @@ import json
 import logging
 from pathlib import Path
 
-import requests
+import httpx
 
 
 class LapisClient:
@@ -33,10 +33,10 @@ class LapisClient:
         headers = {"accept": "application/json"}
 
         try:
-            response = requests.get(url, headers=headers)
+            response = httpx.get(url, headers=headers)
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logging.error(f"Error fetching reference genome: {e}")
             raise Exception(f"Failed to fetch reference genome: {e}")
 
