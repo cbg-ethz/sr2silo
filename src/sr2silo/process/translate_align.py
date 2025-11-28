@@ -26,9 +26,45 @@ from sr2silo.process.interface import (
 )
 
 
+def _make_diamond_db(in_aa_reference_fp: Path, out_db_fp: Path) -> None:
+    """
+    Creates a Diamond-formatted database file that can be used for protein
+    sequence alignment with Diamond blastx.
+
+    Args:
+        in_aa_reference_fp (Path): Path to the input amino acid reference FASTA file
+                                    with their gene names as headers
+        out_db_fp (Path): Path to the output Diamond database file.
+    """
+    try:
+        logging.info("Diamond makedb")
+        logging.info("== Making Sequence DB ==")
+        result = subprocess.run(
+            [
+                "diamond",
+                "makedb",
+                "--in",
+                str(in_aa_reference_fp),
+                "-d",
+                str(out_db_fp),
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"Error occurred while making sequence DB with diamond makedb "
+                f"- Error Code: {result.returncode}"
+            )
+    except Exception as e:
+        logging.error(f"An error occurred while making sequence DB - Error Code: {e}")
+        raise
+
+
 def nuc_to_aa_alignment(
     in_nuc_alignment_fp: Path,
-    in_aa_reference_fp: Path,
+    in_aa_db_fp: Path,
     out_aa_alignment_fp: Path,
 ) -> None:
     """
@@ -36,7 +72,7 @@ def nuc_to_aa_alignment(
 
     Args:
         in_nuc_alignment_fp (Path): Path to the input nucleotide alignment file.
-        in_aa_reference_fp (Path): Path to the input amino acid reference file.
+        in_aa_db_fp (Path): Path to the input amino acid diamond database file.
         out_aa_alignment_fp (Path): Path to the output amino acid alignment file.
 
     Returns:
@@ -76,36 +112,6 @@ def nuc_to_aa_alignment(
 
         logging.info(f"Using temporary directory for diamond: {temp_dir_path}")
 
-        # temporary file file for amino acid reference DB
-        db_ref_fp = temp_dir_path / Path(in_aa_reference_fp.stem + ".temp.db")
-        try:
-            # ==== Make Sequence DB ====
-            logging.info("Diamond makedb")
-            logging.info("== Making Sequence DB ==")
-            result = subprocess.run(
-                [
-                    "diamond",
-                    "makedb",
-                    "--in",
-                    str(in_aa_reference_fp),
-                    "-d",
-                    str(db_ref_fp),
-                ],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                check=False,
-            )
-            if result.returncode != 0:
-                raise RuntimeError(
-                    f"Error occurred while making sequence DB with diamond makedb "
-                    f"- Error Code: {result}"
-                )
-        except Exception as e:
-            logging.error(
-                f"An error occurred while making sequence DB - Error Code: {e}"
-            )
-            raise
-
         try:
             # ==== Alignment ====
             logging.info("Diamond blastx alignment")
@@ -114,7 +120,7 @@ def nuc_to_aa_alignment(
                     "diamond",
                     "blastx",
                     "-d",
-                    str(db_ref_fp),
+                    str(in_aa_db_fp),
                     "-q",
                     str(fasta_nuc_for_aa_alignment),
                     "-o",
@@ -287,7 +293,10 @@ def enrich_read_with_aa_seq(
 
 
 def parse_translate_align(
-    nuc_reference_fp: Path, aa_reference_fp: Path, nuc_alignment_fp: Path
+    nuc_reference_fp: Path,
+    aa_reference_fp: Path,
+    nuc_alignment_fp: Path,
+    aa_db_fp: Path,
 ) -> Dict[str, AlignedRead]:
     """Parse nucleotides, translate and align amino acids the input files."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -299,7 +308,7 @@ def parse_translate_align(
 
         missing_files = [
             str(f)
-            for f in [nuc_reference_fp, aa_reference_fp, nuc_alignment_fp]
+            for f in [nuc_reference_fp, aa_reference_fp, nuc_alignment_fp, aa_db_fp]
             if not f.exists()
         ]
         if missing_files:
@@ -315,7 +324,7 @@ def parse_translate_align(
 
         nuc_to_aa_alignment(
             in_nuc_alignment_fp=BAM_NUC_ALIGNMENT_FILE,
-            in_aa_reference_fp=aa_reference_fp,
+            in_aa_db_fp=aa_db_fp,
             out_aa_alignment_fp=AA_ALIGNMENT_FILE,
         )
 
@@ -373,14 +382,16 @@ def curry_read_with_metadata(metadata_fp: Path) -> Callable[[AlignedRead], Align
     return enrich_single_read
 
 
-def process_bam_files(bam_splits_fps, nuc_reference_fp, aa_reference_fp, metadata_fp):
+def process_bam_files(
+    bam_splits_fps, nuc_reference_fp, aa_reference_fp, aa_db_fp, metadata_fp
+):
     """Generator to process BAM files and yield JSON strings."""
 
     enrich_single_read = curry_read_with_metadata(metadata_fp)
 
     for bam_split_fp in bam_splits_fps:
         for read in parse_translate_align(
-            nuc_reference_fp, aa_reference_fp, bam_split_fp
+            nuc_reference_fp, aa_reference_fp, bam_split_fp, aa_db_fp
         ).values():
             enriched_read = enrich_single_read(read)
             yield enriched_read.to_silo_json()
@@ -437,6 +448,10 @@ def parse_translate_align_in_batches(
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_dir_path = Path(temp_dir)
 
+            # Create Diamond DB once
+            aa_db_fp = temp_dir_path / "diamond_db.dmnd"
+            _make_diamond_db(aa_reference_fp, aa_db_fp)
+
             bam_splits_fps = convert.split_bam(
                 input_bam=nuc_alignment_fp, out_dir=temp_dir_path, chunk_size=chunk_size
             )
@@ -452,7 +467,11 @@ def parse_translate_align_in_batches(
                 with open(output_fp, "wb") as f, cctx.stream_writer(f) as compressor:
                     buffer = []
                     for json_str in process_bam_files(
-                        bam_splits_fps, nuc_reference_fp, aa_reference_fp, metadata_fp
+                        bam_splits_fps,
+                        nuc_reference_fp,
+                        aa_reference_fp,
+                        aa_db_fp,
+                        metadata_fp,
                     ):
                         buffer.append(json_str)
                         if len(buffer) >= write_chunk_size:

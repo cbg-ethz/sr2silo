@@ -27,12 +27,16 @@ def aligned_reads(aa_ref_sarscov2_fp, nuc_ref_sarscov2_fp) -> Dict[str, AlignedR
     aa_ref_fp = aa_ref_sarscov2_fp
     nuc_alignment_fp = Path("tests/data/bam/combined.bam")
 
-    aligned_reads = translate_align.parse_translate_align(
-        nuc_ref_fp, aa_ref_fp, nuc_alignment_fp
-    )
+    with tempfile.TemporaryDirectory() as temp_dir:
+        aa_db_fp = Path(temp_dir) / "diamond_db.dmnd"
+        translate_align._make_diamond_db(aa_ref_fp, aa_db_fp)
+
+        aligned_reads = translate_align.parse_translate_align(
+            nuc_ref_fp, aa_ref_fp, nuc_alignment_fp, aa_db_fp
+        )
 
     # make mock metadata with all empty strings, but readId
-    # print emoptry ReadMetadata scehma to json
+    # print empty ReadMetadata scehma to json
     metadata = {
         "read_id": "readId",
         "sample_id": "",
