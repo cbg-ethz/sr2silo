@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import logging
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -165,3 +166,47 @@ def test_curry_read_with_metadata_empty_metadata(tmp_path):
 
     with pytest.raises(ValueError, match="No metadata found in the file"):
         translate_align.curry_read_with_metadata(empty_file)
+
+
+def test_make_diamond_db_success(tmp_path):
+    """Test successful creation of Diamond database."""
+    in_aa_ref = tmp_path / "ref.fasta"
+    out_db = tmp_path / "db.dmnd"
+    in_aa_ref.touch()
+
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        translate_align._make_diamond_db(in_aa_ref, out_db)
+
+        mock_run.assert_called_once()
+        args = mock_run.call_args[0][0]
+        assert args[0] == "diamond"
+        assert args[1] == "makedb"
+        assert args[3] == str(in_aa_ref)
+        assert args[5] == str(out_db)
+
+
+def test_make_diamond_db_failure(tmp_path):
+    """Test failure during Diamond database creation (non-zero return code)."""
+    in_aa_ref = tmp_path / "ref.fasta"
+    out_db = tmp_path / "db.dmnd"
+    in_aa_ref.touch()
+
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=1)
+
+        with pytest.raises(
+            RuntimeError, match="Error occurred while making sequence DB"
+        ):
+            translate_align._make_diamond_db(in_aa_ref, out_db)
+
+
+def test_make_diamond_db_exception(tmp_path):
+    """Test exception handling during Diamond database creation."""
+    in_aa_ref = tmp_path / "ref.fasta"
+    out_db = tmp_path / "db.dmnd"
+    in_aa_ref.touch()
+
+    with patch("subprocess.run", side_effect=OSError("Command not found")):
+        with pytest.raises(OSError, match="Command not found"):
+            translate_align._make_diamond_db(in_aa_ref, out_db)
