@@ -19,7 +19,7 @@ Environment variables provide configuration defaults. CLI arguments override env
 
 | Variable | Purpose | Default | Example |
 |----------|---------|---------|---------|
-| `ORGANISM` | Organism identifier | None (required) | `sars-cov-2`, `rsva` |
+| `ORGANISM` | Organism identifier | None (required) | `covid`, `rsva` |
 | `TIMELINE_FILE` | Metadata timeline file | None (required) | `/path/to/timeline.tsv` |
 | `LAPIS_URL` | LAPIS instance URL (optional) | None | `https://lapis.example.com` |
 
@@ -27,7 +27,7 @@ Environment variables provide configuration defaults. CLI arguments override env
 
 | Variable | Purpose | Default | Example |
 |----------|---------|---------|---------|
-| `ORGANISM` | Organism identifier | None (required) | `sars-cov-2`, `rsva` |
+| `ORGANISM` | Organism identifier | None (required) | `covid`, `rsva` |
 | `KEYCLOAK_TOKEN_URL` | Authentication endpoint | None (required) | `https://auth.example.com/token` |
 | `BACKEND_URL` | SILO backend API endpoint | None (required) | `https://api.example.com/api` |
 | `GROUP_ID` | Loculus group ID | None (required) | `1`, `42` |
@@ -38,7 +38,7 @@ Environment variables provide configuration defaults. CLI arguments override env
 
 Configure in `workflow/config.yaml`:
 ```yaml
-ORGANISM: "sars-cov-2"
+ORGANISM: "covid"
 LAPIS_URL: "https://lapis.wasap.genspectrum.org/"
 KEYCLOAK_TOKEN_URL: "https://auth.db.wasap.genspectrum.org/..."
 BACKEND_URL: "https://api.db.wasap.genspectrum.org/..."

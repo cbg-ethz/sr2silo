@@ -78,7 +78,7 @@ def get_organism() -> str:
     """Get the organism identifier from environment, or return default if not set.
 
     Returns:
-        str: The organism identifier (e.g., 'sc2', 'sars-cov-2')
+        str: The organism identifier (e.g., 'covid')
     """
     try:
         organism = os.getenv("ORGANISM")

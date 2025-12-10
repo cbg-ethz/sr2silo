@@ -59,7 +59,7 @@ def test_process_from_vpipe_with_real_files(real_sample_files_import_to_loculus)
                 "--timeline-file",
                 str(real_sample_files_import_to_loculus["timeline_file"]),
                 "--organism",
-                "sars-cov-2",
+                "covid",
                 "--lapis-url",
                 real_sample_files_import_to_loculus["lapis_url"],
                 "--output-fp",
@@ -396,7 +396,7 @@ def test_process_from_vpipe_multi_organism(sample_data_by_organism, tmp_path):
 
     This test verifies that the organism parameter is correctly parsed and passed
     through to the reference loading logic. It mocks the actual processing to test
-    the CLI argument handling for both SARS-CoV-2 and RSV-A organisms.
+    the CLI argument handling for both COVID-19 and RSV-A organisms.
 
     Args:
         sample_data_by_organism: Parameterized fixture providing test data

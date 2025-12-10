@@ -31,8 +31,8 @@ except Exception:
 
 # Prefer a config from the runtime workdir (tests copy theirs into workdir/workflow/config.yaml),
 # and fall back to the repository's workflow/config.yaml
-DEFAULT_CONFIG = WORKFLOW_DIR / "config_prod.yaml" # for production runs
-RUNTIME_CONFIG = RUNTIME_DIR / "workflow" / "config.yaml" # for CI runs
+DEFAULT_CONFIG = WORKFLOW_DIR / "config_prod.yaml"  # for production runs
+RUNTIME_CONFIG = RUNTIME_DIR / "workflow" / "config.yaml"  # for CI runs
 CONFIG = RUNTIME_CONFIG if RUNTIME_CONFIG.exists() else DEFAULT_CONFIG
 if not CONFIG.exists():
     print(f"❌ ERROR: Expected config file not found: {CONFIG}")
@@ -485,7 +485,7 @@ rule process_sample:
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
         timeline_file=config["TIMELINE_FILE"],
-        organism=config.get("ORGANISM", "sars-cov-2"),
+        organism=config.get("ORGANISM", "covid"),
         lapis_url=config.get("LAPIS_URL", ""),
     log:
         "logs/sr2silo/process_sample/sampleId_{sample_id}.log",

@@ -38,16 +38,16 @@ BACKEND_URL: "https://api.db.wasap.genspectrum.org/backend"
 GROUP_ID: 1
 # For production use prefer reading them from environment at runtime or prompting the user.
 # ORGANISM: organism identifier for which to process samples
-#   Supported organisms: "sars-cov-2", "rsva", etc.
+#   Supported organisms: "covid", "rsva", etc.
 #   References are loaded from resources/references/{organism}/ directory
 #   or from LAPIS_URL if local references are not available
-ORGANISM: "sars-cov-2"
+ORGANISM: "covid"
 USERNAME: "<<URSERNAME>>"
 PASSWORD: "<<PASSWORD>>"
 
 ### LAPIS – hosting the SILO database (to query reference from)
 # Optional: specify LAPIS URL for custom reference genomes
-# If not provided, uses default SARS-CoV-2 references (NCBI Reference Sequence: NC_045512.2)
+# If not provided, uses default COVID-19 references (NCBI Reference Sequence: NC_045512.2)
 LAPIS_URL: "https://lapis.wasap.genspectrum.org/"
 
 ### Subsampling Configuration

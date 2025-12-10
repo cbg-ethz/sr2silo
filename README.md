@@ -208,7 +208,7 @@ sr2silo process-from-vpipe \
     --input-file input.bam \
     --sample-id SAMPLE_001 \
     --timeline-file timeline.tsv \
-    --organism sars-cov-2 \
+    --organism covid \
     --output-fp output.ndjson.zst
 
 # Submit to Loculus
@@ -216,7 +216,7 @@ sr2silo submit-to-loculus \
     --processed-file output.ndjson.zst
 ```
 
-**Supported organisms:** `sars-cov-2`, `rsva` (and others as references are added)
+**Supported organisms:** `covid`, `rsva` (and others as references are added)
 
 For detailed usage, organism configuration, and environment variables, see the [documentation](docs/usage/).
 
@@ -225,7 +225,7 @@ For detailed usage, organism configuration, and environment variables, see the [
 sr2silo supports configuration via environment variables (CLI parameters take precedence):
 
 ```bash
-export ORGANISM=sars-cov-2
+export ORGANISM=covid
 export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
 export BACKEND_URL=https://api.example.com/submit
 export GROUP_ID=123

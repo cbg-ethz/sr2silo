@@ -191,13 +191,13 @@ def real_sample_files_import_to_loculus(
 @pytest.fixture
 def nuc_ref_sarscov2_fp():
     """Return the reference genome file path."""
-    return Path("resources/references/sars-cov-2/nuc_ref.fasta")
+    return Path("resources/references/covid/nuc_ref.fasta")
 
 
 @pytest.fixture
 def aa_ref_sarscov2_fp():
     """Return the reference genome file path."""
-    return Path("resources/references/sars-cov-2/aa_ref.fasta")
+    return Path("resources/references/covid/aa_ref.fasta")
 
 
 @pytest.fixture
@@ -236,16 +236,16 @@ def rsva_sample():
     params=[
         pytest.param(
             {
-                "organism": "sars-cov-2",
+                "organism": "covid",
                 "sample": INPUT_BAM_INSERTIONS_PATH,
                 "timeline": Path(
                     "./tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
                 ),
                 "sample_id": "A1_05_2024_10_08",
-                "nuc_ref": Path("resources/references/sars-cov-2/nuc_ref.fasta"),
-                "aa_ref": Path("resources/references/sars-cov-2/aa_ref.fasta"),
+                "nuc_ref": Path("resources/references/covid/nuc_ref.fasta"),
+                "aa_ref": Path("resources/references/covid/aa_ref.fasta"),
             },
-            id="sars-cov-2",
+            id="covid",
         ),
         pytest.param(
             {

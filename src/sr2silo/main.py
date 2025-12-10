@@ -43,7 +43,7 @@ def _get_reference_files(
     Args:
         ci_env: Whether running in CI environment
         lapis_url: URL of LAPIS instance, or None to use local references
-        organism: Organism identifier (e.g., 'sars-cov-2', 'rsva')
+        organism: Organism identifier (e.g., 'covid', 'rsva')
                  If None, only LAPIS references are available
 
     Returns:
@@ -179,7 +179,7 @@ def process_from_vpipe(
         str | None,
         typer.Option(
             "--organism",
-            help="Organism identifier (e.g., 'sars-cov-2', 'rsva'). "
+            help="Organism identifier (e.g., 'covid', 'rsva'). "
             "Used to locate local reference files at resources/references/{organism}/. "
             "Falls back to LAPIS URL if provided. "
             "Can also be set via ORGANISM environment variable.",
@@ -226,7 +226,7 @@ def process_from_vpipe(
     if lapis_url:
         logging.info(f"Using Lapis URL: {lapis_url}")
     else:
-        logging.info("Using default SARS-CoV-2 references (no Lapis URL provided)")
+        logging.info("Using default COVID-19 references (no Lapis URL provided)")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Skip read pair merging: {skip_merge}")
 

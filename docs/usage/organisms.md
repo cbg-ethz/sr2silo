@@ -6,7 +6,7 @@ sr2silo supports processing samples from multiple organisms with organism-specif
 
 | Organism | Identifier | Description |
 |----------|------------|-------------|
-| SARS-CoV-2 | `sars-cov-2` | Severe acute respiratory syndrome coronavirus 2 (COVID-19) |
+| COVID-19 | `covid` | SARS-CoV-2 / Severe acute respiratory syndrome coronavirus 2 |
 | RSV-A | `rsva` | Respiratory Syncytial Virus A |
 
 ## Reference Resolution
@@ -56,7 +56,7 @@ To add support for a new organism:
 
 Specify organism in `workflow/config.yaml`:
 ```yaml
-ORGANISM: "sars-cov-2"  # or "rsva"
+ORGANISM: "covid"  # or "rsva"
 ```
 
 ## Troubleshooting
