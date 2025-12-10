@@ -485,6 +485,7 @@ rule process_sample:
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
         timeline_file=config["TIMELINE_FILE"],
+        organism=config.get("ORGANISM", "sars-cov-2"),
         lapis_url=config.get("LAPIS_URL", ""),
     log:
         "logs/sr2silo/process_sample/sampleId_{sample_id}.log",
@@ -497,6 +498,7 @@ rule process_sample:
             --input-file {input.sample_fp} \
             --sample-id {params.sample_id} \
             --timeline-file {params.timeline_file} \
+            --organism {params.organism} \
             --output-fp {output.result_fp} \
             --lapis-url {params.lapis_url} > {log} 2>&1
         """

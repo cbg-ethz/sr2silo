@@ -13,7 +13,7 @@ LOCATIONS:
 # Supports both explicit dates (YYYY-MM-DD) and relative dates:
 # - "TODAY" → current date
 # - "1_WEEK_AGO" or "1_WEEKS_AGO" → 1 week back
-# - "2_WEEKS_AGO" → 2 weeks back  
+# - "2_WEEKS_AGO" → 2 weeks back
 # - "1_MONTH_AGO" or "1_MONTHS_AGO" → 1 month back
 # - "3_MONTHS_AGO" → 3 months back
 # - "30_DAYS_AGO" → 30 days back
@@ -37,7 +37,11 @@ BACKEND_URL: "https://api.db.wasap.genspectrum.org/backend"
 ## Authentication credentials
 GROUP_ID: 1
 # For production use prefer reading them from environment at runtime or prompting the user.
-ORGANISM: "covid"  # "sars-cov-2"
+# ORGANISM: organism identifier for which to process samples
+#   Supported organisms: "sars-cov-2", "rsva", etc.
+#   References are loaded from resources/references/{organism}/ directory
+#   or from LAPIS_URL if local references are not available
+ORGANISM: "sars-cov-2"
 USERNAME: "<<URSERNAME>>"
 PASSWORD: "<<PASSWORD>>"
 
