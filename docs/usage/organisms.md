@@ -39,7 +39,7 @@ To add support for a new organism:
 2. **Use GenBank parser** (if starting from GenBank format):
    ```bash
    python scripts/extract_gbk_references.py \
-       --gbk-file reference.gbk \
+       reference.gbk \
        --nuc-output resources/references/{organism_id}/nuc_ref.fasta \
        --aa-output resources/references/{organism_id}/aa_ref.fasta
    ```
