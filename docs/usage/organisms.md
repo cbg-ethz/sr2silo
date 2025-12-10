@@ -21,51 +21,12 @@ This allows for both static local references and dynamic references from a LAPIS
 
 ## Usage
 
-### Specifying Organism via CLI
-
+For detailed usage, see:
 ```bash
-sr2silo process-from-vpipe \
-    --input-file input.bam \
-    --sample-id SAMPLE_001 \
-    --timeline-file timeline.tsv \
-    --organism sars-cov-2 \
-    --output-fp output.ndjson.zst
+sr2silo process-from-vpipe --help
 ```
 
-### Using Environment Variable
-
-Set the `ORGANISM` environment variable instead of passing `--organism`:
-
-```bash
-export ORGANISM=rsva
-
-sr2silo process-from-vpipe \
-    --input-file input.bam \
-    --sample-id SAMPLE_001 \
-    --timeline-file timeline.tsv \
-    --output-fp output.ndjson.zst
-```
-
-**Note:** CLI `--organism` parameter overrides the `ORGANISM` environment variable.
-
-### With LAPIS Reference Fetching
-
-To fetch references from a LAPIS instance (with local fallback):
-
-```bash
-sr2silo process-from-vpipe \
-    --input-file input.bam \
-    --sample-id SAMPLE_001 \
-    --timeline-file timeline.tsv \
-    --organism rsva \
-    --lapis-url https://lapis.example.com \
-    --output-fp output.ndjson.zst
-```
-
-The system will:
-1. Check for local RSV-A references first
-2. If not found, try fetching from the LAPIS instance
-3. Use local references as fallback if LAPIS fetch fails
+The `--organism` parameter specifies which organism to process. Can also be set via `ORGANISM` environment variable (CLI argument takes precedence).
 
 ## Adding New Organisms
 
@@ -93,39 +54,15 @@ To add support for a new organism:
 
 ## Workflow Integration
 
-When using the Snakemake workflow, specify organism in `workflow/config.yaml`:
-
+Specify organism in `workflow/config.yaml`:
 ```yaml
-# Organism identifier for processing
-ORGANISM: "sars-cov-2"  # or "rsva", etc.
-```
-
-Or override at runtime:
-
-```bash
-snakemake --config ORGANISM=rsva
+ORGANISM: "sars-cov-2"  # or "rsva"
 ```
 
 ## Troubleshooting
 
-### Reference Files Not Found
-
-If you get an error about missing reference files:
-
-```
-FileNotFoundError: No reference files found for organism 'organism_id'
-```
-
-**Solutions:**
-1. Verify reference files exist: `ls resources/references/{organism}/`
-2. Check organism name spelling matches exactly
-3. Use `--lapis-url` to fetch references from LAPIS if local files are unavailable
-4. Use scripts/extract_gbk_references.py to generate references from GenBank files
-
-### Mismatched References
-
-If your processing results seem incorrect:
-
-1. Verify organism identifier matches your data source
-2. Check reference file versions are appropriate for your samples
-3. Consider using `--lapis-url` to ensure you have the latest references
+**Reference files not found:**
+- Verify files exist: `ls resources/references/{organism}/`
+- Check organism identifier spelling
+- Use `--lapis-url` to fetch from LAPIS
+- Generate from GenBank: `python scripts/extract_gbk_references.py --help`

@@ -34,154 +34,28 @@ Environment variables provide configuration defaults. CLI arguments override env
 | `USERNAME` | Submission username | None (required) | Your username |
 | `PASSWORD` | Submission password | None (required) | Your password |
 
-## Usage Examples
-
-### Example 1: Local Processing with Environment Variables
-
-```bash
-# Set environment variables
-export ORGANISM=sars-cov-2
-export TIMELINE_FILE=/path/to/timeline.tsv
-
-# Process data (uses environment variables)
-sr2silo process-from-vpipe \
-    --input-file input.bam \
-    --sample-id SAMPLE_001 \
-    --output-fp output.ndjson.zst
-```
-
-### Example 2: CLI Arguments Override Environment
-
-```bash
-# Set default organism
-export ORGANISM=sars-cov-2
-
-# Override with CLI argument for RSV data
-sr2silo process-from-vpipe \
-    --input-file input.bam \
-    --sample-id SAMPLE_001 \
-    --timeline-file /path/to/rsv_timeline.tsv \
-    --organism rsva \
-    --output-fp output.ndjson.zst
-```
-
-### Example 3: Complete Processing and Submission Workflow
-
-```bash
-# Set up environment
-export ORGANISM=sars-cov-2
-export KEYCLOAK_TOKEN_URL=https://auth.db.wasap.genspectrum.org/realms/loculus/protocol/openid-connect/token
-export BACKEND_URL=https://api.db.wasap.genspectrum.org/backend
-export GROUP_ID=1
-export USERNAME=your-username
-export PASSWORD=your-password
-
-# Step 1: Process data
-sr2silo process-from-vpipe \
-    --input-file aligned_reads.bam \
-    --sample-id SAMPLE_001 \
-    --timeline-file timeline.tsv \
-    --output-fp sample_001.ndjson.zst
-
-# Step 2: Submit to Loculus
-sr2silo submit-to-loculus \
-    --processed-file sample_001.ndjson.zst \
-    --nucleotide-alignment aligned_reads.bam
-```
-
-### Example 4: Using LAPIS for Dynamic References
-
-```bash
-# Process with LAPIS for reference fetching
-sr2silo process-from-vpipe \
-    --input-file input.bam \
-    --sample-id SAMPLE_001 \
-    --timeline-file timeline.tsv \
-    --organism rsva \
-    --lapis-url https://lapis.example.com \
-    --output-fp output.ndjson.zst
-```
-
-## Configuration in Workflows
-
-### Snakemake Workflow
+## Snakemake Workflow
 
 Configure in `workflow/config.yaml`:
-
 ```yaml
-# Organism identifier
 ORGANISM: "sars-cov-2"
-
-# LAPIS configuration (optional)
 LAPIS_URL: "https://lapis.wasap.genspectrum.org/"
-
-# Submission credentials
 KEYCLOAK_TOKEN_URL: "https://auth.db.wasap.genspectrum.org/..."
 BACKEND_URL: "https://api.db.wasap.genspectrum.org/..."
 GROUP_ID: 1
 ```
 
-Or override at runtime:
-
-```bash
-snakemake --config ORGANISM=rsva LAPIS_URL="https://custom.lapis.com"
-```
-
 ## Best Practices
 
-1. **Use environment variables for secrets**: Store credentials in environment variables, not in code or configuration files
-   ```bash
-   export KEYCLOAK_TOKEN_URL="..."
-   export USERNAME="..."
-   export PASSWORD="..."
-   ```
-
-2. **Use CLI arguments for experiment-specific settings**: Override defaults for specific runs
-   ```bash
-   sr2silo process-from-vpipe \
-       --organism rsva \  # Override default
-       --lapis-url https://custom.lapis.com  # Use custom LAPIS
-   ```
-
-3. **Document your environment setup**: Create a setup script for your deployment
-   ```bash
-   # setup_env.sh
-   export ORGANISM=sars-cov-2
-   export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
-   export BACKEND_URL=https://api.example.com/api
-   source setup_env.sh
-   ```
-
-4. **Verify configuration before processing**: Use `--help` to check what values will be used
-   ```bash
-   sr2silo process-from-vpipe --help
-   ```
+- **Store credentials in environment variables**, not in code
+- **Use CLI arguments for experiment-specific settings** that override defaults
+- **Create setup scripts** for your deployment environment
+- **Use `--help`** to verify available options
 
 ## Troubleshooting
 
-### "ORGANISM environment variable is not set"
+**ORGANISM not set:** Export variable or use `--organism` flag
 
-**Error:** Required `ORGANISM` variable missing
+**Reference files not found:** Check spelling, verify files exist, or use `--lapis-url`
 
-**Solutions:**
-- Set via environment: `export ORGANISM=sars-cov-2`
-- Set via CLI: `--organism sars-cov-2`
-
-### "Reference files not found"
-
-**Error:** sr2silo can't locate reference sequences
-
-**Solutions:**
-- Check organism identifier spelling
-- Verify reference files exist: `ls resources/references/{organism}/`
-- Use `--lapis-url` to fetch from LAPIS
-- See [Multi-Organism Support](organisms.md) for adding new organisms
-
-### "Authentication failed"
-
-**Error:** Submission to Loculus fails with credentials
-
-**Solutions:**
-- Verify credentials in environment variables
-- Check endpoint URLs are correct
-- Ensure GROUP_ID is valid for your account
+**Authentication failed:** Verify credentials and endpoint URLs in environment variables
