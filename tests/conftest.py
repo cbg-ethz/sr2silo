@@ -198,3 +198,73 @@ def nuc_ref_sarscov2_fp():
 def aa_ref_sarscov2_fp():
     """Return the reference genome file path."""
     return Path("resources/references/sars-cov-2/aa_ref.fasta")
+
+
+@pytest.fixture
+def nuc_ref_rsva_fp():
+    """Return the RSV-A nucleotide reference genome file path."""
+    return Path("resources/references/rsva/nuc_ref.fasta")
+
+
+@pytest.fixture
+def aa_ref_rsva_fp():
+    """Return the RSV-A amino acid reference genome file path."""
+    return Path("resources/references/rsva/aa_ref.fasta")
+
+
+@pytest.fixture
+def rsva_timeline():
+    """Return the RSV timeline file path."""
+    return Path("./tests/data/rsva/timeline.tsv")
+
+
+@pytest.fixture
+def rsva_sample():
+    """Return the RSV sample BAM file path."""
+    rsva_bam = (
+        TEST_DATA_DIR
+        / "rsva"
+        / "A1_05_2025_11_05"
+        / "20251128_2511665243"
+        / "alignments"
+        / "REF_aln_trim.bam"
+    )
+    return rsva_bam
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(
+            {
+                "organism": "sars-cov-2",
+                "sample": INPUT_BAM_INSERTIONS_PATH,
+                "timeline": Path(
+                    "./tests/data/samples_large/timeline_A1_05_2024_10_08.tsv"
+                ),
+                "sample_id": "A1_05_2024_10_08",
+                "nuc_ref": Path("resources/references/sars-cov-2/nuc_ref.fasta"),
+                "aa_ref": Path("resources/references/sars-cov-2/aa_ref.fasta"),
+            },
+            id="sars-cov-2",
+        ),
+        pytest.param(
+            {
+                "organism": "rsva",
+                "sample": TEST_DATA_DIR
+                / "rsva"
+                / "A1_05_2025_11_05"
+                / "20251128_2511665243"
+                / "alignments"
+                / "REF_aln_trim.bam",
+                "timeline": Path("./tests/data/rsva/timeline.tsv"),
+                "sample_id": "A1_05_2025_11_05",
+                "nuc_ref": Path("resources/references/rsva/nuc_ref.fasta"),
+                "aa_ref": Path("resources/references/rsva/aa_ref.fasta"),
+            },
+            id="rsva",
+        ),
+    ]
+)
+def sample_data_by_organism(request):
+    """Parameterized fixture providing sample data for different organisms."""
+    return request.param
