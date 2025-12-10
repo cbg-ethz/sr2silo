@@ -87,7 +87,7 @@ def test_process_from_vpipe_with_empty_batch_id(real_sample_files_import_to_locu
                 "--timeline-file",
                 str(real_sample_files_import_to_loculus["timeline_file"]),
                 "--organism",
-                "sars-cov-2",
+                "covid",
                 "--output-fp",
                 str(
                     real_sample_files_import_to_loculus["output_file"].parent
@@ -122,7 +122,7 @@ def test_process_from_vpipe_with_explicit_empty_batch_id(
                 "--timeline-file",
                 str(real_sample_files_import_to_loculus["timeline_file"]),
                 "--organism",
-                "sars-cov-2",
+                "covid",
                 "--output-fp",
                 str(
                     real_sample_files_import_to_loculus["output_file"].parent
@@ -210,7 +210,7 @@ def test_process_from_vpipe_with_skip_merge(real_sample_files_import_to_loculus)
                 "--timeline-file",
                 str(real_sample_files_import_to_loculus["timeline_file"]),
                 "--organism",
-                "sars-cov-2",
+                "covid",
                 "--output-fp",
                 str(real_sample_files_import_to_loculus["output_file"]),
                 "--lapis-url",
