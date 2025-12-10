@@ -226,7 +226,7 @@ def process_from_vpipe(
     if lapis_url:
         logging.info(f"Using Lapis URL: {lapis_url}")
     else:
-        logging.info("Using default COVID-19 references (no Lapis URL provided)")
+        logging.info(f"Using local {organism} references (no Lapis URL provided)")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Skip read pair merging: {skip_merge}")
 
