@@ -381,3 +381,93 @@ def test_submit_to_loculus_missing_env_and_cli():
         )
         assert result.exit_code == 1
         # The error message is logged, so let's just verify the exit code for now
+
+
+def test_process_from_vpipe_multi_organism(sample_data_by_organism, tmp_path):
+    """Test process-from-vpipe with multiple organisms (parameterized).
+
+    This end-to-end test verifies that the organism parameter works correctly
+    for both SARS-CoV-2 and RSV-A, ensuring multi-organism support is functional.
+
+    Args:
+        sample_data_by_organism: Parameterized fixture providing test data
+        tmp_path: Pytest fixture for temporary directory
+    """
+    organism_data = sample_data_by_organism
+    output_fp = tmp_path / f"{organism_data['organism']}_output.ndjson.zst"
+
+    # Mock is_ci_environment to return True for this test
+    with patch("sr2silo.main.is_ci_environment", return_value=True):
+        result = runner.invoke(
+            app,
+            [
+                "process-from-vpipe",
+                "--input-file",
+                str(organism_data["sample"]),
+                "--sample-id",
+                organism_data["sample_id"],
+                "--timeline-file",
+                str(organism_data["timeline"]),
+                "--organism",
+                organism_data["organism"],
+                "--output-fp",
+                str(output_fp),
+            ],
+        )
+
+    # Verify successful execution
+    assert result.exit_code == 0, (
+        f"Failed for {organism_data['organism']}: {result.stdout}"
+    )
+    assert "Starting V-PIPE to SILO conversion" in result.stdout
+    assert f"Using organism: {organism_data['organism']}" in result.stdout
+
+
+def test_process_from_vpipe_organism_help():
+    """Test that organism parameter is shown in help text."""
+    result = runner.invoke(app, ["process-from-vpipe", "--help"])
+    assert result.exit_code == 0
+    assert "--organism" in result.stdout
+    assert "Organism identifier" in result.stdout
+
+
+def test_process_from_vpipe_organism_from_env(
+    sample_data_by_organism, tmp_path, monkeypatch
+):
+    """Test that organism can be resolved from ORGANISM environment variable.
+
+    Args:
+        sample_data_by_organism: Parameterized fixture providing test data
+        tmp_path: Pytest fixture for temporary directory
+        monkeypatch: Pytest fixture for environment variable patching
+    """
+    organism_data = sample_data_by_organism
+    output_fp = tmp_path / f"{organism_data['organism']}_env_output.ndjson.zst"
+
+    # Set ORGANISM environment variable
+    monkeypatch.setenv("ORGANISM", organism_data["organism"])
+
+    # Mock is_ci_environment to return True for this test
+    with patch("sr2silo.main.is_ci_environment", return_value=True):
+        result = runner.invoke(
+            app,
+            [
+                "process-from-vpipe",
+                "--input-file",
+                str(organism_data["sample"]),
+                "--sample-id",
+                organism_data["sample_id"],
+                "--timeline-file",
+                str(organism_data["timeline"]),
+                # Note: NOT providing --organism, should use env var
+                "--output-fp",
+                str(output_fp),
+            ],
+        )
+
+    # Verify successful execution with organism from env
+    assert result.exit_code == 0, (
+        f"Failed for {organism_data['organism']}: {result.stdout}"
+    )
+    assert "Starting V-PIPE to SILO conversion" in result.stdout
+    assert f"Using organism: {organism_data['organism']}" in result.stdout
