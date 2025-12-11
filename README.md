@@ -200,51 +200,39 @@ sr2silo follows a two-step workflow:
 1. **Process data:** `sr2silo process-from-vpipe --help`
 2. **Submit to Loculus:** `sr2silo submit-to-loculus --help`
 
+#### Quick Start
+
 ```bash
-# Example: Process V-Pipe data
+# Process data
 sr2silo process-from-vpipe \
     --input-file input.bam \
     --sample-id SAMPLE_001 \
     --timeline-file timeline.tsv \
-    --output-fp output.ndjson
+    --organism covid \
+    --output-fp output.ndjson.zst
 
-# Example: Submit to Loculus (use environment variables for credentials)
+# Submit to Loculus
+sr2silo submit-to-loculus \
+    --processed-file output.ndjson.zst
+```
+
+**Supported organisms:** `covid`, `rsva` (and others as references are added)
+
+For detailed usage, organism configuration, and environment variables, see the [documentation](docs/usage/).
+
+### Environment Variables
+
+sr2silo supports configuration via environment variables (CLI parameters take precedence):
+
+```bash
+export ORGANISM=covid
 export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
 export BACKEND_URL=https://api.example.com/submit
 export GROUP_ID=123
 export USERNAME=your-username
 export PASSWORD=your-password
 
-sr2silo submit-to-loculus --processed-file output.ndjson.zst
+sr2silo process-from-vpipe --input-file input.bam --sample-id SAMPLE_001 ...
 ```
 
-**Note:** Use environment variables for credentials to avoid exposing sensitive information in command history.
-
-**Note:** The `--lapis-url` parameter is optional. If not provided, sr2silo uses default SARS-CoV-2 references (NC_045512.2). See `sr2silo process-from-vpipe --help` for details.
-
-### Environment Variable Configuration
-
-sr2silo supports flexible configuration through environment variables, making it easy to use in different deployment scenarios including conda packages and pip installations.
-
-**Note:** CLI parameters override environment variables
-
-**Common configuration via environment variables:**
-```bash
-# Authentication credentials (recommended approach for security)
-export KEYCLOAK_TOKEN_URL=https://auth.example.com/token
-export BACKEND_URL=https://backend.example.com/api
-export GROUP_ID=123
-export USERNAME=your-username
-export PASSWORD=your-password
-
-# Run with environment variables set
-sr2silo process-from-vpipe \
-    --input-file input.bam \
-    --sample-id SAMPLE_001 \
-    --timeline-file /path/to/timeline.tsv \
-    --output-fp output.ndjson
-
-# Submission using environment variables for credentials
-sr2silo submit-to-loculus \
-    --processed-file output.ndjson.zst
-```
+See [docs/usage/](docs/usage/) for complete environment variable reference.

@@ -52,48 +52,6 @@ def test_get_metadata_not_found(timeline: Path):
     assert metadata == expected_metadata
 
 
-def test_get_metadata_finds_sample(timeline: Path):
-    """Test the get_metadata function finds sample correctly."""
-
-    metadata = get_metadata(
-        sample_id="A1_05_2024_10_08",
-        timeline=timeline,
-    )
-
-    expected_metadata = {
-        "sample_id": "A1_05_2024_10_08",
-        "batch_id": "20241024_2411515907",  # Should use the one from timeline
-        "read_length": "250",
-        "primer_protocol": "v532",
-        "location_code": "5",
-        "sampling_date": "2024-10-08",
-        "location_name": "Lugano (TI)",
-    }
-
-    assert metadata == expected_metadata
-
-
-def test_get_metadata_single_lookup(timeline: Path):
-    """Test the get_metadata function works with sample-only lookup."""
-
-    metadata = get_metadata(
-        sample_id="A1_05_2024_10_08",
-        timeline=timeline,
-    )
-
-    expected_metadata = {
-        "sample_id": "A1_05_2024_10_08",
-        "batch_id": "20241024_2411515907",  # Should use the one from timeline
-        "read_length": "250",
-        "primer_protocol": "v532",
-        "location_code": "5",
-        "sampling_date": "2024-10-08",
-        "location_name": "Lugano (TI)",
-    }
-
-    assert metadata == expected_metadata
-
-
 def test_get_metadata_empty_sample_id_error(timeline: Path):
     """Test that empty sample_id raises ValueError."""
 
@@ -208,6 +166,81 @@ def test_get_metadata_graceful_empty_fields():
         assert metadata == expected_metadata
     finally:
         temp_timeline.unlink()
+
+
+def test_get_metadata_rsva_organism(rsva_timeline):
+    """Test the get_metadata function with RSV-A organism-specific columns.
+
+    RSV uses different column names: submissionId instead of sample,
+    primerProtocol instead of proto.
+    """
+    metadata = get_metadata(
+        sample_id="A1_05_2025_11_05",
+        timeline=rsva_timeline,
+        organism="rsva",
+    )
+
+    # Check that metadata was extracted correctly using RSV column names
+    assert metadata["sample_id"] == "A1_05_2025_11_05"
+    assert metadata["batch_id"] == "20251128_2511665243"
+    assert metadata["read_length"] == "250"
+    assert metadata["primer_protocol"] == "Eawag-2024-v532_pooled"
+    assert metadata["location_code"] == "05"
+    assert metadata["sampling_date"] == "2025-11-05"
+    assert metadata["location_name"] == "Lugano"
+
+
+def test_get_metadata_rsva_vs_covid_columns():
+    """Test that RSV and COVID parse correctly despite different column names.
+
+    This ensures the column mapping system works correctly for both organisms.
+    """
+    # Create a COVID-style timeline (sample, proto columns)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:
+        f.write("sample\tbatch\treads\tproto\tlocation_code\tdate\tlocation\n")
+        f.write(
+            "COVID_SAMPLE\t20241024_2411515907\t250\tCOVID_PROTO\t5\t"
+            "2024-10-08\tLugano (TI)\n"
+        )
+        covid_timeline = Path(f.name)
+
+    # Create an RSV-style timeline (submissionId, primerProtocol columns)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:
+        f.write(
+            "submissionId\tbatch\treads\tprimerProtocol\tlocation_code\tdate\tlocation\n"
+        )
+        f.write(
+            "RSV_SAMPLE\t20251128_2511665243\t250\tRSV_PROTO\t05\t2025-11-05\tLugano\n"
+        )
+        rsv_timeline = Path(f.name)
+
+    try:
+        # Parse COVID timeline with COVID organism (default)
+        covid_metadata = get_metadata(
+            sample_id="COVID_SAMPLE",
+            timeline=covid_timeline,
+            organism="covid",
+        )
+
+        # Parse RSV timeline with RSV organism
+        rsv_metadata = get_metadata(
+            sample_id="RSV_SAMPLE",
+            timeline=rsv_timeline,
+            organism="rsva",
+        )
+
+        # Both should parse successfully with correct values
+        assert covid_metadata["sample_id"] == "COVID_SAMPLE"
+        assert covid_metadata["primer_protocol"] == "COVID_PROTO"
+        assert covid_metadata["batch_id"] == "20241024_2411515907"
+
+        assert rsv_metadata["sample_id"] == "RSV_SAMPLE"
+        assert rsv_metadata["primer_protocol"] == "RSV_PROTO"
+        assert rsv_metadata["batch_id"] == "20251128_2511665243"
+
+    finally:
+        covid_timeline.unlink()
+        rsv_timeline.unlink()
 
 
 def test_get_metadata_malformed_row_skipped():

@@ -8,6 +8,8 @@ import os
 import sys
 from pathlib import Path
 
+import yaml
+
 
 def is_ci_environment() -> bool:
     """Check if running in a CI environment."""
@@ -78,7 +80,7 @@ def get_organism() -> str:
     """Get the organism identifier from environment, or return default if not set.
 
     Returns:
-        str: The organism identifier (e.g., 'sc2', 'sars-cov-2')
+        str: The organism identifier (e.g., 'covid')
     """
     try:
         organism = os.getenv("ORGANISM")
@@ -194,3 +196,73 @@ def get_mock_urls() -> tuple[str, str]:
         "groupId={group_id}&dataUseTermsType=OPEN"
     )
     return mock_keycloak_url, mock_backend_url
+
+
+def get_timeline_column_mappings(organism: str) -> dict[str, str]:
+    """Get timeline column name mappings for a specific organism.
+
+    Returns a dictionary mapping internal field names to timeline TSV column names.
+    Uses organism-specific configuration from resources/vpipe/timeline_columns.yml.
+
+    Args:
+        organism: The organism identifier (e.g., 'covid', 'rsva')
+
+    Returns:
+        dict[str, str]: Mapping from internal names to timeline column names.
+                       Default mappings are used if organism config not found.
+
+    Examples:
+        >>> mappings = get_timeline_column_mappings('covid')
+        >>> mappings['sample_id']  # Returns 'sample'
+        >>> mappings = get_timeline_column_mappings('rsva')
+        >>> mappings['sample_id']  # Returns 'submissionId'
+    """
+    # Default mappings (backward compatible with COVID timeline format)
+    default_mappings = {
+        "sample_id": "sample",
+        "batch_id": "batch",
+        "read_length": "reads",
+        "primer_protocol": "proto",
+        "location_code": "location_code",
+        "sampling_date": "date",
+        "location_name": "location",
+    }
+
+    # Try to load organism-specific mappings from config file
+    try:
+        # Find the timeline columns config file
+        config_path = (
+            Path(__file__).parent.parent.parent
+            / "resources"
+            / "vpipe"
+            / "timeline_columns.yml"
+        )
+
+        if not config_path.exists():
+            logging.warning(
+                f"Timeline columns config file not found at {config_path}. "
+                "Using default timeline column mappings."
+            )
+            return default_mappings
+
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+
+        # Get organism-specific timeline column mappings
+        if config and "organisms" in config and organism in config["organisms"]:
+            mappings = config["organisms"][organism]
+            logging.debug(f"Loaded timeline column mappings for {organism}: {mappings}")
+            return mappings
+        else:
+            logging.warning(
+                f"No timeline column mappings found for organism '{organism}'. "
+                "Using default mappings."
+            )
+            return default_mappings
+
+    except Exception as e:
+        logging.warning(
+            f"Error loading timeline columns config: {e}. "
+            "Using default timeline column mappings."
+        )
+        return default_mappings
