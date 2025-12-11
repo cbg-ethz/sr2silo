@@ -28,6 +28,7 @@ def nuc_align_to_silo_njson(
     aa_ref_fp: Path,
     skip_merge: bool = False,
     version_info: str | None = None,
+    organism: str = "covid",
 ) -> None:
     """Process a given input file.
 
@@ -42,6 +43,8 @@ def nuc_align_to_silo_njson(
                            Default is False.
         version_info (str | None): Version information to include in metadata.
                            Default is None.
+        organism (str): The organism identifier (e.g., 'covid', 'rsva').
+                       Used for timeline column mappings. Default is 'covid'.
 
     Returns:
         None (writes results to the result_dir)
@@ -66,7 +69,7 @@ def nuc_align_to_silo_njson(
     logging.info(f"Processing file: {input_file}")
 
     ##### Get Sample and Batch metadata and write to a file #####
-    sample_to_process = Sample(sample_id)
+    sample_to_process = Sample(sample_id, organism=organism)
     sample_to_process.enrich_metadata(timeline_file)
     metadata = sample_to_process.get_metadata()
 

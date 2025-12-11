@@ -1,0 +1,24 @@
+# Timeline column name mappings for different organisms
+# Maps internal field names used in sr2silo to actual column names in timeline TSV files
+# This allows different organisms to use different column naming conventions
+
+organisms:
+  covid:
+    # Standard COVID timeline format
+    sample_id: sample
+    batch_id: batch
+    read_length: reads
+    primer_protocol: proto
+    location_code: location_code
+    sampling_date: date
+    location_name: location
+
+  rsva:
+    # RSV-A timeline format
+    sample_id: submissionId
+    batch_id: batch
+    read_length: reads
+    primer_protocol: primerProtocol
+    location_code: location_code
+    sampling_date: date
+    location_name: location

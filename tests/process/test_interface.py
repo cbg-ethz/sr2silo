@@ -120,7 +120,7 @@ def test_to_silo_json():
         "read_length": "250",
         "location_code": "10",
         "flow_cell_serial_number": "AAG55WNM5",
-        "nextclade_reference": "sars-cov-2",
+        "nextclade_reference": "covid",
         "sequencing_well_position": "A1",
         "sample_id": "A1_10_2024_09_30",
         "sampling_date": "2024-09-30",
