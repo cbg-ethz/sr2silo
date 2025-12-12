@@ -9,6 +9,8 @@ import os
 import tempfile
 from pathlib import Path
 
+import pysam
+
 from sr2silo.process import (
     bam_to_sam,
     paired_end_read_merger,
@@ -17,6 +19,25 @@ from sr2silo.process import (
     sort_bam_file,
 )
 from sr2silo.vpipe import Sample
+
+
+def count_bam_reads(bam_file: Path) -> int:
+    """Count the number of reads in a BAM file.
+
+    Uses pysam.AlignmentFile.count() which is equivalent to `samtools view -c`.
+
+    Args:
+        bam_file: Path to the BAM file.
+
+    Returns:
+        Number of reads in the BAM file.
+    """
+    try:
+        with pysam.AlignmentFile(str(bam_file), "rb") as bam:
+            return bam.count(until_eof=True)
+    except Exception as e:
+        logging.warning(f"Could not count reads in {bam_file}: {e}")
+        return 0
 
 
 def nuc_align_to_silo_njson(
@@ -29,7 +50,7 @@ def nuc_align_to_silo_njson(
     skip_merge: bool = False,
     version_info: str | None = None,
     organism: str = "covid",
-) -> None:
+) -> bool:
     """Process a given input file.
 
     Args:
@@ -47,7 +68,8 @@ def nuc_align_to_silo_njson(
                        Used for timeline column mappings. Default is 'covid'.
 
     Returns:
-        None (writes results to the result_dir)
+        bool: True if processing was performed, False if skipped (0 reads).
+              Writes results to the output file (empty if skipped).
     """
     logging.info(f"Current working directory: {os.getcwd()}")
 
@@ -55,6 +77,22 @@ def nuc_align_to_silo_njson(
     if not input_file.exists():
         logging.error(f"Input file not found: {input_file}")
         raise FileNotFoundError(f"Input file not found: {input_file}")
+
+    # Early check: count reads in input BAM
+    read_count = count_bam_reads(input_file)
+    logging.info(f"Input BAM contains {read_count} aligned reads")
+
+    if read_count == 0:
+        logging.warning(
+            f"⏭️  SKIPPED: Sample {sample_id} has 0 aligned reads in input BAM"
+        )
+        logging.warning(f"   Input file: {input_file}")
+        logging.warning("   This is expected for samples with low/no viral load.")
+        logging.warning("   Creating empty output file.")
+        # Create empty output file so Snakemake workflow completes
+        output_fp.parent.mkdir(parents=True, exist_ok=True)
+        output_fp.touch()
+        return False
 
     # get the result directory
     result_dir = input_file.parent / "results"
@@ -156,3 +194,4 @@ def nuc_align_to_silo_njson(
         "Processing completed. Use 'submit-to-loculus' command to upload "
         "and submit to SILO."
     )
+    return True

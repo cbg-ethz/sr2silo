@@ -9,6 +9,7 @@ ORGANISM: "covid"
 # Optional: LAPIS URL for custom reference genomes (falls back to COVID-19 defaults if unavailable)
 LAPIS_URL: "https://lapis.cov-spectrum.org/open/v2"
 RESULTS_DIR: "results"
+LOG_DIR: "logs"
 
 # Environment variables for submit_to_loculus rule
 KEYCLOAK_TOKEN_URL: "https://test.keycloak.token.url"
