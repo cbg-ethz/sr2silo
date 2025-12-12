@@ -52,10 +52,15 @@ def _get_reference_files(
     Raises:
         FileNotFoundError: If no references can be found
     """
+    # Get package root directory (sr2silo/src/sr2silo/main.py -> sr2silo/)
+    package_root = Path(__file__).resolve().parent.parent.parent
+
     # Try local organism-specific references first
     if organism:
-        local_nuc_ref_fp = Path(f"resources/references/{organism}/nuc_ref.fasta")
-        local_aa_ref_fp = Path(f"resources/references/{organism}/aa_ref.fasta")
+        local_nuc_ref_fp = (
+            package_root / f"resources/references/{organism}/nuc_ref.fasta"
+        )
+        local_aa_ref_fp = package_root / f"resources/references/{organism}/aa_ref.fasta"
 
         if local_nuc_ref_fp.exists() and local_aa_ref_fp.exists():
             logging.info(
@@ -78,10 +83,12 @@ def _get_reference_files(
 
             # Create domain-specific directory for LAPIS references
             domain = lapis_url.split("//")[-1].split("/")[0]
-            Path(f"resources/references/{domain}").mkdir(parents=True, exist_ok=True)
+            (package_root / f"resources/references/{domain}").mkdir(
+                parents=True, exist_ok=True
+            )
 
-            nuc_ref_fp = Path(f"resources/references/{domain}/nuc_ref.fasta")
-            aa_ref_fp = Path(f"resources/references/{domain}/aa_ref.fasta")
+            nuc_ref_fp = package_root / f"resources/references/{domain}/nuc_ref.fasta"
+            aa_ref_fp = package_root / f"resources/references/{domain}/aa_ref.fasta"
 
             lapis.referenceGenomeToFasta(
                 reference_json_string=json.dumps(reference),
@@ -97,10 +104,12 @@ def _get_reference_files(
             logging.warning(f"Failed to fetch references from LAPIS ({lapis_url}): {e}")
             # Try local references as fallback if organism was specified
             if organism:
-                local_nuc_ref_fp = Path(
-                    f"resources/references/{organism}/nuc_ref.fasta"
+                local_nuc_ref_fp = (
+                    package_root / f"resources/references/{organism}/nuc_ref.fasta"
                 )
-                local_aa_ref_fp = Path(f"resources/references/{organism}/aa_ref.fasta")
+                local_aa_ref_fp = (
+                    package_root / f"resources/references/{organism}/aa_ref.fasta"
+                )
 
                 if local_nuc_ref_fp.exists() and local_aa_ref_fp.exists():
                     logging.warning(
@@ -381,6 +390,21 @@ def submit_to_loculus(
             f"File must have .ndjson.zst extension, got: {processed_file.suffixes}"
         )
         raise typer.Exit(1)
+
+    # Check if file is empty (skipped sample with 0 reads)
+    # We check for very small files (< 20 bytes) because:
+    # - touch() creates 0-byte files
+    # - zstd empty compression creates ~9 byte files
+    # - any real data would be larger
+    file_size = processed_file.stat().st_size
+    if file_size < 20:
+        logging.warning(
+            f"⏭️  SKIPPED: Processed file {processed_file} is empty or near-empty "
+            f"({file_size} bytes, sample had 0 reads)"
+        )
+        logging.warning("   No data to upload to Loculus. This is expected behavior.")
+        typer.echo("Skipped upload: empty file (sample had 0 aligned reads)")
+        return  # Exit successfully - skipping is not an error
 
     ci_env = is_ci_environment()
     logging.info(f"Running in CI environment: {ci_env}")

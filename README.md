@@ -220,6 +220,10 @@ sr2silo submit-to-loculus \
 
 For detailed usage, organism configuration, and environment variables, see the [documentation](docs/usage/).
 
+### Multi-Virus Deployment
+
+For instructions on deploying the workflow for multiple viruses on a cluster with automatic daily resubmission, see the [Deployment Guide](docs/usage/deployment.md) or `deployments/README.md`.
+
 ### Environment Variables
 
 sr2silo supports configuration via environment variables (CLI parameters take precedence):
