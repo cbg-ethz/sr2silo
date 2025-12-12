@@ -9,3 +9,4 @@ ORGANISM: "covid"
 # Optional: LAPIS URL for custom reference genomes (falls back to COVID-19 defaults if unavailable)
 LAPIS_URL: "https://lapis.example.com"
 RESULTS_DIR: "results"
+LOG_DIR: "logs"
