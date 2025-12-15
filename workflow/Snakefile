@@ -150,12 +150,6 @@ def get_sample_list():
             sample = row[sample_col]
             date_str = row[date_col]
             location_code = row[location_code_col]
-            if len(row) <= max(sample_col, batch_col, location_code_col, date_col):
-                continue  # Skip invalid rows
-            
-            sample = row[sample_col]
-            date_str = row[date_col]
-            location_code = row[location_code_col]
 
             # Convert date string to datetime for comparison
             try:
@@ -321,7 +315,7 @@ rule subsample_bam:
         subsample_fraction=config.get("SUBSAMPLE_FRACTION", "None"),
         subsample_max_reads=config.get("SUBSAMPLE_MAX_READS", "None"),
     log:
-        "logs/sr2silo/subsample/sampleId_{sample_id}.log",
+        f"{config['LOG_DIR']}/sr2silo/subsample/sampleId_{{sample_id}}.log",
     conda:
         "envs/subsampling.yaml"
     shell:
@@ -479,7 +473,7 @@ rule process_sample:
         organism=config.get("ORGANISM", "covid"),
         lapis_url=config.get("LAPIS_URL", ""),
     log:
-        "logs/sr2silo/process_sample/sampleId_{sample_id}.log",
+        f"{config['LOG_DIR']}/sr2silo/process_sample/sampleId_{{sample_id}}.log",
     conda:
         "envs/sr2silo.yaml"
     retries: 3
@@ -529,7 +523,7 @@ rule submit_to_loculus:
         password=os.environ.get("PASSWORD", ""),
         organism=config.get("ORGANISM", ""),
     log:
-        "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}.log",
+        f"{config['LOG_DIR']}/sr2silo/submit_to_loculus/sampleId_{{sample_id}}.log",
     conda:
         "envs/sr2silo.yaml"
     shell:
