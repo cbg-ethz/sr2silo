@@ -53,6 +53,10 @@ def test_process_sample():
             "results/sampleId-A1_05_2024_10_08.ndjson.zst",
             "-f",
             "-j1",
+            "--use-conda",  # Force use of conda environments
+            "--conda-frontend",
+            "conda",  # Use conda instead of mamba
+            "--target-files-omit-workdir-adjustment",
             "--directory",
             str(workdir),  # Convert Path to string
         ]

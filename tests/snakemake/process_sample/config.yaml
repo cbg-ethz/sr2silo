@@ -4,9 +4,6 @@ LOCATIONS:
 START_DATE: "2024-10-01"
 END_DATE: "2024-10-31"
 TIMELINE_FILE: "timeline_A1_05_2024_10_08.tsv"
-# Organism identifier for processing
-ORGANISM: "covid"
-# Optional: LAPIS URL for custom reference genomes (falls back to COVID-19 defaults if unavailable)
+# Optional: LAPIS URL for custom reference genomes (falls back to SARS-CoV-2 defaults if unavailable)
 LAPIS_URL: "https://lapis.example.com"
 RESULTS_DIR: "results"
-LOG_DIR: "logs"

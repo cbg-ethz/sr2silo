@@ -13,7 +13,7 @@ LOCATIONS:
 # Supports both explicit dates (YYYY-MM-DD) and relative dates:
 # - "TODAY" → current date
 # - "1_WEEK_AGO" or "1_WEEKS_AGO" → 1 week back
-# - "2_WEEKS_AGO" → 2 weeks back
+# - "2_WEEKS_AGO" → 2 weeks back  
 # - "1_MONTH_AGO" or "1_MONTHS_AGO" → 1 month back
 # - "3_MONTHS_AGO" → 3 months back
 # - "30_DAYS_AGO" → 30 days back
@@ -37,17 +37,13 @@ BACKEND_URL: "https://api.db.wasap.genspectrum.org/backend"
 ## Authentication credentials
 GROUP_ID: 1
 # For production use prefer reading them from environment at runtime or prompting the user.
-# ORGANISM: organism identifier for which to process samples
-#   Supported organisms: "covid", "rsva", etc.
-#   References are loaded from resources/references/{organism}/ directory
-#   or from LAPIS_URL if local references are not available
-ORGANISM: "covid"
+ORGANISM: "covid"  # "sars-cov-2"
 USERNAME: "<<URSERNAME>>"
 PASSWORD: "<<PASSWORD>>"
 
 ### LAPIS – hosting the SILO database (to query reference from)
 # Optional: specify LAPIS URL for custom reference genomes
-# If not provided, uses default COVID-19 references (NCBI Reference Sequence: NC_045512.2)
+# If not provided, uses default SARS-CoV-2 references (NCBI Reference Sequence: NC_045512.2)
 LAPIS_URL: "https://lapis.wasap.genspectrum.org/"
 
 ### Subsampling Configuration
