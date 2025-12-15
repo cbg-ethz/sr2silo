@@ -46,7 +46,7 @@ class LoculusClient:
         Args:
             token_url: URL for authentication token endpoint
             backend_url: Base URL for backend endpoint
-            organism: Organism identifier (e.g., 'covid')
+            organism: Organism identifier (e.g., 'sc2', 'sars-cov-2')
         """
         self.token_url = token_url
         self.backend_url = backend_url

@@ -20,7 +20,10 @@ TEST_DATA_DIR = Path(__file__).parent / "data"
 
 
 LARGE_TEST_DATA_DIR = (
-    TEST_DATA_DIR / "covid" / "samples" / "20241024_2411515907" / "alignments"
+    TEST_DATA_DIR
+    / "samples_large"
+    / "A1_05_2024_10_08/20241024_2411515907"
+    / "alignments"
 )
 # This is a BAM file contains the subset of reads that have insertions
 # for effective testing
@@ -156,9 +159,9 @@ def timeline():
     """Return the timeline file path.
 
     The timeline file companies the large test data samples in the
-    `covid` directory for testing purposes.
+    `samples_large` directory for testing purposes.
     """
-    return Path("./tests/data/covid/timeline.tsv")
+    return Path("./tests/data/samples_large/timeline_A1_05_2024_10_08.tsv")
 
 
 @pytest.fixture
@@ -188,78 +191,10 @@ def real_sample_files_import_to_loculus(
 @pytest.fixture
 def nuc_ref_sarscov2_fp():
     """Return the reference genome file path."""
-    return Path("resources/references/covid/nuc_ref.fasta")
+    return Path("resources/references/sars-cov-2/nuc_ref.fasta")
 
 
 @pytest.fixture
 def aa_ref_sarscov2_fp():
     """Return the reference genome file path."""
-    return Path("resources/references/covid/aa_ref.fasta")
-
-
-@pytest.fixture
-def nuc_ref_rsva_fp():
-    """Return the RSV-A nucleotide reference genome file path."""
-    return Path("resources/references/rsva/nuc_ref.fasta")
-
-
-@pytest.fixture
-def aa_ref_rsva_fp():
-    """Return the RSV-A amino acid reference genome file path."""
-    return Path("resources/references/rsva/aa_ref.fasta")
-
-
-@pytest.fixture
-def rsva_timeline():
-    """Return the RSV timeline file path."""
-    return Path("./tests/data/rsva/timeline.tsv")
-
-
-@pytest.fixture
-def rsva_sample():
-    """Return the RSV sample BAM file path."""
-    rsva_bam = (
-        TEST_DATA_DIR
-        / "rsva"
-        / "A1_05_2025_11_05"
-        / "20251128_2511665243"
-        / "alignments"
-        / "REF_aln_trim.bam"
-    )
-    return rsva_bam
-
-
-@pytest.fixture(
-    params=[
-        pytest.param(
-            {
-                "organism": "covid",
-                "sample": INPUT_BAM_INSERTIONS_PATH,
-                "timeline": Path("./tests/data/covid/timeline.tsv"),
-                "sample_id": "A1_05_2024_10_08",
-                "nuc_ref": Path("resources/references/covid/nuc_ref.fasta"),
-                "aa_ref": Path("resources/references/covid/aa_ref.fasta"),
-            },
-            id="covid",
-        ),
-        pytest.param(
-            {
-                "organism": "rsva",
-                "sample": TEST_DATA_DIR
-                / "rsva"
-                / "A1_05_2025_11_05"
-                / "20251128_2511665243"
-                / "alignments"
-                / "REF_aln_trim.bam",
-                "timeline": Path("./tests/data/rsva/timeline.tsv"),
-                "sample_id": "A1_05_2025_11_05",
-                "nuc_ref": Path("resources/references/rsva/nuc_ref.fasta"),
-                "aa_ref": Path("resources/references/rsva/aa_ref.fasta"),
-            },
-            id="rsva",
-        ),
-    ]
-)
-def sample_data_by_organism(request):
-    """Parameterized fixture providing sample data for different organisms."""
-    return request.param
+    return Path("resources/references/sars-cov-2/aa_ref.fasta")

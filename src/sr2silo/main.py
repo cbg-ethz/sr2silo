@@ -30,107 +30,66 @@ logging.basicConfig(
 )
 
 
-def _get_reference_files(
-    ci_env: bool, lapis_url: str | None, organism: str | None = None
-) -> tuple[Path, Path]:
-    """Get reference files for the specified organism.
-
-    Tries to load references in order of priority:
-    1. Local organism-specific references (resources/references/{organism}/)
-    2. References from LAPIS instance (if URL provided)
-    3. Local organism-specific references as final fallback
+def _get_reference_files(ci_env: bool, lapis_url: str | None) -> tuple[Path, Path]:
+    """Get reference files, either from Lapis or fallback to default CI references.
 
     Args:
         ci_env: Whether running in CI environment
-        lapis_url: URL of LAPIS instance, or None to use local references
-        organism: Organism identifier (e.g., 'covid', 'rsva')
-                 If None, only LAPIS references are available
+        lapis_url: URL of LAPIS instance, or None to use default references
 
     Returns:
         Tuple of (nucleotide_ref_path, amino_acid_ref_path)
-
-    Raises:
-        FileNotFoundError: If no references can be found
     """
-    # Get package root directory (sr2silo/src/sr2silo/main.py -> sr2silo/)
-    package_root = Path(__file__).resolve().parent.parent.parent
+    # Default SARS-CoV-2 references (NCBI Reference Sequence: NC_045512.2)
+    default_nuc_ref_fp = Path("resources/references/sars-cov-2/nuc_ref.fasta")
+    default_aa_ref_fp = Path("resources/references/sars-cov-2/aa_ref.fasta")
 
-    # Try local organism-specific references first
-    if organism:
-        local_nuc_ref_fp = (
-            package_root / f"resources/references/{organism}/nuc_ref.fasta"
-        )
-        local_aa_ref_fp = package_root / f"resources/references/{organism}/aa_ref.fasta"
-
-        if local_nuc_ref_fp.exists() and local_aa_ref_fp.exists():
+    if ci_env or lapis_url is None:
+        if ci_env:
             logging.info(
-                f"Using local {organism} references from "
-                f"resources/references/{organism}/"
+                "Running in CI environment, using default SARS-CoV-2 references "
+                "from resources/references/sars-cov-2/ "
+                "(NCBI Reference Sequence: NC_045512.2)"
             )
-            return local_nuc_ref_fp, local_aa_ref_fp
-        elif ci_env:
-            logging.warning(
-                f"CI environment: organism '{organism}' references not found at "
-                f"resources/references/{organism}/ - will try LAPIS"
-            )
-
-    # Try to fetch from LAPIS
-    if lapis_url is not None:
-        try:
-            lapis = LapisClient(lapis_url)
-            logging.info(f"Fetching references from LAPIS: {lapis_url}")
-            reference = lapis.referenceGenome()
-
-            # Create domain-specific directory for LAPIS references
-            domain = lapis_url.split("//")[-1].split("/")[0]
-            (package_root / f"resources/references/{domain}").mkdir(
-                parents=True, exist_ok=True
-            )
-
-            nuc_ref_fp = package_root / f"resources/references/{domain}/nuc_ref.fasta"
-            aa_ref_fp = package_root / f"resources/references/{domain}/aa_ref.fasta"
-
-            lapis.referenceGenomeToFasta(
-                reference_json_string=json.dumps(reference),
-                nucleotide_out_fp=nuc_ref_fp,
-                amino_acid_out_fp=aa_ref_fp,
-            )
+        else:
             logging.info(
-                f"Successfully fetched references from LAPIS: {nuc_ref_fp} and {aa_ref_fp}"
+                "No LAPIS URL provided, using default SARS-CoV-2 references "
+                "from resources/references/sars-cov-2/ "
+                "(NCBI Reference Sequence: NC_045512.2)"
             )
-            return nuc_ref_fp, aa_ref_fp
+        return default_nuc_ref_fp, default_aa_ref_fp
 
-        except Exception as e:
-            logging.warning(f"Failed to fetch references from LAPIS ({lapis_url}): {e}")
-            # Try local references as fallback if organism was specified
-            if organism:
-                local_nuc_ref_fp = (
-                    package_root / f"resources/references/{organism}/nuc_ref.fasta"
-                )
-                local_aa_ref_fp = (
-                    package_root / f"resources/references/{organism}/aa_ref.fasta"
-                )
+    # Try to fetch references from Lapis
+    try:
+        lapis = LapisClient(lapis_url)
+        logging.info("Fetching references from Lapis...")
+        reference = lapis.referenceGenome()
 
-                if local_nuc_ref_fp.exists() and local_aa_ref_fp.exists():
-                    logging.warning(
-                        f"Falling back to local {organism} references from "
-                        f"resources/references/{organism}/"
-                    )
-                    return local_nuc_ref_fp, local_aa_ref_fp
+        # Create domain-specific directory for Lapis references
+        domain = lapis_url.split("//")[-1].split("/")[0]
+        Path(f"resources/references/{domain}").mkdir(parents=True, exist_ok=True)
 
-    # No references found
-    if organism:
-        raise FileNotFoundError(
-            f"No reference files found for organism '{organism}'. "
-            f"Expected files at resources/references/{organism}/ "
-            f"or available via LAPIS at {lapis_url}"
+        nuc_ref_fp = Path(f"resources/references/{domain}/nuc_ref.fasta")
+        aa_ref_fp = Path(f"resources/references/{domain}/aa_ref.fasta")
+
+        lapis.referenceGenomeToFasta(
+            reference_json_string=json.dumps(reference),
+            nucleotide_out_fp=nuc_ref_fp,
+            amino_acid_out_fp=aa_ref_fp,
         )
-    else:
-        raise FileNotFoundError(
-            "No organism specified and no LAPIS URL provided. "
-            "Cannot determine which references to use. "
-            "Provide --organism or --lapis-url"
+        logging.info(
+            f"Successfully fetched references from Lapis: {nuc_ref_fp} and {aa_ref_fp}"
         )
+        return nuc_ref_fp, aa_ref_fp
+
+    except Exception as e:
+        logging.warning(f"Failed to fetch references from Lapis ({lapis_url}): {e}")
+        logging.warning(
+            "Falling back to default SARS-CoV-2 references "
+            "from resources/references/sars-cov-2/ "
+            "(NCBI Reference Sequence: NC_045512.2)"
+        )
+        return default_nuc_ref_fp, default_aa_ref_fp
 
 
 app = typer.Typer(
@@ -184,16 +143,6 @@ def process_from_vpipe(
             help="Path to the timeline file.",
         ),
     ],
-    organism: Annotated[
-        str | None,
-        typer.Option(
-            "--organism",
-            help="Organism identifier (e.g., 'covid', 'rsva'). "
-            "Used to locate local reference files at resources/references/{organism}/. "
-            "Falls back to LAPIS URL if provided. "
-            "Can also be set via ORGANISM environment variable.",
-        ),
-    ] = None,
     lapis_url: Annotated[
         str | None,
         typer.Option(
@@ -201,8 +150,8 @@ def process_from_vpipe(
             "-r",
             help="URL of LAPIS instance, hosting SILO database. "
             "Used to fetch the nucleotide / amino acid reference. "
-            "If organism is specified, local references are tried first. "
-            "If not provided and organism is specified, uses local references.",
+            "If not provided, uses default SARS-CoV-2 references "
+            "(NCBI Reference Sequence: NC_045512.2).",
         ),
     ] = None,
     skip_merge: Annotated[
@@ -235,7 +184,7 @@ def process_from_vpipe(
     if lapis_url:
         logging.info(f"Using Lapis URL: {lapis_url}")
     else:
-        logging.info(f"Using local {organism} references (no Lapis URL provided)")
+        logging.info("Using default SARS-CoV-2 references (no Lapis URL provided)")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Skip read pair merging: {skip_merge}")
 
@@ -255,13 +204,8 @@ def process_from_vpipe(
 
     logging.info(f"Running version: {version_info}")
 
-    # Resolve organism with environment fallback
-    if organism is None:
-        organism = get_organism()
-    logging.info(f"Using organism: {organism}")
-
     # Get nucleotide and amino acid references
-    nuc_ref_fp, aa_ref_fp = _get_reference_files(ci_env, lapis_url, organism)
+    nuc_ref_fp, aa_ref_fp = _get_reference_files(ci_env, lapis_url)
 
     nuc_align_to_silo_njson(
         input_file=input_file,
@@ -272,7 +216,6 @@ def process_from_vpipe(
         aa_ref_fp=aa_ref_fp,
         skip_merge=skip_merge,
         version_info=version_info,
-        organism=organism,
     )
 
 
@@ -390,21 +333,6 @@ def submit_to_loculus(
             f"File must have .ndjson.zst extension, got: {processed_file.suffixes}"
         )
         raise typer.Exit(1)
-
-    # Check if file is empty (skipped sample with 0 reads)
-    # We check for very small files (< 20 bytes) because:
-    # - touch() creates 0-byte files
-    # - zstd empty compression creates ~9 byte files
-    # - any real data would be larger
-    file_size = processed_file.stat().st_size
-    if file_size < 20:
-        logging.warning(
-            f"⏭️  SKIPPED: Processed file {processed_file} is empty or near-empty "
-            f"({file_size} bytes, sample had 0 reads)"
-        )
-        logging.warning("   No data to upload to Loculus. This is expected behavior.")
-        typer.echo("Skipped upload: empty file (sample had 0 aligned reads)")
-        return  # Exit successfully - skipping is not an error
 
     ci_env = is_ci_environment()
     logging.info(f"Running in CI environment: {ci_env}")
