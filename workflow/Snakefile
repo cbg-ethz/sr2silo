@@ -16,9 +16,8 @@ except NameError:
     WORKFLOW_DIR = Path(__file__).resolve().parent
 
 # Configuration and path resolution notes:
-# - When running tests, the suite copies a workflow/config.yaml into a temporary workdir and
-#   invokes Snakemake with `--directory <workdir>`. In that case we prefer the runtime
-#   config at `<workdir>/workflow/config.yaml` so tests remain self-contained.
+# - When running with --configfile, that config is used (production deployments)
+# - When running tests, the suite copies a workflow/config.yaml into a temporary workdir
 # - For file paths provided in config (e.g., TIMELINE_FILE, BASE_SAMPLE_DIR), we resolve
 #   relative paths first against the runtime workdir, then the config directory, and finally
 #   this repository's workflow directory. This keeps CLI runs and CI tests consistent.
@@ -29,25 +28,36 @@ try:
 except Exception:
     RUNTIME_DIR = Path.cwd()
 
-# Prefer a config from the runtime workdir (tests copy theirs into workdir/workflow/config.yaml),
-# and fall back to the repository's workflow/config.yaml
-DEFAULT_CONFIG = WORKFLOW_DIR / "config_prod.yaml" # for production runs
-RUNTIME_CONFIG = RUNTIME_DIR / "workflow" / "config.yaml" # for CI runs
-CONFIG = RUNTIME_CONFIG if RUNTIME_CONFIG.exists() else DEFAULT_CONFIG
-if not CONFIG.exists():
-    print(f"❌ ERROR: Expected config file not found: {CONFIG}")
-    sys.exit(1)
+# For CI: fallback to workflow/config.yaml in runtime dir
+# For production: always use --configfile (no default to config_prod.yaml)
+RUNTIME_CONFIG = RUNTIME_DIR / "workflow" / "config.yaml"
+CI_CONFIG = WORKFLOW_DIR / "config.yaml"
 
+# Determine fallback config path (used only if --configfile not provided)
+if RUNTIME_CONFIG.exists():
+    _FALLBACK_CONFIG = RUNTIME_CONFIG
+elif CI_CONFIG.exists():
+    _FALLBACK_CONFIG = CI_CONFIG
+else:
+    _FALLBACK_CONFIG = None
 
-configfile: str(CONFIG)
+# Load fallback config if no --configfile was provided
+# (Snakemake's config dict will be empty if no configfile directive and no --configfile)
+if _FALLBACK_CONFIG and not config:
+    configfile: str(_FALLBACK_CONFIG)
 
-
-# Load configuration
-with open(CONFIG, "r") as file:
-    config = yaml.safe_load(file)
-
-# Helper to resolve relative paths from workdir/config/workflow dirs
-CONFIG_DIR = CONFIG.parent
+# CONFIG_DIR: directory of the config file for resolving relative paths
+# When --configfile is used, we need to find it from the config dict or workflow source
+CONFIG_DIR = WORKFLOW_DIR  # default
+if config:
+    # Try to determine config dir from Snakemake's workflow.source or fall back
+    try:
+        if hasattr(workflow, 'configfiles') and workflow.configfiles:
+            CONFIG_DIR = Path(workflow.configfiles[0]).parent
+        elif _FALLBACK_CONFIG:
+            CONFIG_DIR = _FALLBACK_CONFIG.parent
+    except:
+        pass
 
 
 def resolve_path(p):
@@ -119,42 +129,27 @@ def get_sample_list():
     timeline_fp = resolve_path(config["TIMELINE_FILE"])
     with open(timeline_fp, "r") as f:
         reader = csv.reader(f, delimiter="\t")
-        # Skip header row if it exists
-        first_row = next(reader, None)
-        if first_row and first_row[0] == "sample":
-            # This is a header row, continue with the next rows
-            pass
-        else:
-            # This is data, process it
-            if first_row and len(first_row) >= 7:
-                sample, batch, reads, proto, location_code, date_str, location = (
-                    first_row
-                )
-
-                # Convert date string to datetime for comparison
-                try:
-                    sample_date = datetime.strptime(date_str, "%Y-%m-%d")
-                    location_code_int = int(location_code)
-
-                    # Filter by date range
-                    start_date = datetime.strptime(config["START_DATE"], "%Y-%m-%d")
-                    end_date = datetime.strptime(config["END_DATE"], "%Y-%m-%d")
-
-                    if (
-                        start_date <= sample_date <= end_date
-                        and location_code_int in config["LOCATIONS"]
-                    ):
-                        sample_list.append(sample)
-                except (ValueError, TypeError):
-                    logging.warning(f"Skipping invalid row: {first_row}")
-                    pass  # Skip invalid rows
-
-        # Process remaining rows
+        # Read header row to detect column names
+        header = next(reader, None)
+        if not header:
+            return sample_list
+        
+        # Build column index map - support both COVID and RSV-A column names
+        col_map = {name: idx for idx, name in enumerate(header)}
+        # Sample column: "sample" (COVID) or "submissionId" (RSV-A)
+        sample_col = col_map.get("sample", col_map.get("submissionId", 0))
+        batch_col = col_map.get("batch", 1)
+        location_code_col = col_map.get("location_code", 5)
+        date_col = col_map.get("date", 6)
+        
+        # Process all data rows
         for row in reader:
-            if len(row) < 7:  # Skip invalid rows
-                continue
-
-            sample, batch, reads, proto, location_code, date_str, location = row
+            if len(row) <= max(sample_col, batch_col, location_code_col, date_col):
+                continue  # Skip invalid rows
+            
+            sample = row[sample_col]
+            date_str = row[date_col]
+            location_code = row[location_code_col]
 
             # Convert date string to datetime for comparison
             try:
@@ -199,29 +194,19 @@ def get_input_file_path(sample_id):
     timeline_fp = resolve_path(config["TIMELINE_FILE"])
     with open(timeline_fp, "r") as f:
         reader = csv.reader(f, delimiter="\t")
-        # Skip header row if it exists
-        first_row = next(reader, None)
-        if first_row and first_row[0] == "sample":
-            pass  # Header row
-        else:
-            # Check first row if it's not a header
-            if first_row and len(first_row) >= 2 and first_row[0] == sample_id:
-                batch_id = first_row[1]
-                if batch_id:  # If batch_id exists, try that path
-                    batch_path = (
-                        base_dir
-                        / sample_id
-                        / batch_id
-                        / "alignments"
-                        / "REF_aln_trim.bam"
-                    )
-                    if batch_path.exists():
-                        return str(batch_path)
+        # Read header to get column indices
+        header = next(reader, None)
+        if not header:
+            return str(simple_path)
+        
+        col_map = {name: idx for idx, name in enumerate(header)}
+        sample_col = col_map.get("sample", col_map.get("submissionId", 0))
+        batch_col = col_map.get("batch", 1)
 
-        # Process remaining rows
+        # Process all rows looking for our sample
         for row in reader:
-            if len(row) >= 2 and row[0] == sample_id:
-                batch_id = row[1]
+            if len(row) > max(sample_col, batch_col) and row[sample_col] == sample_id:
+                batch_id = row[batch_col]
                 if batch_id:  # If batch_id exists, try that path
                     batch_path = (
                         base_dir
@@ -310,7 +295,7 @@ rule all:
         if config.get("ENABLE_SUBSAMPLING", False)
         else [],
         # Add read count summary if subsampling is enabled
-        ["logs/subsampling/read_counts.tsv"]
+        [f"{config['LOG_DIR']}/subsampling/read_counts.tsv"]
         if config.get("ENABLE_SUBSAMPLING", False)
         else [],
 
@@ -330,7 +315,7 @@ rule subsample_bam:
         subsample_fraction=config.get("SUBSAMPLE_FRACTION", "None"),
         subsample_max_reads=config.get("SUBSAMPLE_MAX_READS", "None"),
     log:
-        "logs/sr2silo/subsample/sampleId_{sample_id}.log",
+        f"{config['LOG_DIR']}/sr2silo/subsample/sampleId_{{sample_id}}.log",
     conda:
         "envs/subsampling.yaml"
     shell:
@@ -434,7 +419,7 @@ rule aggregate_read_counts:
             else []
         ),
     output:
-        summary="logs/subsampling/read_counts.tsv",
+        summary=f"{config['LOG_DIR']}/subsampling/read_counts.tsv",
     run:
         from pathlib import Path
 
@@ -485,9 +470,10 @@ rule process_sample:
     params:
         sample_id=lambda wildcards: wildcards.sample_id,
         timeline_file=config["TIMELINE_FILE"],
+        organism=config.get("ORGANISM", "covid"),
         lapis_url=config.get("LAPIS_URL", ""),
     log:
-        "logs/sr2silo/process_sample/sampleId_{sample_id}.log",
+        f"{config['LOG_DIR']}/sr2silo/process_sample/sampleId_{{sample_id}}.log",
     conda:
         "envs/sr2silo.yaml"
     retries: 3
@@ -497,8 +483,10 @@ rule process_sample:
             --input-file {input.sample_fp} \
             --sample-id {params.sample_id} \
             --timeline-file {params.timeline_file} \
+            --organism {params.organism} \
             --output-fp {output.result_fp} \
-            --lapis-url {params.lapis_url} > {log} 2>&1
+            $([ -n "{params.lapis_url}" ] && echo "--lapis-url {params.lapis_url}") \
+            > {log} 2>&1
         """
 
 
@@ -513,8 +501,8 @@ rule submit_to_loculus:
         - KEYCLOAK_TOKEN_URL
         - BACKEND_URL
         - GROUP_ID
-        - USERNAME
-        - PASSWORD
+        - USERNAME (environment variable, set by secrets.py)
+        - PASSWORD (environment variable, set by secrets.py)
         - ORGANISM
 
     CLI parameters take precedence over environment variables.
@@ -530,11 +518,12 @@ rule submit_to_loculus:
         keycloak_url=config.get("KEYCLOAK_TOKEN_URL", ""),
         backend_url=config.get("BACKEND_URL", ""),
         group_id=config.get("GROUP_ID", ""),
-        username=config.get("USERNAME", ""),
-        password=config.get("PASSWORD", ""),
+        # USERNAME and PASSWORD come from environment variables (set by secrets.py)
+        username=os.environ.get("USERNAME", ""),
+        password=os.environ.get("PASSWORD", ""),
         organism=config.get("ORGANISM", ""),
     log:
-        "logs/sr2silo/submit_to_loculus/sampleId_{sample_id}.log",
+        f"{config['LOG_DIR']}/sr2silo/submit_to_loculus/sampleId_{{sample_id}}.log",
     conda:
         "envs/sr2silo.yaml"
     shell:
@@ -546,8 +535,8 @@ rule submit_to_loculus:
             --backend-url "{params.backend_url}" \
             --group-id {params.group_id} \
             --organism "{params.organism}" \
-            --username {params.username} \
-            --password {params.password} > {log} 2>&1 && \
+            --username "{params.username}" \
+            --password "{params.password}" > {log} 2>&1 && \
         mkdir -p $(dirname {output.flag}) && \
         touch {output.flag}
         """

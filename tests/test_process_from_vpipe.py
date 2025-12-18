@@ -48,6 +48,7 @@ def test_skip_merge_option(
         patch("sr2silo.process_from_vpipe.sam_to_bam") as _mock_sam_to_bam,
         patch("sr2silo.process_from_vpipe.Path.unlink") as _mock_unlink,
         patch("pathlib.Path.exists", return_value=True),
+        patch("sr2silo.process_from_vpipe.count_bam_reads", return_value=100),
         patch(
             "sr2silo.process_from_vpipe.Path.parent", new_callable=MagicMock
         ) as mock_parent,
@@ -106,6 +107,7 @@ def test_skip_merge_file_handling(
         ),
         patch("sr2silo.process_from_vpipe.Path.mkdir", return_value=None),
         patch("pathlib.Path.exists", return_value=True),
+        patch("sr2silo.process_from_vpipe.count_bam_reads", return_value=100),
         patch(
             "sr2silo.process_from_vpipe.Path.parent", new_callable=MagicMock
         ) as mock_parent,
