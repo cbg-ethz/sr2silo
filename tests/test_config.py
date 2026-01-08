@@ -9,8 +9,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from sr2silo.config import (
-    get_keycloak_token_url,
     get_backend_url,
+    get_keycloak_token_url,
+    get_timeline_column_mappings,
     get_timeline_file,
     get_version,
     is_ci_environment,
@@ -151,3 +152,75 @@ def test_get_backend_url():
         with patch("sys.exit") as mock_exit:
             get_backend_url()
             mock_exit.assert_called_once_with(1)
+
+
+def test_get_timeline_column_mappings_covid():
+    """Test get_timeline_column_mappings for COVID organism."""
+    mappings = get_timeline_column_mappings("covid")
+
+    expected_mappings = {
+        "sample_id": "sample",
+        "batch_id": "batch",
+        "read_length": "reads",
+        "primer_protocol": "proto",
+        "location_code": "location_code",
+        "sampling_date": "date",
+        "location_name": "location",
+    }
+
+    assert mappings == expected_mappings
+
+
+def test_get_timeline_column_mappings_rsva():
+    """Test get_timeline_column_mappings for RSV-A organism."""
+    mappings = get_timeline_column_mappings("rsva")
+
+    expected_mappings = {
+        "sample_id": "submissionId",
+        "batch_id": "batch",
+        "read_length": "reads",
+        "primer_protocol": "primerProtocol",
+        "location_code": "location_code",
+        "sampling_date": "date",
+        "location_name": "location",
+    }
+
+    assert mappings == expected_mappings
+
+
+def test_get_timeline_column_mappings_default():
+    """Test get_timeline_column_mappings defaults to COVID for unknown organism."""
+    # Unknown organism should default to COVID-style mappings
+    mappings = get_timeline_column_mappings("unknown_organism")
+
+    expected_mappings = {
+        "sample_id": "sample",
+        "batch_id": "batch",
+        "read_length": "reads",
+        "primer_protocol": "proto",
+        "location_code": "location_code",
+        "sampling_date": "date",
+        "location_name": "location",
+    }
+
+    assert mappings == expected_mappings
+
+
+def test_get_timeline_column_mappings_has_required_fields():
+    """Test that column mappings have all required fields."""
+    required_fields = {
+        "sample_id",
+        "batch_id",
+        "read_length",
+        "primer_protocol",
+        "location_code",
+        "sampling_date",
+        "location_name",
+    }
+
+    for organism in ["covid", "rsva"]:
+        mappings = get_timeline_column_mappings(organism)
+        assert set(mappings.keys()) == required_fields, (
+            f"Organism {organism} is missing required fields. "
+            f"Expected: {required_fields}, Got: {set(mappings.keys())}"
+        )

@@ -12,15 +12,18 @@ class Sample:
 
     Args:
         sample_id (str): The sample ID.
+        organism (str): The organism identifier (e.g., 'covid', 'rsva').
+                       Optional, defaults to 'covid' for backward compatibility.
     """
 
-    def __init__(self, sample_id: str) -> None:
+    def __init__(self, sample_id: str, organism: str = "covid") -> None:
         self.sample_id = sample_id
+        self.organism = organism
         self.metadata: dict[str, str] | None = None
         self.timeline: Path | None = None
 
     def __str__(self) -> str:
-        return f"Sample(sample_id={self.sample_id})"
+        return f"Sample(sample_id={self.sample_id}, organism={self.organism})"
 
     def enrich_metadata(self, timeline: Path) -> None:
         """Enrich the sample metadata with additional information.
@@ -38,6 +41,7 @@ class Sample:
         self.metadata = metadata.get_metadata(
             sample_id=self.sample_id,
             timeline=self.timeline,
+            organism=self.organism,
         )
 
     def get_metadata(self) -> dict[str, str]:

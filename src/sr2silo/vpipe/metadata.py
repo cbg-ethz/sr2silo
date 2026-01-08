@@ -7,6 +7,8 @@ import datetime
 import logging
 from pathlib import Path
 
+from sr2silo.config import get_timeline_column_mappings
+
 
 def convert_to_iso_date(date: str) -> str:
     """Convert a date string to ISO 8601 format (date only).
@@ -32,12 +34,16 @@ def convert_to_iso_date(date: str) -> str:
         raise ValueError(f"Invalid date format '{date}': {e}") from e
 
 
-def get_metadata_from_timeline(sample_id: str, timeline: Path) -> dict[str, str] | None:
+def get_metadata_from_timeline(
+    sample_id: str, timeline: Path, organism: str = "covid"
+) -> dict[str, str] | None:
     """Get metadata from the timeline file.
 
     Args:
         sample_id (str): The sample ID to search for.
         timeline (Path): The timeline file to search in.
+        organism (str): The organism identifier (e.g., 'covid', 'rsva').
+                       Used to determine timeline column name mappings.
 
     Returns:
         dict[str, str] | None: The metadata if found, None otherwise.
@@ -51,19 +57,23 @@ def get_metadata_from_timeline(sample_id: str, timeline: Path) -> dict[str, str]
         logging.error(f"Timeline file not found or is not a file: {timeline}")
         raise FileNotFoundError(f"Timeline file not found or is not a file: {timeline}")
 
+    # Get organism-specific column mappings
+    col_map = get_timeline_column_mappings(organism)
+    logging.debug(f"Using timeline column mappings for {organism}: {col_map}")
+
     with timeline.open() as f:
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
             # Check if row has all required columns with non-None values
             # DictReader may return empty strings for missing columns in malformed rows
             required_columns = {
-                "sample",
-                "batch",
-                "reads",
-                "proto",
-                "location_code",
-                "date",
-                "location",
+                col_map["sample_id"],
+                col_map["batch_id"],
+                col_map["read_length"],
+                col_map["primer_protocol"],
+                col_map["location_code"],
+                col_map["sampling_date"],
+                col_map["location_name"],
             }
             if not required_columns.issubset(row.keys()) or any(
                 row[col] is None for col in required_columns
@@ -77,7 +87,7 @@ def get_metadata_from_timeline(sample_id: str, timeline: Path) -> dict[str, str]
                 )
                 continue
 
-            if row["sample"] == sample_id:
+            if row[col_map["sample_id"]] == sample_id:
                 logging.info(
                     "Found metadata in timeline for sample_id %s",
                     sample_id,
@@ -88,16 +98,15 @@ def get_metadata_from_timeline(sample_id: str, timeline: Path) -> dict[str, str]
                 if not sample_id or not sample_id.strip():
                     raise ValueError("Sample ID cannot be empty")
 
-                if not row["location"] or not row["location"].strip():
+                if not row[col_map["location_name"]]:
                     raise ValueError(f"Location name is missing for sample {sample_id}")
 
-                if not row["date"] or not row["date"].strip():
+                if not row[col_map["sampling_date"]]:
                     raise ValueError(f"Sampling date is missing for sample {sample_id}")
 
                 # Extract metadata from timeline row
-                # Timeline format: sample	batch	reads	proto	location_code	date	location
                 try:
-                    sampling_date = convert_to_iso_date(row["date"])
+                    sampling_date = convert_to_iso_date(row[col_map["sampling_date"]])
                 except ValueError as e:
                     raise ValueError(
                         f"Invalid sampling date for sample {sample_id}: {e}"
@@ -105,22 +114,12 @@ def get_metadata_from_timeline(sample_id: str, timeline: Path) -> dict[str, str]
 
                 metadata = {
                     "sample_id": sample_id,
-                    "batch_id": (
-                        row["batch"] if row["batch"] and row["batch"].strip() else None
-                    ),
-                    "read_length": (
-                        row["reads"] if row["reads"] and row["reads"].strip() else None
-                    ),
-                    "primer_protocol": (
-                        row["proto"] if row["proto"] and row["proto"].strip() else None
-                    ),
-                    "location_code": (
-                        row["location_code"]
-                        if row["location_code"] and row["location_code"].strip()
-                        else None
-                    ),
+                    "batch_id": row[col_map["batch_id"]] or None,
+                    "read_length": row[col_map["read_length"]] or None,
+                    "primer_protocol": row[col_map["primer_protocol"]] or None,
+                    "location_code": row[col_map["location_code"]] or None,
                     "sampling_date": sampling_date,
-                    "location_name": row["location"].strip(),
+                    "location_name": row[col_map["location_name"]].strip(),
                 }
 
                 logging.info("Extracted metadata from timeline: %s", metadata)
@@ -134,13 +133,17 @@ def get_metadata_from_timeline(sample_id: str, timeline: Path) -> dict[str, str]
         return None
 
 
-def get_metadata(sample_id: str, timeline: Path) -> dict[str, str]:
+def get_metadata(
+    sample_id: str, timeline: Path, organism: str = "covid"
+) -> dict[str, str]:
     """
     Get metadata for a given sample from timeline file only.
 
     Args:
         sample_id (str): The sample ID to use for metadata.
         timeline (Path): The timeline file to cross-reference the metadata.
+        organism (str): The organism identifier (e.g., 'covid', 'rsva').
+                       Used to determine timeline column name mappings.
 
     Returns:
         dict: A dictionary containing the metadata, or empty dict if not found.
@@ -153,7 +156,7 @@ def get_metadata(sample_id: str, timeline: Path) -> dict[str, str]:
     if not sample_id or not sample_id.strip():
         raise ValueError("Sample ID cannot be empty")
 
-    metadata = get_metadata_from_timeline(sample_id, timeline)
+    metadata = get_metadata_from_timeline(sample_id, timeline, organism)
 
     if metadata is None:
         # Return basic metadata structure if not found in timeline
