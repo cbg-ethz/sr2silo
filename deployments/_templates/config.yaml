@@ -17,7 +17,7 @@ LOCATIONS:
 # Supports both explicit dates (YYYY-MM-DD) and relative dates:
 # - "TODAY" → current date
 # - "1_WEEK_AGO" or "1_WEEKS_AGO" → 1 week back
-# - "2_WEEKS_AGO" → 2 weeks back  
+# - "2_WEEKS_AGO" → 2 weeks back
 # - "1_MONTH_AGO" or "1_MONTHS_AGO" → 1 month back
 # - "3_MONTHS_AGO" → 3 months back
 # - "30_DAYS_AGO" → 30 days back
@@ -42,11 +42,16 @@ LOG_DIR: "../../logs/template"
 
 ### Loculus (to submit results to)
 ## URLs for Loculus services
-LOCULUS:
-  KEYCLOAK_TOKEN_URL: "https://auth.db.wasap.genspectrum.org/realms/loculus/protocol/openid-connect/token"
-  BACKEND_URL: "https://api.db.wasap.genspectrum.org/backend"
-  GROUP_ID: 1                               # Unique ID per virus
-  ORGANISM: "template"                      # Must match SILO database
+KEYCLOAK_TOKEN_URL: "https://auth.db.wasap.genspectrum.org/realms/loculus/protocol/openid-connect/token"
+BACKEND_URL: "https://api.db.wasap.genspectrum.org/backend"
+GROUP_ID: 1                                 # Unique ID per virus
+ORGANISM: "template"                        # Must match SILO database
+
+## Auto-release configuration
+# If true, automatically release/approve sequences after submission
+# This waits RELEASE_DELAY seconds to allow backend processing, then releases
+AUTO_RELEASE: false
+RELEASE_DELAY: 180                          # Seconds to wait before releasing (default: 3 minutes)
 
 ## Authentication credentials
 # NOTE: USERNAME and PASSWORD are loaded from encrypted secrets/credentials.enc

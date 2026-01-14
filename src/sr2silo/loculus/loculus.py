@@ -274,6 +274,63 @@ class LoculusClient:
                 if hasattr(file_tuple[1], "close"):
                     file_tuple[1].close()
 
+    def approve_all(self, username: str) -> dict:
+        """Approve all processed sequences for the authenticated user.
+
+        This releases all sequences that have been submitted and processed
+        by the backend, making them publicly available.
+
+        Args:
+            username: The username to filter approvals by (only approve
+                     sequences submitted by this user)
+
+        Returns:
+            dict: Response from the approval API
+
+        Raises:
+            Exception: If approval fails or authentication token is missing
+        """
+        if self.token is None:
+            raise Exception(
+                "Authentication required. Please call authenticate() first."
+            )
+
+        if self.is_ci_environment:
+            logging.info("CI environment detected. Returning mock approve response.")
+            return {"status": "success", "message": "Mock approval in CI environment"}
+
+        url = f"{self.backend_url}/{self.organism}/approve-processed-data"
+
+        headers = {
+            "accept": "application/json",
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+            "x-request-id": str(uuid.uuid4()),
+        }
+
+        payload = {"scope": "ALL", "submitterNamesFilter": [username]}
+
+        response = None
+        try:
+            response = requests.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+
+            logging.info("Successfully approved all sequences.")
+            return response.json()
+
+        except requests.exceptions.HTTPError as e:
+            logging.error(f"Error approving sequences: {e}")
+            if response is not None:
+                logging.error(f"Response: {response.text}")
+                raise Exception(
+                    f"Failed to approve sequences: {response.status_code} - {response.text}"
+                )
+            else:
+                raise Exception(f"Failed to approve sequences: {e}")
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Network error during approval: {e}")
+            raise Exception(f"Network error: {e}")
+
     def request_upload(
         self, group_id: int, numberFiles: int
     ) -> List[RequestUploadResponse]:
