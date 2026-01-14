@@ -11,6 +11,7 @@ from typing import Annotated
 import typer
 
 from sr2silo.config import (
+    get_auto_release,
     get_backend_url,
     get_group_id,
     get_keycloak_token_url,
@@ -342,6 +343,23 @@ def submit_to_loculus(
             "PASSWORD environment variable.",
         ),
     ] = None,
+    auto_release: Annotated[
+        bool | None,
+        typer.Option(
+            "--auto-release",
+            "-r",
+            help="Automatically release/approve sequences after submission. "
+            "Falls back to AUTO_RELEASE environment variable. Default: False.",
+        ),
+    ] = None,
+    release_delay: Annotated[
+        int,
+        typer.Option(
+            "--release-delay",
+            help="Seconds to wait before releasing sequences (to allow backend "
+            "processing). Only used when --auto-release is enabled. Default: 180.",
+        ),
+    ] = 180,
 ) -> None:
     """
     Upload processed file to S3 and submit to SILO/Loculus.
@@ -372,12 +390,19 @@ def submit_to_loculus(
     if password is None:
         password = get_password()
 
+    # Resolve auto_release with environment fallback
+    if auto_release is None:
+        auto_release = get_auto_release()
+
     logging.info(f"Processing file: {processed_file}")
     logging.info(f"Using Keycloak token URL: {keycloak_token_url}")
     logging.info(f"Using backend URL: {backend_url}")
     logging.info(f"Using group ID: {group_id}")
     logging.info(f"Using organism: {organism}")
     logging.info(f"Using username: {username}")
+    logging.info(f"Auto-release enabled: {auto_release}")
+    if auto_release:
+        logging.info(f"Release delay: {release_delay} seconds")
 
     # Check if the processed file exists
     if not processed_file.exists():
@@ -425,6 +450,8 @@ def submit_to_loculus(
         organism=organism,
         username=username,
         password=password,
+        auto_release=auto_release,
+        release_delay=release_delay,
     )
 
     if success:

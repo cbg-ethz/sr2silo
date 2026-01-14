@@ -5,11 +5,12 @@ from __future__ import annotations
 import csv
 import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
 
-from sr2silo.loculus.loculus import Submission
+from sr2silo.loculus.loculus import LoculusClient, Submission
 
 
 @pytest.fixture
@@ -217,3 +218,204 @@ def test_metadata_fields_match_organism_config(test_silo_input_uncompressed):
         assert created_metadata_fields == config_metadata_fields, (
             f"Metadata fields don't match. Expected: {config_metadata_fields}, Got: {created_metadata_fields}"
         )
+
+
+class TestLoculusClientApproveAll:
+    """Tests for the LoculusClient.approve_all() method."""
+
+    def test_approve_all_requires_authentication(self):
+        """Test that approve_all raises exception when not authenticated."""
+        client = LoculusClient(
+            token_url="https://example.com/token",
+            backend_url="https://example.com/backend",
+            organism="covid",
+        )
+        # Token is None by default
+        with pytest.raises(Exception) as exc_info:
+            client.approve_all(username="testuser")
+        assert "Authentication required" in str(exc_info.value)
+
+    @patch("sr2silo.loculus.loculus.is_ci_environment")
+    def test_approve_all_ci_environment(self, mock_ci_env):
+        """Test that approve_all returns mock response in CI environment."""
+        mock_ci_env.return_value = True
+
+        client = LoculusClient(
+            token_url="https://example.com/token",
+            backend_url="https://example.com/backend",
+            organism="covid",
+        )
+        client.token = "dummy_token"
+
+        result = client.approve_all(username="testuser")
+
+        assert result["status"] == "success"
+        assert "Mock approval" in result["message"]
+
+    @patch("sr2silo.loculus.loculus.requests.post")
+    @patch("sr2silo.loculus.loculus.is_ci_environment")
+    def test_approve_all_success(self, mock_ci_env, mock_post):
+        """Test successful approval call."""
+        mock_ci_env.return_value = False
+
+        # Mock successful response
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"approved": 5}
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        client = LoculusClient(
+            token_url="https://example.com/token",
+            backend_url="https://backend.example.com",
+            organism="covid",
+        )
+        client.token = "test_token"
+
+        result = client.approve_all(username="testuser")
+
+        # Verify the API was called correctly
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+
+        # Check URL
+        assert (
+            call_args[0][0]
+            == "https://backend.example.com/covid/approve-processed-data"
+        )
+
+        # Check headers
+        headers = call_args[1]["headers"]
+        assert headers["Authorization"] == "Bearer test_token"
+        assert headers["Content-Type"] == "application/json"
+
+        # Check payload
+        payload = call_args[1]["json"]
+        assert payload["scope"] == "ALL"
+        assert payload["submitterNamesFilter"] == ["testuser"]
+
+        # Check result
+        assert result == {"approved": 5}
+
+    @patch("sr2silo.loculus.loculus.requests.post")
+    @patch("sr2silo.loculus.loculus.is_ci_environment")
+    def test_approve_all_http_error(self, mock_ci_env, mock_post):
+        """Test approve_all handles HTTP errors properly."""
+        mock_ci_env.return_value = False
+
+        # Mock HTTP error response
+        mock_response = MagicMock()
+        mock_response.status_code = 403
+        mock_response.text = "Forbidden"
+        mock_response.raise_for_status.side_effect = Exception("HTTP Error")
+        mock_post.return_value = mock_response
+
+        client = LoculusClient(
+            token_url="https://example.com/token",
+            backend_url="https://backend.example.com",
+            organism="covid",
+        )
+        client.token = "test_token"
+
+        with pytest.raises(Exception) as exc_info:
+            client.approve_all(username="testuser")
+
+        assert "Failed to approve" in str(exc_info.value) or "HTTP Error" in str(
+            exc_info.value
+        )
+
+
+class TestSubmitWithAutoRelease:
+    """Integration tests for submit() with auto_release enabled."""
+
+    @patch("sr2silo.submit_to_loculus.time.sleep")
+    @patch("sr2silo.loculus.loculus.is_ci_environment")
+    @patch("sr2silo.submit_to_loculus.is_ci_environment")
+    def test_submit_with_auto_release_calls_approve(
+        self, mock_submit_ci, mock_loculus_ci, mock_sleep, test_silo_input_uncompressed
+    ):
+        """Test that submit() with auto_release=True calls approve_all after submission."""
+        # Both CI environment checks need to return True
+        mock_submit_ci.return_value = True
+        mock_loculus_ci.return_value = True
+
+        # Create a temporary processed file and nucleotide alignment
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Copy test file to temp directory
+            temp_processed = Path(temp_dir) / "test.ndjson.zst"
+
+            # Create a minimal zstd-compressed file
+            import zstandard as zstd
+
+            content = test_silo_input_uncompressed.read_text()
+            cctx = zstd.ZstdCompressor()
+            compressed = cctx.compress(content.encode())
+            temp_processed.write_bytes(compressed)
+
+            # Create a dummy BAM file
+            temp_bam = Path(temp_dir) / "test.bam"
+            temp_bam.write_bytes(b"dummy bam content")
+
+            # Import and call submit
+            from sr2silo.submit_to_loculus import submit
+
+            result = submit(
+                processed_file=temp_processed,
+                nucleotide_alignment=temp_bam,
+                keycloak_token_url="https://example.com/token",
+                backend_url="https://example.com/backend",
+                group_id=1,
+                organism="covid",
+                username="testuser",
+                password="testpass",
+                auto_release=True,
+                release_delay=0,  # No delay for testing
+            )
+
+            # Verify submission succeeded
+            assert result is True
+
+            # Verify sleep was called (even with 0 delay)
+            mock_sleep.assert_called_once_with(0)
+
+    @patch("sr2silo.submit_to_loculus.time.sleep")
+    @patch("sr2silo.loculus.loculus.is_ci_environment")
+    @patch("sr2silo.submit_to_loculus.is_ci_environment")
+    def test_submit_without_auto_release_skips_approve(
+        self, mock_submit_ci, mock_loculus_ci, mock_sleep, test_silo_input_uncompressed
+    ):
+        """Test that submit() without auto_release does not call approve_all."""
+        mock_submit_ci.return_value = True
+        mock_loculus_ci.return_value = True
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_processed = Path(temp_dir) / "test.ndjson.zst"
+
+            import zstandard as zstd
+
+            content = test_silo_input_uncompressed.read_text()
+            cctx = zstd.ZstdCompressor()
+            compressed = cctx.compress(content.encode())
+            temp_processed.write_bytes(compressed)
+
+            temp_bam = Path(temp_dir) / "test.bam"
+            temp_bam.write_bytes(b"dummy bam content")
+
+            from sr2silo.submit_to_loculus import submit
+
+            result = submit(
+                processed_file=temp_processed,
+                nucleotide_alignment=temp_bam,
+                keycloak_token_url="https://example.com/token",
+                backend_url="https://example.com/backend",
+                group_id=1,
+                organism="covid",
+                username="testuser",
+                password="testpass",
+                auto_release=False,  # Disabled
+                release_delay=180,
+            )
+
+            assert result is True
+
+            # Verify sleep was NOT called (auto_release=False)
+            mock_sleep.assert_not_called()
