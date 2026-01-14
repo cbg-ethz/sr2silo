@@ -181,6 +181,27 @@ def get_password(default: str | None = None) -> str:
     return password
 
 
+def get_auto_release(default: bool = False) -> bool:
+    """Get the auto-release setting from environment.
+
+    Args:
+        default: Default value if environment variable is not set (default: False)
+
+    Returns:
+        bool: Whether to automatically release sequences after submission
+    """
+    auto_release = os.getenv("AUTO_RELEASE", "").lower()
+    if auto_release in ("yes", "true", "t", "1"):
+        return True
+    elif auto_release in ("no", "false", "f", "0", ""):
+        return default
+    else:
+        logging.warning(
+            f"Invalid AUTO_RELEASE value '{auto_release}', using default: {default}"
+        )
+        return default
+
+
 def get_mock_urls() -> tuple[str, str]:
     """Get mock URLs for CI environment.
 

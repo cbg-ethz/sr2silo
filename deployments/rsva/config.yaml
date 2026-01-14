@@ -29,7 +29,11 @@ KEYCLOAK_TOKEN_URL: "https://auth.db.wasap.genspectrum.org/realms/loculus/protoc
 BACKEND_URL: "https://api.db.wasap.genspectrum.org/backend"
 GROUP_ID: 1
 ORGANISM: "rsva"
-# LAPIS_URL: 
+# LAPIS_URL:
+
+# Auto-release: automatically approve sequences after submission
+AUTO_RELEASE: true
+RELEASE_DELAY: 180  # Seconds to wait before releasing
 
 # Credentials loaded from secrets/credentials.enc at runtime via decrypt.py
 # Do NOT include plaintext USERNAME or PASSWORD here

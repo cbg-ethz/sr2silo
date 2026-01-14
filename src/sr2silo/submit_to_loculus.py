@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 import traceback
 from pathlib import Path
 
 from sr2silo.config import (
+    get_backend_url,
     get_group_id,
     get_keycloak_token_url,
     get_mock_urls,
     get_organism,
     get_password,
-    get_backend_url,
     get_username,
     is_ci_environment,
 )
@@ -43,6 +44,8 @@ def submit(
     organism: str | None = None,
     username: str | None = None,
     password: str | None = None,
+    auto_release: bool = False,
+    release_delay: int = 180,
 ) -> bool:
     """Submit data to SILO using the new pre-signed upload approach.
 
@@ -55,6 +58,10 @@ def submit(
         organism : Organism identifier for submission. If None, uses environment.
         username: Username for authentication. If None, uses environment.
         password: Password for authentication. If None, uses environment.
+        auto_release: If True, automatically release/approve sequences after
+            submission. Defaults to False.
+        release_delay: Seconds to wait before releasing sequences (to allow
+            backend processing). Defaults to 180 seconds (3 minutes).
 
     Returns:
         bool: True if submission was successful, False otherwise.
@@ -106,6 +113,23 @@ def submit(
 
         if response["status"] == "success":
             logging.info(response["message"])
+
+            # Auto-release if requested
+            if auto_release:
+                logging.info(
+                    f"Auto-release enabled. Waiting {release_delay} seconds "
+                    "before approving sequences..."
+                )
+                time.sleep(release_delay)
+
+                try:
+                    approve_response = client.approve_all(username=resolved_username)
+                    logging.info(f"Auto-release completed: {approve_response}")
+                except Exception as approve_error:
+                    logging.error(f"Auto-release failed: {approve_error}")
+                    # Return False since release was requested but failed
+                    return False
+
             return True
         else:
             logging.error(f"Submission failed: {response}")

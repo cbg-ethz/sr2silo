@@ -133,7 +133,7 @@ def get_sample_list():
         header = next(reader, None)
         if not header:
             return sample_list
-        
+
         # Build column index map - support both COVID and RSV-A column names
         col_map = {name: idx for idx, name in enumerate(header)}
         # Sample column: "sample" (COVID) or "submissionId" (RSV-A)
@@ -141,12 +141,12 @@ def get_sample_list():
         batch_col = col_map.get("batch", 1)
         location_code_col = col_map.get("location_code", 5)
         date_col = col_map.get("date", 6)
-        
+
         # Process all data rows
         for row in reader:
             if len(row) <= max(sample_col, batch_col, location_code_col, date_col):
                 continue  # Skip invalid rows
-            
+
             sample = row[sample_col]
             date_str = row[date_col]
             location_code = row[location_code_col]
@@ -198,7 +198,7 @@ def get_input_file_path(sample_id):
         header = next(reader, None)
         if not header:
             return str(simple_path)
-        
+
         col_map = {name: idx for idx, name in enumerate(header)}
         sample_col = col_map.get("sample", col_map.get("submissionId", 0))
         batch_col = col_map.get("batch", 1)
@@ -505,6 +505,10 @@ rule submit_to_loculus:
         - PASSWORD (environment variable, set by secrets.py)
         - ORGANISM
 
+    Optional configuration:
+        - AUTO_RELEASE: If true, automatically release sequences after submission
+        - RELEASE_DELAY: Seconds to wait before releasing (default: 180)
+
     CLI parameters take precedence over environment variables.
 
     Note: On ETH cluster, internet access is provided by eth_proxy module loaded at job level.
@@ -522,6 +526,8 @@ rule submit_to_loculus:
         username=os.environ.get("USERNAME", ""),
         password=os.environ.get("PASSWORD", ""),
         organism=config.get("ORGANISM", ""),
+        auto_release="--auto-release" if config.get("AUTO_RELEASE", False) else "",
+        release_delay=config.get("RELEASE_DELAY", 180),
     log:
         f"{config['LOG_DIR']}/sr2silo/submit_to_loculus/sampleId_{{sample_id}}.log",
     conda:
@@ -536,7 +542,9 @@ rule submit_to_loculus:
             --group-id {params.group_id} \
             --organism "{params.organism}" \
             --username "{params.username}" \
-            --password "{params.password}" > {log} 2>&1 && \
+            --password "{params.password}" \
+            {params.auto_release} \
+            --release-delay {params.release_delay} > {log} 2>&1 && \
         mkdir -p $(dirname {output.flag}) && \
         touch {output.flag}
         """
