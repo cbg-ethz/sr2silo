@@ -10,7 +10,7 @@
   <img alt="Logo" src="resources/logo.svg" width="15%" />
 </picture>
 
-[![Project Status: POC – This project is currently under active development.](https://www.repostatus.org/badges/latest/concept.svg)](https://www.repostatus.org/#concept)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![CI/CD](https://github.com/cbg-ethz/sr2silo/actions/workflows/test.yml/badge.svg)](https://github.com/cbg-ethz/sr2silo/actions/workflows/test.yml)
 [![Pytest](https://img.shields.io/badge/tested%20with-pytest-0A9EDC.svg)](https://docs.pytest.org/en/stable/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/charliermarsh/ruff)
