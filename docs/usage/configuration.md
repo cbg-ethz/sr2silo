@@ -22,6 +22,26 @@ Environment variables provide configuration defaults. CLI arguments override env
 | `ORGANISM` | Organism identifier | None (required) | `covid`, `rsva` |
 | `TIMELINE_FILE` | Metadata timeline file | None (required) | `/path/to/timeline.tsv` |
 | `LAPIS_URL` | LAPIS instance URL (optional) | None | `https://lapis.example.com` |
+| `REFERENCE_ACCESSION` | Filter reads by reference accession | `""` (all reads) | `EPI_ISL_412866` |
+
+#### Reference Filtering
+
+When processing BAM files containing alignments to multiple similar references (e.g., RSV-A and RSV-B), use `--reference-accession` to filter reads:
+
+```bash
+sr2silo process-from-vpipe \
+  --input-file alignments.bam \
+  --reference-accession "EPI_ISL_412866" \
+  ...
+```
+
+To find available reference accessions in your BAM file:
+
+```bash
+samtools view -H file.bam | grep @SQ
+```
+
+If filtering results in zero reads, processing terminates with a `ZeroFilteredReadsError`.
 
 ### Submission Configuration (submit-to-loculus)
 
@@ -33,12 +53,40 @@ Environment variables provide configuration defaults. CLI arguments override env
 | `GROUP_ID` | Loculus group ID | None (required) | `1`, `42` |
 | `USERNAME` | Submission username | None (required) | Your username |
 | `PASSWORD` | Submission password | None (required) | Your password |
+| `AUTO_RELEASE` | Auto-approve sequences after submission | `false` | `true` |
+
+#### Auto-Release
+
+Automatically approve/release sequences after submission:
+
+```bash
+# Via CLI flag
+sr2silo submit-to-loculus \
+  -f data.ndjson.zst \
+  -a alignment.bam \
+  --auto-release
+
+# With custom delay (default: 180 seconds)
+sr2silo submit-to-loculus \
+  -f data.ndjson.zst \
+  -a alignment.bam \
+  --auto-release \
+  --release-delay 60
+
+# Via environment variable
+export AUTO_RELEASE=true
+sr2silo submit-to-loculus -f data.ndjson.zst -a alignment.bam
+```
+
+The `--release-delay` option (default 180s) allows backend processing time before release.
 
 ## Snakemake Workflow
 
 Configure in `workflow/config.yaml`:
 ```yaml
 ORGANISM: "covid"
+REFERENCE_ACCESSION: ""  # Filter reads by reference (use for RSV-A/B)
+AUTO_RELEASE: false      # Auto-approve after submission
 LAPIS_URL: "https://lapis.wasap.genspectrum.org/"
 KEYCLOAK_TOKEN_URL: "https://auth.db.wasap.genspectrum.org/..."
 BACKEND_URL: "https://api.db.wasap.genspectrum.org/..."
