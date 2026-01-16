@@ -8,9 +8,11 @@ import tempfile
 from pathlib import Path
 
 import pysam
+import pytest
 
 from sr2silo.process import bam_to_sam
 from sr2silo.process.convert import (
+    ZeroFilteredReadsError,
     bam_to_fasta_query,
     bam_to_fastq_handle_indels,
     create_index,
@@ -123,6 +125,7 @@ def test_is_sorted_qname(tmp_path, monkeypatch):
         """Mock class to simulate pysam.AlignmentFile behavior."""
 
         def __init__(self, header):
+            """Initialize mock with header data."""
             self.header = header
 
         def __enter__(self):
@@ -430,6 +433,127 @@ def test_get_gene_set_from_ref_malformed_no_sequence(tmp_path):
     assert "GeneC" not in gene_names, (
         "Expected GeneC to be skipped due to missing sequence"
     )
+
+
+def test_bam_to_fastq_handle_indels_reference_filtering(tmp_path, caplog):
+    """Test bam_to_fastq_handle_indels with reference filtering.
+
+    Uses H3 RSV test data which has reads aligned to BOTH references:
+    - EPI_ISL_412866 (RSV-A): 3086 reads
+    - EPI_ISL_1653999 (RSV-B): 48711 reads
+    - Total: 51797 reads
+
+    This tests the actual filtering behavior with mixed-reference data.
+    """
+    import logging
+
+    # Use H3 BAM which has reads on both references
+    rsva_bam = Path(
+        "tests/data/rsva/H3_16_2025_11_15/20251128_2511665243/alignments/REF_aln_trim.bam"
+    )
+
+    if not rsva_bam.exists():
+        pytest.skip("RSV-A H3 test data with mixed references not available")
+
+    # Test 1: Filter for RSV-A reference (should get ~3086 reads)
+    caplog.clear()
+    fastq_file_rsva = tmp_path / "output_rsva.fastq"
+    insertions_file_rsva = tmp_path / "insertions_rsva.txt"
+
+    with caplog.at_level(logging.WARNING):
+        bam_to_fastq_handle_indels(
+            rsva_bam,
+            fastq_file_rsva,
+            insertions_file_rsva,
+            target_reference="EPI_ISL_412866",  # RSV-A reference
+        )
+
+    # Should have logged filtering statistics
+    assert "Reference filtering for 'EPI_ISL_412866'" in caplog.text
+    assert "3086/51797 reads kept" in caplog.text
+    assert "6.0%" in caplog.text
+    assert "48711 filtered out" in caplog.text
+
+    # Output should have content
+    assert fastq_file_rsva.stat().st_size > 0
+
+    # Test 2: Filter for RSV-B reference (should get ~48711 reads)
+    caplog.clear()
+    fastq_file_rsvb = tmp_path / "output_rsvb.fastq"
+    insertions_file_rsvb = tmp_path / "insertions_rsvb.txt"
+
+    with caplog.at_level(logging.WARNING):
+        bam_to_fastq_handle_indels(
+            rsva_bam,
+            fastq_file_rsvb,
+            insertions_file_rsvb,
+            target_reference="EPI_ISL_1653999",  # RSV-B reference
+        )
+
+    # Should have logged filtering statistics
+    assert "Reference filtering for 'EPI_ISL_1653999'" in caplog.text
+    assert "48711/51797 reads kept" in caplog.text
+    assert "94.0%" in caplog.text
+    assert "3086 filtered out" in caplog.text
+
+    # Output should have content (more than RSV-A filtered)
+    assert fastq_file_rsvb.stat().st_size > fastq_file_rsva.stat().st_size
+
+    # Test 3: No filter (should get all reads)
+    caplog.clear()
+    fastq_file_all = tmp_path / "output_all.fastq"
+    insertions_file_all = tmp_path / "insertions_all.txt"
+
+    bam_to_fastq_handle_indels(
+        rsva_bam,
+        fastq_file_all,
+        insertions_file_all,
+        target_reference=None,  # No filtering
+    )
+
+    # Should not have filtering log messages
+    assert "Reference filtering for" not in caplog.text
+
+    # Unfiltered output should be larger than either filtered output
+    assert fastq_file_all.stat().st_size > fastq_file_rsvb.stat().st_size
+
+
+def test_bam_to_fastq_handle_indels_invalid_reference(tmp_path, caplog):
+    """Test bam_to_fastq_handle_indels with a non-existent reference.
+
+    Should warn that reference is not found in BAM headers,
+    then raise ZeroFilteredReadsError since no reads match.
+    """
+    import logging
+
+    # Use H3 BAM which has both references
+    rsva_bam = Path(
+        "tests/data/rsva/H3_16_2025_11_15/20251128_2511665243/alignments/REF_aln_trim.bam"
+    )
+
+    if not rsva_bam.exists():
+        pytest.skip("RSV-A H3 test data not available")
+
+    fastq_file = tmp_path / "output.fastq"
+    insertions_file = tmp_path / "insertions.txt"
+
+    with caplog.at_level(logging.WARNING):
+        with pytest.raises(ZeroFilteredReadsError) as exc_info:
+            bam_to_fastq_handle_indels(
+                rsva_bam,
+                fastq_file,
+                insertions_file,
+                target_reference="NONEXISTENT_REF",
+            )
+
+    # Should warn about missing reference in logs
+    assert "not found in BAM headers" in caplog.text
+    assert "NONEXISTENT_REF" in caplog.text
+    assert "EPI_ISL_412866" in caplog.text  # Available reference shown
+    assert "EPI_ISL_1653999" in caplog.text  # Available reference shown
+
+    # Exception should contain the target reference
+    assert "NONEXISTENT_REF" in str(exc_info.value)
 
 
 def test_sort_sam_by_qname(tmp_path, monkeypatch):
