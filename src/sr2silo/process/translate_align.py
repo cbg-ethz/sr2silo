@@ -255,7 +255,12 @@ def enrich_read_with_aa_seq(
     fasta_aa_alignment_file: Path,
     gene_set: GeneSet,
 ) -> Dict[str, AlignedRead]:
-    """Read in amino acid sequences and insertions from a FASTA file"""
+    """Read in amino acid sequences and insertions from a FASTA file.
+
+    Note: Reads in the AA alignment file that are not in aligned_reads
+    (e.g., due to reference filtering) are skipped.
+    """
+    skipped_count = 0
     with open(fasta_aa_alignment_file, "r") as f:
         total_lines = sum(1 for _ in f)
         f.seek(0)  # Reset file pointer to the beginning
@@ -268,6 +273,13 @@ def enrich_read_with_aa_seq(
                     continue
                 fields = line.strip().split("\t")
                 read_id = fields[0]
+
+                # Skip reads that were filtered out during nucleotide processing
+                if read_id not in aligned_reads:
+                    skipped_count += 1
+                    pbar.update(1)
+                    continue
+
                 gene_name = GeneName(fields[2])
                 pos = int(fields[3])
                 cigar = fields[5]
@@ -292,6 +304,12 @@ def enrich_read_with_aa_seq(
                     pos - 1,
                 )
                 pbar.update(1)
+
+    if skipped_count > 0:
+        logging.info(
+            f"AA enrichment: skipped {skipped_count} reads not in nucleotide alignment "
+            "(filtered by reference)"
+        )
     return aligned_reads
 
 
@@ -300,8 +318,21 @@ def parse_translate_align(
     aa_reference_fp: Path,
     nuc_alignment_fp: Path,
     aa_db_fp: Path,
+    target_reference: str | None = None,
 ) -> Dict[str, AlignedRead]:
-    """Parse nucleotides, translate and align amino acids the input files."""
+    """Parse nucleotides, translate and align amino acids the input files.
+
+    Args:
+        nuc_reference_fp: Path to nucleotide reference FASTA file.
+        aa_reference_fp: Path to amino acid reference FASTA file.
+        nuc_alignment_fp: Path to nucleotide alignment BAM file.
+        aa_db_fp: Path to Diamond database file.
+        target_reference: Filter reads to only include those aligned to this
+                         reference accession. If None, all reads are processed.
+
+    Returns:
+        Dictionary mapping read IDs to AlignedRead objects.
+    """
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir_path = Path(temp_dir)
         BAM_NUC_ALIGNMENT_FILE = temp_dir_path / "combined_sorted.bam"
@@ -323,6 +354,7 @@ def parse_translate_align(
             bam_file=BAM_NUC_ALIGNMENT_FILE,
             out_fastq_fp=FASTQ_NUC_ALIGNMENT_FILE,
             out_insertions_fp=FASTA_NUC_INSERTIONS_FILE,
+            target_reference=target_reference,
         )
 
         nuc_to_aa_alignment(
@@ -386,15 +418,37 @@ def curry_read_with_metadata(metadata_fp: Path) -> Callable[[AlignedRead], Align
 
 
 def process_bam_files(
-    bam_splits_fps, nuc_reference_fp, aa_reference_fp, aa_db_fp, metadata_fp
+    bam_splits_fps,
+    nuc_reference_fp,
+    aa_reference_fp,
+    aa_db_fp,
+    metadata_fp,
+    target_reference: str | None = None,
 ):
-    """Generator to process BAM files and yield JSON strings."""
+    """Generator to process BAM files and yield JSON strings.
+
+    Args:
+        bam_splits_fps: List of paths to BAM file splits.
+        nuc_reference_fp: Path to nucleotide reference FASTA file.
+        aa_reference_fp: Path to amino acid reference FASTA file.
+        aa_db_fp: Path to Diamond database file.
+        metadata_fp: Path to metadata JSON file.
+        target_reference: Filter reads to only include those aligned to this
+                         reference accession. If None, all reads are processed.
+
+    Yields:
+        JSON strings for each processed read.
+    """
 
     enrich_single_read = curry_read_with_metadata(metadata_fp)
 
     for bam_split_fp in bam_splits_fps:
         for read in parse_translate_align(
-            nuc_reference_fp, aa_reference_fp, bam_split_fp, aa_db_fp
+            nuc_reference_fp,
+            aa_reference_fp,
+            bam_split_fp,
+            aa_db_fp,
+            target_reference=target_reference,
         ).values():
             enriched_read = enrich_single_read(read)
             yield enriched_read.to_silo_json()
@@ -408,6 +462,7 @@ def parse_translate_align_in_batches(
     output_fp: Path,
     chunk_size: int = 100000,
     write_chunk_size: int = 20,
+    target_reference: str | None = None,
 ) -> Path:
     """Parse nucleotides, translate and align amino acids in batches.
 
@@ -419,6 +474,9 @@ def parse_translate_align_in_batches(
         output_fp (Path): Path to the output file - .ndjson
         chunk_size (int): Size of each batch, in number of reads.
         write_chunk_size (int): Size of each write batch.
+        target_reference (str | None): Filter reads to only include those aligned
+            to this reference accession. Should match @SQ SN field in BAM header.
+            If None, all reads are processed.
 
     Returns:
         Path: The path to the output file with the correct suffix.
@@ -475,6 +533,7 @@ def parse_translate_align_in_batches(
                         aa_reference_fp,
                         aa_db_fp,
                         metadata_fp,
+                        target_reference=target_reference,
                     ):
                         buffer.append(json_str)
                         if len(buffer) >= write_chunk_size:

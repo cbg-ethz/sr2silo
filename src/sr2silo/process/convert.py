@@ -11,6 +11,19 @@ import pysam
 
 from sr2silo.process.interface import Gene, GeneName, GeneSet, Insertion
 
+
+class ZeroFilteredReadsError(Exception):
+    """Raised when reference filtering results in zero reads.
+
+    This error indicates that a target reference was specified for filtering,
+    but no reads in the BAM file aligned to that reference. This typically
+    means the wrong reference was specified or the data doesn't contain
+    reads for the expected reference.
+    """
+
+    pass
+
+
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -215,6 +228,7 @@ def bam_to_fastq_handle_indels(
     out_insertions_fp: Path,
     deletion_char: str = "-",
     skipped_char: str = "N",
+    target_reference: str | None = None,
 ):
     """
     Convert a BAM file to a FASTQ file, removing insertions and adding a
@@ -229,7 +243,25 @@ def bam_to_fastq_handle_indels(
     :param out_insertions_fp: Path to the output file containing insertions
     :param deletion_char: Special character to use for deletions/skipped regions
     :param skipped_char: Special character to use for skipped regions
+    :param target_reference: Filter reads to only include those aligned to this
+                            reference accession. Should match @SQ SN field in
+                            BAM header. If None, all reads are processed.
     """
+    # Validate target reference against BAM headers if specified
+    if target_reference:
+        with pysam.AlignmentFile(str(bam_file), "rb") as bam_check:
+            bam_references = [sq["SN"] for sq in bam_check.header.get("SQ", [])]  # type: ignore
+            if target_reference not in bam_references:
+                logging.warning(
+                    f"Target reference '{target_reference}' not found in BAM headers. "
+                    f"Available references: {bam_references}"
+                )
+            else:
+                logging.info(f"Filtering reads to reference: {target_reference}")
+
+    processed_count = 0
+    filtered_count = 0
+
     with (
         pysam.AlignmentFile(str(bam_file), "rb") as bam,
         open(out_fastq_fp, "w") as fastq,
@@ -237,6 +269,11 @@ def bam_to_fastq_handle_indels(
     ):
         for read in bam.fetch():
             if not read.is_unmapped:
+                # Filter by reference if specified
+                if target_reference and read.reference_name != target_reference:
+                    filtered_count += 1
+                    continue
+                processed_count += 1
                 logging.debug(f"Processing read: {read.query_name}")
                 query_sequence = read.query_sequence if read.query_sequence else ""
                 query_qualities = read.query_qualities if read.query_qualities else ""
@@ -309,6 +346,29 @@ def bam_to_fastq_handle_indels(
                     insertions.write(
                         f"{read.query_name}\t{insertion_pos}\t{''.join(insertion_seq)}\t{''.join(insertion_qual)}\n"
                     )
+
+    # Log filtering statistics (use WARNING level to bypass suppress_info_and_below)
+    if target_reference:
+        total_reads = processed_count + filtered_count
+        if total_reads > 0:
+            kept_pct = (processed_count / total_reads) * 100
+            filtered_pct = (filtered_count / total_reads) * 100
+            logging.warning(
+                f"Reference filtering for '{target_reference}': "
+                f"{processed_count}/{total_reads} reads kept ({kept_pct:.1f}%), "
+                f"{filtered_count} filtered out ({filtered_pct:.1f}%)"
+            )
+        else:
+            logging.warning(
+                f"Reference filtering for '{target_reference}': 0 reads in BAM file"
+            )
+        if processed_count == 0 and filtered_count > 0:
+            raise ZeroFilteredReadsError(
+                f"No reads matched target reference '{target_reference}'. "
+                f"All {filtered_count} reads were aligned to other references. "
+                f"Check that the reference accession matches the expected reference "
+                f"(found by: samtools view -H <bam> | grep @SQ)."
+            )
 
 
 def parse_cigar(cigar: str) -> List[Tuple[int, str]]:

@@ -42,6 +42,13 @@ RELEASE_DELAY: 180  # Seconds to wait before releasing
 ENABLE_SUBSAMPLING: true
 SUBSAMPLE_MAX_READS: 4500000
 
+### Reference Filtering
+# The reference accession to filter reads by when processing BAM files.
+# This should match the @SQ SN field in the BAM header.
+# Find this by running: samtools view -H REF_aln_trim.bam | grep @SQ
+# Leave empty or omit to process all reads (backward compatible).
+REFERENCE_ACCESSION: "EPI_ISL_412866"  # RSV-A reference
+
 ### Resource Configuration
 SLURM_CPUS: 4
 SLURM_MEM: "16G"

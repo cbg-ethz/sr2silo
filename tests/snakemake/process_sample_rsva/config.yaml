@@ -1,0 +1,18 @@
+BASE_SAMPLE_DIR: "samples_large"
+LOCATIONS:
+  - 16   # Geneva (GE)
+START_DATE: "2025-11-01"
+END_DATE: "2025-11-30"
+TIMELINE_FILE: "timeline_H3_16_2025_11_15.tsv"
+# Organism identifier for processing
+ORGANISM: "rsva"
+# Results and logs directories
+RESULTS_DIR: "results"
+LOG_DIR: "logs"
+
+### Reference Filtering
+# The reference accession to filter reads by when processing BAM files.
+# This should match the @SQ SN field in the BAM header.
+# Find this by running: samtools view -H REF_aln_trim.bam | grep @SQ
+# For RSV-A, use the RSV-A reference accession.
+REFERENCE_ACCESSION: "EPI_ISL_412866"

@@ -213,6 +213,16 @@ def process_from_vpipe(
             help="Skip merging of paired-end reads.",
         ),
     ] = False,
+    reference_accession: Annotated[
+        str | None,
+        typer.Option(
+            "--reference-accession",
+            help="Filter reads to only include those aligned to this reference accession. "
+            "Should match @SQ SN field in BAM header (find with: "
+            "samtools view -H file.bam | grep @SQ). "
+            "If not specified, all reads are processed.",
+        ),
+    ] = None,
 ) -> None:
     """
     V-PIPE to SILO conversion with amino acids and special metadata.
@@ -239,6 +249,10 @@ def process_from_vpipe(
         logging.info(f"Using local {organism} references (no Lapis URL provided)")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Skip read pair merging: {skip_merge}")
+    if reference_accession:
+        logging.info(f"Reference accession filter: {reference_accession}")
+    else:
+        logging.info("Reference accession filter: None (processing all reads)")
 
     # check if $TMPDIR is set, if not use /tmp
     if "TMPDIR" in os.environ:
@@ -274,6 +288,7 @@ def process_from_vpipe(
         skip_merge=skip_merge,
         version_info=version_info,
         organism=organism,
+        reference_accession=reference_accession,
     )
 
 

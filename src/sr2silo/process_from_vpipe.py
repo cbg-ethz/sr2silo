@@ -50,6 +50,7 @@ def nuc_align_to_silo_njson(
     skip_merge: bool = False,
     version_info: str | None = None,
     organism: str = "covid",
+    reference_accession: str | None = None,
 ) -> bool:
     """Process a given input file.
 
@@ -66,6 +67,9 @@ def nuc_align_to_silo_njson(
                            Default is None.
         organism (str): The organism identifier (e.g., 'covid', 'rsva').
                        Used for timeline column mappings. Default is 'covid'.
+        reference_accession (str | None): Filter reads to only include those
+                       aligned to this reference accession. Should match @SQ SN
+                       field in BAM header. If None, all reads are processed.
 
     Returns:
         bool: True if processing was performed, False if skipped (0 reads).
@@ -178,6 +182,7 @@ def nuc_align_to_silo_njson(
             nuc_alignment_fp=merged_reads_fp,
             metadata_fp=metadata_file,
             output_fp=aligned_reads_fp,
+            target_reference=reference_accession,
         )
     finally:
         # Only remove temporary files if we created them (i.e., if we merged the reads)
