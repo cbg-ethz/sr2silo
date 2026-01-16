@@ -472,6 +472,7 @@ rule process_sample:
         timeline_file=config["TIMELINE_FILE"],
         organism=config.get("ORGANISM", "covid"),
         lapis_url=config.get("LAPIS_URL", ""),
+        reference_accession=config.get("REFERENCE_ACCESSION", ""),
     log:
         f"{config['LOG_DIR']}/sr2silo/process_sample/sampleId_{{sample_id}}.log",
     conda:
@@ -486,6 +487,7 @@ rule process_sample:
             --organism {params.organism} \
             --output-fp {output.result_fp} \
             $([ -n "{params.lapis_url}" ] && echo "--lapis-url {params.lapis_url}") \
+            $([ -n "{params.reference_accession}" ] && echo "--reference-accession {params.reference_accession}") \
             > {log} 2>&1
         """
 
