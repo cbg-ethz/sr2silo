@@ -57,11 +57,23 @@ fi
 
 echo "Next run resources: CPUS=$NEXT_CPUS, MEM=$NEXT_MEM (MEM_PER_CPU=$MEM_PER_CPU)"
 
-# Run workflow
+# Run workflow and capture exit code
 cd "$PROJECT_ROOT/sr2silo/workflow"
+set +e  # Temporarily disable exit on error
 snakemake --configfile "../deployments/$VIRUS/config.yaml" -j"$CORES" --rerun-incomplete --keep-going
+SNAKEMAKE_EXIT=$?
+set -e  # Re-enable exit on error
 
-echo "=== Completed $(date) ==="
+echo "=== Completed $(date) with exit code $SNAKEMAKE_EXIT ==="
+
+# Decide whether to resubmit based on exit code:
+# - 0: Success, resubmit
+# - 1: Some jobs failed but workflow ran (with --keep-going), resubmit
+# - Other: Critical failure (config error, missing files, etc.), do NOT resubmit
+if [[ $SNAKEMAKE_EXIT -gt 1 ]]; then
+    echo "ERROR: Snakemake exited with code $SNAKEMAKE_EXIT (critical failure). NOT resubmitting."
+    exit $SNAKEMAKE_EXIT
+fi
 
 # Resubmit for tomorrow
 /cluster/apps/slurm/bin/sbatch \
