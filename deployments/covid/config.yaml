@@ -32,7 +32,7 @@ ORGANISM: "covid"
 LAPIS_URL: "https://lapis.wasap.genspectrum.org/"
 
 # Auto-release: automatically approve sequences after submission
-AUTO_RELEASE: false
+AUTO_RELEASE: true
 RELEASE_DELAY: 180  # Seconds to wait before releasing
 
 # Credentials loaded from secrets/credentials.enc at runtime via secrets.py
