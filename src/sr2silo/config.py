@@ -219,11 +219,51 @@ def get_mock_urls() -> tuple[str, str]:
     return mock_keycloak_url, mock_backend_url
 
 
+def get_cache_dir() -> Path:
+    """Get sr2silo cache directory (XDG compliant).
+
+    Uses XDG_CACHE_HOME if set, otherwise ~/.cache/sr2silo/
+
+    Returns:
+        Path: The cache directory path
+    """
+    xdg_cache = os.getenv("XDG_CACHE_HOME")
+    if xdg_cache:
+        return Path(xdg_cache) / "sr2silo"
+    return Path.home() / ".cache" / "sr2silo"
+
+
+def get_nuc_ref(default: Path | None = None) -> Path | None:
+    """Get nucleotide reference path from environment.
+
+    Args:
+        default: Optional default path if environment variable is not set
+
+    Returns:
+        Path | None: The nucleotide reference path, or None if not available
+    """
+    nuc_ref = os.getenv("NUC_REF")
+    return Path(nuc_ref) if nuc_ref else default
+
+
+def get_aa_ref(default: Path | None = None) -> Path | None:
+    """Get amino acid reference path from environment.
+
+    Args:
+        default: Optional default path if environment variable is not set
+
+    Returns:
+        Path | None: The amino acid reference path, or None if not available
+    """
+    aa_ref = os.getenv("AA_REF")
+    return Path(aa_ref) if aa_ref else default
+
+
 def get_timeline_column_mappings(organism: str) -> dict[str, str]:
     """Get timeline column name mappings for a specific organism.
 
-    Returns a dictionary mapping internal field names to timeline TSV column names.
-    Uses organism-specific configuration from resources/vpipe/timeline_columns.yml.
+    Uses importlib.resources to load config from package data.
+    Falls back to default mappings if config not found.
 
     Args:
         organism: The organism identifier (e.g., 'covid', 'rsva')
@@ -249,27 +289,14 @@ def get_timeline_column_mappings(organism: str) -> dict[str, str]:
         "location_name": "location",
     }
 
-    # Try to load organism-specific mappings from config file
     try:
-        # Find the timeline columns config file
-        config_path = (
-            Path(__file__).parent.parent.parent
-            / "resources"
-            / "vpipe"
-            / "timeline_columns.yml"
-        )
+        # Use importlib.resources for proper package resource access
+        from importlib.resources import files
 
-        if not config_path.exists():
-            logging.warning(
-                f"Timeline columns config file not found at {config_path}. "
-                "Using default timeline column mappings."
-            )
-            return default_mappings
+        config_file = files("sr2silo.data").joinpath("timeline_columns.yml")
+        config_text = config_file.read_text()
+        config = yaml.safe_load(config_text)
 
-        with open(config_path, "r") as f:
-            config = yaml.safe_load(f)
-
-        # Get organism-specific timeline column mappings
         if config and "organisms" in config and organism in config["organisms"]:
             mappings = config["organisms"][organism]
             logging.debug(f"Loaded timeline column mappings for {organism}: {mappings}")

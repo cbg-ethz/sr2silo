@@ -188,25 +188,25 @@ def real_sample_files_import_to_loculus(
 @pytest.fixture
 def nuc_ref_sarscov2_fp():
     """Return the reference genome file path."""
-    return Path("resources/references/covid/nuc_ref.fasta")
+    return Path("examples/references/covid/nuc_ref.fasta")
 
 
 @pytest.fixture
 def aa_ref_sarscov2_fp():
     """Return the reference genome file path."""
-    return Path("resources/references/covid/aa_ref.fasta")
+    return Path("examples/references/covid/aa_ref.fasta")
 
 
 @pytest.fixture
 def nuc_ref_rsva_fp():
     """Return the RSV-A nucleotide reference genome file path."""
-    return Path("resources/references/rsva/nuc_ref.fasta")
+    return Path("examples/references/rsva/nuc_ref.fasta")
 
 
 @pytest.fixture
 def aa_ref_rsva_fp():
     """Return the RSV-A amino acid reference genome file path."""
-    return Path("resources/references/rsva/aa_ref.fasta")
+    return Path("examples/references/rsva/aa_ref.fasta")
 
 
 @pytest.fixture
@@ -237,8 +237,8 @@ def rsva_sample():
                 "sample": INPUT_BAM_INSERTIONS_PATH,
                 "timeline": Path("./tests/data/covid/timeline.tsv"),
                 "sample_id": "A1_05_2024_10_08",
-                "nuc_ref": Path("resources/references/covid/nuc_ref.fasta"),
-                "aa_ref": Path("resources/references/covid/aa_ref.fasta"),
+                "nuc_ref": Path("examples/references/covid/nuc_ref.fasta"),
+                "aa_ref": Path("examples/references/covid/aa_ref.fasta"),
             },
             id="covid",
         ),
@@ -253,8 +253,8 @@ def rsva_sample():
                 / "REF_aln_trim.bam",
                 "timeline": Path("./tests/data/rsva/timeline.tsv"),
                 "sample_id": "A1_05_2025_11_05",
-                "nuc_ref": Path("resources/references/rsva/nuc_ref.fasta"),
-                "aa_ref": Path("resources/references/rsva/aa_ref.fasta"),
+                "nuc_ref": Path("examples/references/rsva/nuc_ref.fasta"),
+                "aa_ref": Path("examples/references/rsva/aa_ref.fasta"),
             },
             id="rsva",
         ),

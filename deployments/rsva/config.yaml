@@ -29,7 +29,7 @@ KEYCLOAK_TOKEN_URL: "https://auth.db.wasap.genspectrum.org/realms/loculus/protoc
 BACKEND_URL: "https://api.db.wasap.genspectrum.org/backend"
 GROUP_ID: 1
 ORGANISM: "rsva"
-# LAPIS_URL:
+LAPIS_URL: "https://lapis.wasap.genspectrum.org/rsva"
 
 # Auto-release: automatically approve sequences after submission
 AUTO_RELEASE: true

@@ -1,5 +1,15 @@
-# sr2silo.silo
+# Loculus Integration
 
-:::sr2silo.loculus.LoculusClient
-:::sr2silo.loculus.Submission
-:::sr2silo.loculus.LapisClient
+Client classes for interacting with Loculus/LAPIS backends.
+
+## LoculusClient
+
+::: sr2silo.loculus.LoculusClient
+
+## Submission
+
+::: sr2silo.loculus.Submission
+
+## LapisClient
+
+::: sr2silo.loculus.LapisClient

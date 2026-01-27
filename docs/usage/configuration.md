@@ -22,7 +22,50 @@ Environment variables provide configuration defaults. CLI arguments override env
 | `ORGANISM` | Organism identifier | None (required) | `covid`, `rsva` |
 | `TIMELINE_FILE` | Metadata timeline file | None (required) | `/path/to/timeline.tsv` |
 | `LAPIS_URL` | LAPIS instance URL (optional) | None | `https://lapis.example.com` |
+| `NUC_REF` | Nucleotide reference FASTA | None | `/path/to/nuc_ref.fasta` |
+| `AA_REF` | Amino acid reference FASTA | None | `/path/to/aa_ref.fasta` |
 | `REFERENCE_ACCESSION` | Filter reads by reference accession | `""` (all reads) | `EPI_ISL_412866` |
+| `XDG_CACHE_HOME` | Override cache location | `~/.cache` | `/scratch/.cache` |
+
+#### Reference Files
+
+sr2silo needs nucleotide and amino acid reference files for processing. You can provide these in several ways:
+
+**Option 1: Explicit Paths (Recommended for Production)**
+
+```bash
+sr2silo process-from-vpipe \
+  --input-file alignments.bam \
+  --nuc-ref /path/to/nuc_ref.fasta \
+  --aa-ref /path/to/aa_ref.fasta \
+  ...
+```
+
+**Option 2: LAPIS Auto-Fetch**
+
+Fetch references automatically from a LAPIS instance:
+
+```bash
+sr2silo process-from-vpipe \
+  --lapis-url https://lapis.wasap.genspectrum.org/covid \
+  ...
+```
+
+References are cached to `~/.cache/sr2silo/references/` (or `$XDG_CACHE_HOME/sr2silo/`).
+
+**Option 3: Environment Variables**
+
+```bash
+export NUC_REF=/path/to/nuc_ref.fasta
+export AA_REF=/path/to/aa_ref.fasta
+sr2silo process-from-vpipe ...
+```
+
+**Priority Order:**
+
+1. CLI flags (`--nuc-ref`, `--aa-ref`)
+2. Environment variables (`NUC_REF`, `AA_REF`)
+3. LAPIS auto-fetch with cache (if `--lapis-url` provided)
 
 #### Reference Filtering
 
@@ -104,6 +147,8 @@ GROUP_ID: 1
 
 **ORGANISM not set:** Export variable or use `--organism` flag
 
-**Reference files not found:** Check spelling, verify files exist, or use `--lapis-url`
+**Reference files not found:** Provide `--nuc-ref` and `--aa-ref` paths, or use `--lapis-url` to fetch automatically
+
+**Cached references outdated:** Delete `~/.cache/sr2silo/references/` and re-run with `--lapis-url`
 
 **Authentication failed:** Verify credentials and endpoint URLs in environment variables

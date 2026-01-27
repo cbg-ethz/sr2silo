@@ -473,6 +473,8 @@ rule process_sample:
         organism=config.get("ORGANISM", "covid"),
         lapis_url=config.get("LAPIS_URL", ""),
         reference_accession=config.get("REFERENCE_ACCESSION", ""),
+        nuc_ref=config.get("NUC_REF", ""),
+        aa_ref=config.get("AA_REF", ""),
     log:
         f"{config['LOG_DIR']}/sr2silo/process_sample/sampleId_{{sample_id}}.log",
     conda:
@@ -487,6 +489,8 @@ rule process_sample:
             --organism {params.organism} \
             --output-fp {output.result_fp} \
             $([ -n "{params.lapis_url}" ] && echo "--lapis-url {params.lapis_url}") \
+            $([ -n "{params.nuc_ref}" ] && echo "--nuc-ref {params.nuc_ref}") \
+            $([ -n "{params.aa_ref}" ] && echo "--aa-ref {params.aa_ref}") \
             $([ -n "{params.reference_accession}" ] && echo "--reference-accession {params.reference_accession}") \
             > {log} 2>&1
         """
