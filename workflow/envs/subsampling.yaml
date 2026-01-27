@@ -1,8 +1,7 @@
 name: sr2silo-subsampling
 channels:
-  - bioconda
   - conda-forge
-  - defaults
+  - bioconda
 dependencies:
   - samtools>=1.17
   - pandas>=2.0.0

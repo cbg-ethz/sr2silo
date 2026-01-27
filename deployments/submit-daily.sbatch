@@ -21,7 +21,7 @@ set -euo pipefail
 : "${VIRUS:?Set VIRUS via --export=VIRUS=covid}"
 
 PROJECT_ROOT="/cluster/project/pangolin/research/W-ASAP"
-CONDA_ENV="sr2silo-workflow"
+CONDA_ENV="base"
 CORES="${SLURM_CPUS_PER_TASK:-20}"
 
 echo "=== sr2silo daily: $VIRUS (job $SLURM_JOB_ID) ==="
@@ -31,7 +31,7 @@ echo "Node: $SLURM_NODELIST | Cores: $CORES | $(date)"
 module load eth_proxy 2>/dev/null || true
 
 # Initialize conda (using hook to preserve system PATH including sbatch)
-CONDA_EXE="/cluster/work/bewi/members/koehng/miniconda3/bin/conda"
+CONDA_EXE="/cluster/project/pangolin/resources/miniconda3/bin/conda"
 eval "$("$CONDA_EXE" shell.bash hook)"
 conda activate "$CONDA_ENV"
 
@@ -59,7 +59,10 @@ echo "Next run resources: CPUS=$NEXT_CPUS, MEM=$NEXT_MEM (MEM_PER_CPU=$MEM_PER_C
 
 # Run workflow
 cd "$PROJECT_ROOT/sr2silo/workflow"
-snakemake --configfile "../deployments/$VIRUS/config.yaml" -j"$CORES" --rerun-incomplete --keep-going
+set +e  # Temporarily disable exit on error
+snakemake --configfile "../deployments/$VIRUS/config.yaml" -j"$CORES" --rerun-incomplete --keep-going --rerun-trigger mtime --conda-frontend conda --conda-prefix "/cluster/project/pangolin/resources/snake-envs" --use-conda
+SNAKEMAKE_EXIT=$?
+set -e  # Re-enable exit on error
 
 echo "=== Completed $(date) ==="
 
