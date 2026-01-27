@@ -32,7 +32,9 @@ sr2silo process-from-vpipe \
   --output-fp output.ndjson.zst
 ```
 
-References are cached to `~/.cache/sr2silo/references/`.
+References are cached to the Python package's resources directory
+(e.g., `<site-packages>/resources/references/<lapis-hostname>/`) rather than `~/.cache/sr2silo/references/`.
+When using conda environments, this will be inside the environment's `lib/pythonX.XX/resources/references/` folder.
 
 ### Option 3: Environment Variables
 
