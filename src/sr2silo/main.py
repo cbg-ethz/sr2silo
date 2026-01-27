@@ -7,6 +7,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Annotated
+from urllib.parse import urlparse
 
 import typer
 
@@ -82,14 +83,15 @@ def _get_reference_files(
             logging.info(f"Fetching references from LAPIS: {lapis_url}")
             reference = lapis.referenceGenome()
 
-            # Create domain-specific directory for LAPIS references
-            domain = lapis_url.split("//")[-1].split("/")[0]
-            (package_root / f"resources/references/{domain}").mkdir(
-                parents=True, exist_ok=True
-            )
+            # Create URL-specific directory for LAPIS references (domain + path)
+            parsed = urlparse(lapis_url)
+            # Combine hostname and path, strip trailing slashes for clean paths
+            url_path = parsed.netloc + parsed.path.rstrip("/")
+            ref_dir = package_root / "resources/references" / url_path
+            ref_dir.mkdir(parents=True, exist_ok=True)
 
-            nuc_ref_fp = package_root / f"resources/references/{domain}/nuc_ref.fasta"
-            aa_ref_fp = package_root / f"resources/references/{domain}/aa_ref.fasta"
+            nuc_ref_fp = ref_dir / "nuc_ref.fasta"
+            aa_ref_fp = ref_dir / "aa_ref.fasta"
 
             lapis.referenceGenomeToFasta(
                 reference_json_string=json.dumps(reference),
