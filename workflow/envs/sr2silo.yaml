@@ -1,9 +1,9 @@
 name: sr2silo-workflow
 channels:
-  - bioconda
   - conda-forge
-  - defaults
+  - bioconda
 dependencies:
-  - snakemake=8.18  # fixed as snakemake unit tests fail with 8.19
+  #- snakemake=8.18  # fixed as snakemake unit tests fail with 8.19
   - diamond>=2.1.0
   - smallgenomeutilities>=0.5.2
+  - sr2silo>=1.7.0
