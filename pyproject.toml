@@ -5,6 +5,7 @@ description = "ETL tool for importing short-read sequencing data into SILO datab
 authors = ["Gordon Julian Koehn <gordon.koehn@dbsse.ethz.ch>"]
 readme = "README.md"
 packages = [{ include = "sr2silo", from = "src" }]
+include = [{ path = "src/sr2silo/data/**/*", format = ["sdist", "wheel"] }]
 
 [tool.poetry.scripts]
 sr2silo = "sr2silo.main:app"

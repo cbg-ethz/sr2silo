@@ -6,6 +6,9 @@ END_DATE: "2025-11-30"
 TIMELINE_FILE: "timeline_H3_16_2025_11_15.tsv"
 # Organism identifier for processing
 ORGANISM: "rsva"
+# Explicit reference paths (required when LAPIS_URL is not available)
+NUC_REF: "examples/references/rsva/nuc_ref.fasta"
+AA_REF: "examples/references/rsva/aa_ref.fasta"
 # Results and logs directories
 RESULTS_DIR: "results"
 LOG_DIR: "logs"
