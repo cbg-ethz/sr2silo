@@ -305,7 +305,7 @@ def test_get_gene_set_from_ref():
 
     from sr2silo.process.convert import get_gene_set_from_ref
 
-    aa_ref_fp = Path("resources/references/covid/aa_ref.fasta")
+    aa_ref_fp = Path("examples/references/covid/aa_ref.fasta")
     gene_set = get_gene_set_from_ref(aa_ref_fp)
     gene_names = gene_set.get_gene_name_list()
 

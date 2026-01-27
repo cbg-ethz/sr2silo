@@ -12,10 +12,13 @@ from urllib.parse import urlparse
 import typer
 
 from sr2silo.config import (
+    get_aa_ref,
     get_auto_release,
     get_backend_url,
+    get_cache_dir,
     get_group_id,
     get_keycloak_token_url,
+    get_nuc_ref,
     get_organism,
     get_password,
     get_timeline_file,
@@ -33,20 +36,21 @@ logging.basicConfig(
 
 
 def _get_reference_files(
-    ci_env: bool, lapis_url: str | None, organism: str | None = None
+    nuc_ref: Path | None,
+    aa_ref: Path | None,
+    lapis_url: str | None,
 ) -> tuple[Path, Path]:
-    """Get reference files for the specified organism.
+    """Get reference files with clear priority order.
 
-    Tries to load references in order of priority:
-    1. Local organism-specific references (resources/references/{organism}/)
-    2. References from LAPIS instance (if URL provided)
-    3. Local organism-specific references as final fallback
+    Priority:
+    1. Explicit paths (--nuc-ref, --aa-ref)
+    2. Fetch from LAPIS (if URL provided) -> cache to ~/.cache/sr2silo/
+    3. Previously cached references (by LAPIS URL)
 
     Args:
-        ci_env: Whether running in CI environment
-        lapis_url: URL of LAPIS instance, or None to use local references
-        organism: Organism identifier (e.g., 'covid', 'rsva')
-                 If None, only LAPIS references are available
+        nuc_ref: Explicit path to nucleotide reference, or None
+        aa_ref: Explicit path to amino acid reference, or None
+        lapis_url: URL of LAPIS instance, or None
 
     Returns:
         Tuple of (nucleotide_ref_path, amino_acid_ref_path)
@@ -54,86 +58,52 @@ def _get_reference_files(
     Raises:
         FileNotFoundError: If no references can be found
     """
-    # Get package root directory (sr2silo/src/sr2silo/main.py -> sr2silo/)
-    package_root = Path(__file__).resolve().parent.parent.parent
+    # Priority 1: Explicit paths provided
+    if nuc_ref and aa_ref:
+        if not nuc_ref.exists():
+            raise FileNotFoundError(f"Nucleotide reference not found: {nuc_ref}")
+        if not aa_ref.exists():
+            raise FileNotFoundError(f"Amino acid reference not found: {aa_ref}")
+        logging.info(f"Using explicit references: {nuc_ref}, {aa_ref}")
+        return nuc_ref, aa_ref
 
-    # Try local organism-specific references first
-    if organism:
-        local_nuc_ref_fp = (
-            package_root / f"resources/references/{organism}/nuc_ref.fasta"
-        )
-        local_aa_ref_fp = package_root / f"resources/references/{organism}/aa_ref.fasta"
+    cache_dir = get_cache_dir()
 
-        if local_nuc_ref_fp.exists() and local_aa_ref_fp.exists():
-            logging.info(
-                f"Using local {organism} references from "
-                f"resources/references/{organism}/"
-            )
-            return local_nuc_ref_fp, local_aa_ref_fp
-        elif ci_env:
-            logging.warning(
-                f"CI environment: organism '{organism}' references not found at "
-                f"resources/references/{organism}/ - will try LAPIS"
-            )
+    # Priority 2 & 3: LAPIS URL - check cache first, then fetch
+    if lapis_url:
+        parsed = urlparse(lapis_url)
+        url_path = parsed.netloc + parsed.path.rstrip("/")
+        ref_dir = cache_dir / "references" / url_path
+        nuc_ref_fp = ref_dir / "nuc_ref.fasta"
+        aa_ref_fp = ref_dir / "aa_ref.fasta"
 
-    # Try to fetch from LAPIS
-    if lapis_url is not None:
+        # Check cache first
+        if nuc_ref_fp.exists() and aa_ref_fp.exists():
+            logging.info(f"Using cached references from: {ref_dir}")
+            return nuc_ref_fp, aa_ref_fp
+
+        # Fetch from LAPIS
         try:
             lapis = LapisClient(lapis_url)
             logging.info(f"Fetching references from LAPIS: {lapis_url}")
             reference = lapis.referenceGenome()
-
-            # Create URL-specific directory for LAPIS references (domain + path)
-            parsed = urlparse(lapis_url)
-            # Combine hostname and path, strip trailing slashes for clean paths
-            url_path = parsed.netloc + parsed.path.rstrip("/")
-            ref_dir = package_root / "resources/references" / url_path
             ref_dir.mkdir(parents=True, exist_ok=True)
-
-            nuc_ref_fp = ref_dir / "nuc_ref.fasta"
-            aa_ref_fp = ref_dir / "aa_ref.fasta"
 
             lapis.referenceGenomeToFasta(
                 reference_json_string=json.dumps(reference),
                 nucleotide_out_fp=nuc_ref_fp,
                 amino_acid_out_fp=aa_ref_fp,
             )
-            logging.info(
-                f"Successfully fetched references from LAPIS: {nuc_ref_fp} and {aa_ref_fp}"
-            )
+            logging.info(f"Fetched references from LAPIS, cached to: {ref_dir}")
             return nuc_ref_fp, aa_ref_fp
-
         except Exception as e:
             logging.warning(f"Failed to fetch references from LAPIS ({lapis_url}): {e}")
-            # Try local references as fallback if organism was specified
-            if organism:
-                local_nuc_ref_fp = (
-                    package_root / f"resources/references/{organism}/nuc_ref.fasta"
-                )
-                local_aa_ref_fp = (
-                    package_root / f"resources/references/{organism}/aa_ref.fasta"
-                )
-
-                if local_nuc_ref_fp.exists() and local_aa_ref_fp.exists():
-                    logging.warning(
-                        f"Falling back to local {organism} references from "
-                        f"resources/references/{organism}/"
-                    )
-                    return local_nuc_ref_fp, local_aa_ref_fp
 
     # No references found
-    if organism:
-        raise FileNotFoundError(
-            f"No reference files found for organism '{organism}'. "
-            f"Expected files at resources/references/{organism}/ "
-            f"or available via LAPIS at {lapis_url}"
-        )
-    else:
-        raise FileNotFoundError(
-            "No organism specified and no LAPIS URL provided. "
-            "Cannot determine which references to use. "
-            "Provide --organism or --lapis-url"
-        )
+    raise FileNotFoundError(
+        "No reference files available. Provide --nuc-ref and --aa-ref, "
+        "or --lapis-url to fetch references."
+    )
 
 
 app = typer.Typer(
@@ -204,8 +174,23 @@ def process_from_vpipe(
             "-r",
             help="URL of LAPIS instance, hosting SILO database. "
             "Used to fetch the nucleotide / amino acid reference. "
-            "If organism is specified, local references are tried first. "
-            "If not provided and organism is specified, uses local references.",
+            "References are cached to ~/.cache/sr2silo/references/.",
+        ),
+    ] = None,
+    nuc_ref: Annotated[
+        Path | None,
+        typer.Option(
+            "--nuc-ref",
+            help="Path to nucleotide reference FASTA file. "
+            "If not provided, fetched from LAPIS or loaded from cache.",
+        ),
+    ] = None,
+    aa_ref: Annotated[
+        Path | None,
+        typer.Option(
+            "--aa-ref",
+            help="Path to amino acid reference FASTA file. "
+            "If not provided, fetched from LAPIS or loaded from cache.",
         ),
     ] = None,
     skip_merge: Annotated[
@@ -246,9 +231,7 @@ def process_from_vpipe(
     logging.info(f"Using timeline file: {timeline_file}")
     logging.info(f"Using output file: {output_fp}")
     if lapis_url:
-        logging.info(f"Using Lapis URL: {lapis_url}")
-    else:
-        logging.info(f"Using local {organism} references (no Lapis URL provided)")
+        logging.info(f"Using LAPIS URL for references: {lapis_url}")
     logging.info(f"Using sample_id: {sample_id}")
     logging.info(f"Skip read pair merging: {skip_merge}")
     if reference_accession:
@@ -277,8 +260,14 @@ def process_from_vpipe(
         organism = get_organism()
     logging.info(f"Using organism: {organism}")
 
+    # Resolve references with environment fallback
+    if nuc_ref is None:
+        nuc_ref = get_nuc_ref()
+    if aa_ref is None:
+        aa_ref = get_aa_ref()
+
     # Get nucleotide and amino acid references
-    nuc_ref_fp, aa_ref_fp = _get_reference_files(ci_env, lapis_url, organism)
+    nuc_ref_fp, aa_ref_fp = _get_reference_files(nuc_ref, aa_ref, lapis_url)
 
     nuc_align_to_silo_njson(
         input_file=input_file,

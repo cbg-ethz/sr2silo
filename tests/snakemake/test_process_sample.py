@@ -42,6 +42,9 @@ def test_process_sample():
         # Copy the "resources" folder to the workdir.
         shutil.copytree("resources", workdir / "resources")
 
+        # Copy the "examples" folder for reference files
+        shutil.copytree("examples", workdir / "examples")
+
         # make dir for results
         os.makedirs(workdir / "results", exist_ok=True)
 

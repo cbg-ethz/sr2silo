@@ -6,7 +6,8 @@ END_DATE: "2024-10-31"
 TIMELINE_FILE: "timeline_A1_05_2024_10_08.tsv"
 # Organism identifier for processing
 ORGANISM: "covid"
-# Optional: LAPIS URL for custom reference genomes (falls back to COVID-19 defaults if unavailable)
-LAPIS_URL: "https://lapis.example.com"
+# Explicit reference paths (required when LAPIS_URL is not available)
+NUC_REF: "examples/references/covid/nuc_ref.fasta"
+AA_REF: "examples/references/covid/aa_ref.fasta"
 RESULTS_DIR: "results"
 LOG_DIR: "logs"

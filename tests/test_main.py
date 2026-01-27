@@ -62,8 +62,10 @@ def test_process_from_vpipe_with_real_files(real_sample_files_import_to_loculus)
                 str(real_sample_files_import_to_loculus["timeline_file"]),
                 "--organism",
                 "covid",
-                "--lapis-url",
-                real_sample_files_import_to_loculus["lapis_url"],
+                "--nuc-ref",
+                str(real_sample_files_import_to_loculus["nuc_ref_fp"]),
+                "--aa-ref",
+                str(real_sample_files_import_to_loculus["aa_ref_fp"]),
                 "--output-fp",
                 str(real_sample_files_import_to_loculus["output_file"]),
             ],
@@ -95,8 +97,10 @@ def test_process_from_vpipe_with_empty_batch_id(real_sample_files_import_to_locu
                     real_sample_files_import_to_loculus["output_file"].parent
                     / "empty_batch_test.ndjson.zst"
                 ),
-                "--lapis-url",
-                real_sample_files_import_to_loculus["lapis_url"],
+                "--nuc-ref",
+                str(real_sample_files_import_to_loculus["nuc_ref_fp"]),
+                "--aa-ref",
+                str(real_sample_files_import_to_loculus["aa_ref_fp"]),
             ],
         )
 
@@ -130,8 +134,10 @@ def test_process_from_vpipe_with_explicit_empty_batch_id(
                     real_sample_files_import_to_loculus["output_file"].parent
                     / "explicit_empty_batch_test.ndjson.zst"
                 ),
-                "--lapis-url",
-                real_sample_files_import_to_loculus["lapis_url"],
+                "--nuc-ref",
+                str(real_sample_files_import_to_loculus["nuc_ref_fp"]),
+                "--aa-ref",
+                str(real_sample_files_import_to_loculus["aa_ref_fp"]),
             ],
         )
 
@@ -215,8 +221,10 @@ def test_process_from_vpipe_with_skip_merge(real_sample_files_import_to_loculus)
                 "covid",
                 "--output-fp",
                 str(real_sample_files_import_to_loculus["output_file"]),
-                "--lapis-url",
-                real_sample_files_import_to_loculus["lapis_url"],
+                "--nuc-ref",
+                str(real_sample_files_import_to_loculus["nuc_ref_fp"]),
+                "--aa-ref",
+                str(real_sample_files_import_to_loculus["aa_ref_fp"]),
                 "--skip-merge",
             ],
         )
@@ -426,6 +434,10 @@ def test_process_from_vpipe_multi_organism(sample_data_by_organism, tmp_path):
                 str(organism_data["timeline"]),
                 "--organism",
                 organism_data["organism"],
+                "--nuc-ref",
+                str(organism_data["nuc_ref"]),
+                "--aa-ref",
+                str(organism_data["aa_ref"]),
                 "--output-fp",
                 str(output_fp),
             ],
@@ -487,6 +499,10 @@ def test_process_from_vpipe_organism_from_env(
                 "--timeline-file",
                 str(organism_data["timeline"]),
                 # Note: NOT providing --organism, should use env var
+                "--nuc-ref",
+                str(organism_data["nuc_ref"]),
+                "--aa-ref",
+                str(organism_data["aa_ref"]),
                 "--output-fp",
                 str(output_fp),
             ],
@@ -523,6 +539,10 @@ def test_process_from_vpipe_output_covid(real_sample_files_import_to_loculus, tm
                 str(real_sample_files_import_to_loculus["timeline_file"]),
                 "--organism",
                 "covid",
+                "--nuc-ref",
+                str(real_sample_files_import_to_loculus["nuc_ref_fp"]),
+                "--aa-ref",
+                str(real_sample_files_import_to_loculus["aa_ref_fp"]),
                 "--output-fp",
                 str(output_file),
             ],
@@ -605,6 +625,10 @@ def test_process_from_vpipe_output_covid_full(real_sample_files_import_to_loculu
                 str(real_sample_files_import_to_loculus["timeline_file"]),
                 "--organism",
                 "covid",
+                "--nuc-ref",
+                str(real_sample_files_import_to_loculus["nuc_ref_fp"]),
+                "--aa-ref",
+                str(real_sample_files_import_to_loculus["aa_ref_fp"]),
                 "--output-fp",
                 str(actual_output_file),
             ],
@@ -703,7 +727,9 @@ def test_process_from_vpipe_output_covid_full(real_sample_files_import_to_loculu
     actual_output_file.unlink()
 
 
-def test_process_from_vpipe_output_rsva_full(rsva_sample, rsva_timeline):
+def test_process_from_vpipe_output_rsva_full(
+    rsva_sample, rsva_timeline, nuc_ref_rsva_fp, aa_ref_rsva_fp
+):
     """Integration test: Compare actual RSV-A output against expected output.
 
     This test validates that sr2silo produces output identical to the expected
@@ -730,6 +756,10 @@ def test_process_from_vpipe_output_rsva_full(rsva_sample, rsva_timeline):
                 str(rsva_timeline),
                 "--organism",
                 "rsva",
+                "--nuc-ref",
+                str(nuc_ref_rsva_fp),
+                "--aa-ref",
+                str(aa_ref_rsva_fp),
                 "--output-fp",
                 str(actual_output_file),
             ],
