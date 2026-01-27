@@ -1,6 +1,8 @@
 site_name: sr2silo
 theme:
   name: material
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
   features:
     - navigation.tabs
     - navigation.sections
@@ -40,12 +42,19 @@ plugins:
 
 nav:
   - Home: index.md
+  - Usage:
+      - Configuration: usage/configuration.md
+      - Multi-Organism Support: usage/organisms.md
+      - Deployment: usage/deployment.md
+      - Resource Requirements: usage/resource_requirements.md
+  - API Reference:
+      - Loculus Integration: api/loculus.md
+      - Processing: api/process.md
+      - Data Schemas: api/schema.md
+      - V-Pipe Integration: api/vpipe.md
   - Contributing:
       - Overview: contributing.md
       - Branching Strategy: contributing/branching-strategy.md
-  - Usage:
-      - Resource Requirements: usage/resource_requirements.md
-      - Import to Loculus: usage/import_to_loculus.md
 
 watch:
   - src/sr2silo
@@ -70,7 +79,9 @@ markdown_extensions:
   - attr_list
 
 
+extra_css:
+  - stylesheets/extra.css
+
 extra_javascript:
-  - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
