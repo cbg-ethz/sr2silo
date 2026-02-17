@@ -24,6 +24,8 @@
 
 sr2silo processes short-read nucleotide alignments from `.bam` files, translates and aligns reads in amino acids, and outputs JSON compatible with [LAPIS-SILO](https://github.com/GenSpectrum/LAPIS-SILO) v0.8.0+.
 
+sr2silo can also submit these files to [Loculus](https://loculus.org/), as attachments to a sequence entry.
+
 ## Installation
 
 ```bash
@@ -32,16 +34,20 @@ conda install -c bioconda sr2silo
 
 ## Quick Start
 
+Processing BAM data:
+
 ```bash
-# Process BAM data
 sr2silo process-from-vpipe \
     --input-file input.bam \
     --sample-id SAMPLE_001 \
     --timeline-file timeline.tsv \
     --organism covid \
     --output-fp output.ndjson.zst
+```
 
-# Submit to Loculus
+Submitting to Loculus:
+
+```bash
 sr2silo submit-to-loculus \
     --processed-file output.ndjson.zst
 ```
