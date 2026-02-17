@@ -44,7 +44,7 @@ class LoculusClient:
         """Initialize the Loculus client.
 
         Args:
-            token_url: URL for authentication token endpoint
+            token_url: URL for authentication token endpoint (e.g. 'https://<keycloak-server>/realms/<realm-name>/protocol/openid-connect/token')
             backend_url: Base URL for backend endpoint
             organism: Organism identifier (e.g., 'covid')
         """
@@ -55,7 +55,9 @@ class LoculusClient:
         self.token = None
 
     def authenticate(self, username: str, password: str) -> None:
-        """Authenticate with the Loculus API."""
+        """Fetch an access token from the token endpoint, to use with the Loculus backend.
+        Uses the `client_id` 'backend-client'.
+        """
 
         if self.is_ci_environment is True:
             logging.info("CI environment detected. Using dummy token.")
