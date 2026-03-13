@@ -1,6 +1,6 @@
 # conda recipe
 {% set name = "sr2silo" %}
-{% set version = "1.8.0" %}
+{% set version = "1.8.1" %}
 
 package:
   name: {{ name|lower }}
@@ -56,4 +56,4 @@ about:
 
 extra:
   recipe-maintainers:
-    - koehng
+    - dryak
