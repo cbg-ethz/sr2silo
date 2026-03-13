@@ -412,7 +412,7 @@ rule aggregate_read_counts:
     input:
         subsample_logs=(
             [
-                f"logs/sr2silo/subsample/sampleId_{sample_id}.log"
+		f"{config['LOG_DIR']}/sr2silo/subsample/sampleId_{sample_id}.log"
                 for sample_id in SAMPLE_IDS
             ]
             if config.get("ENABLE_SUBSAMPLING", False)
