@@ -22,3 +22,13 @@ organisms:
     location_code: location_code
     sampling_date: date
     location_name: location
+
+  rsvb:
+    # RSV-B timeline format
+    sample_id: submissionId
+    batch_id: batch
+    read_length: reads
+    primer_protocol: primerProtocol
+    location_code: location_code
+    sampling_date: date
+    location_name: location
