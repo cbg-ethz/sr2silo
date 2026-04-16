@@ -21,6 +21,9 @@ PROJECT_ROOT="/cluster/project/pangolin/research/W-ASAP"
 CONDA_ENV="sr2silo-workflow"
 CORES="${SLURM_CPUS_PER_TASK:-20}"
 
+CONFIG_FILE="$PROJECT_ROOT/sr2silo/deployments/$VIRUS/config.yaml"
+UPLOAD_SLOTS=$(gawk '/^UPLOAD_SLOTS:/ {print gensub(/"/, "", "g", $2)}' "$CONFIG_FILE");	UPLOAD_SLOTS=${UPLOAD_SLOTS:-4}
+
 # Historical date range - edit these as needed
 START_DATE="2022-02-05"
 END_DATE="2022-02-09"
@@ -43,6 +46,7 @@ eval "$(python "$PROJECT_ROOT/sr2silo/deployments/secrets.py")"
 # Run workflow with historical date range
 cd "$PROJECT_ROOT/sr2silo/workflow"
 snakemake --configfile "../deployments/$VIRUS/config.yaml" \
+    --resources upload_slots=${UPLOAD_SLOTS} --set-resources 'submit_to_loculus:upload_slots=1'	\
     --config START_DATE="$START_DATE" END_DATE="$END_DATE" \
     -j"$CORES" --rerun-incomplete --keep-going
 

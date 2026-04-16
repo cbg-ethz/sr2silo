@@ -53,6 +53,7 @@ CONFIG_FILE="$PROJECT_ROOT/sr2silo/deployments/$VIRUS/config.yaml"
 # HACK parse configs with Gawk. Should switch to 'yq'
 NEXT_CPUS=$(gawk '/^SLURM_CPUS:/ {print gensub(/"/, "", "g", $2)}' "$CONFIG_FILE");	NEXT_CPUS=${NEXT_CPUS:-20}
 NEXT_MEM=$(gawk '/^SLURM_MEM:/ {print gensub(/"/, "", "g", $2)}' "$CONFIG_FILE");	NEXT_MEM=${NEXT_MEM:-160G}
+UPLOAD_SLOTS=$(gawk '/^UPLOAD_SLOTS:/ {print gensub(/"/, "", "g", $2)}' "$CONFIG_FILE");	UPLOAD_SLOTS=${UPLOAD_SLOTS:-4}
 
 # Calculate mem-per-cpu for sbatch (total mem / cpus)
 # Handle G suffix
@@ -71,7 +72,7 @@ echo "Next run resources: CPUS=$NEXT_CPUS, MEM=$NEXT_MEM (MEM_PER_CPU=$MEM_PER_C
 # Run workflow and capture exit code
 cd "$PROJECT_ROOT/sr2silo/workflow"
 set +e  # Temporarily disable exit on error
-snakemake --configfile "../deployments/$VIRUS/config.yaml" -j"$CORES" --rerun-incomplete --keep-going --rerun-trigger mtime --conda-frontend conda --conda-prefix "/cluster/project/pangolin/resources/snake-envs" --use-conda
+snakemake --configfile "../deployments/$VIRUS/config.yaml" -j"$CORES" --resources upload_slots=${UPLOAD_SLOTS} --set-resources 'submit_to_loculus:upload_slots=1' --rerun-incomplete --keep-going --rerun-trigger mtime --conda-frontend conda --conda-prefix "/cluster/project/pangolin/resources/snake-envs" --use-conda
 SNAKEMAKE_EXIT=$?
 set -e  # Re-enable exit on error
 

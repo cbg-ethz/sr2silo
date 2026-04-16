@@ -30,6 +30,7 @@ BACKEND_URL: "https://api.db.wasap.genspectrum.org/backend"
 GROUP_ID: 1
 ORGANISM: "rsva"
 LAPIS_URL: "https://lapis.wasap.genspectrum.org/rsva"
+UPLOAD_SLOTS: 4
 
 # Auto-release: automatically approve sequences after submission
 AUTO_RELEASE: true
