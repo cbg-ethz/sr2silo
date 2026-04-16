@@ -28,7 +28,17 @@ echo "=== sr2silo daily: $VIRUS (job $SLURM_JOB_ID) ==="
 echo "Node: $SLURM_NODELIST | Cores: $CORES | $(date)"
 
 # Setup environment
-module load eth_proxy 2>/dev/null || true
+# preset default (to keep unbound detection happy)
+declare -x ftp_proxy="http://proxy.service.consul:3128"
+declare -x http_proxy="http://proxy.service.consul:3128"
+declare -x https_proxy="http://proxy.service.consul:3128"
+declare -x no_proxy="api.wandb.ai,app.neptune.ai,jupyter.eu-dev.hpc.ethz.ch,jupyter-staging.euler.hpc.ethz.ch,jupyter.euler.hpc.ethz.ch,.consul,localhost,127.0.0.1,127.0.0.0/8,169.254.0.0/16"
+# overwrite the above with actual module's setting
+source /etc/profile.d/lmod.sh || true
+source /etc/profile.d/module_path.sh || true
+module load eth_proxy || true
+#module load eth_proxy 2>/dev/null || true
+echo "https_proxy: ${https_proxy}"
 
 # Initialize conda (using hook to preserve system PATH including sbatch)
 CONDA_EXE="/cluster/project/pangolin/resources/miniconda3/bin/conda"
