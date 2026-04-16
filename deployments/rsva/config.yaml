@@ -13,7 +13,7 @@ LOCATIONS:
   - 16  # Geneva (GE)
   - 25  # Laupen (BE)
 
-START_DATE: "1_MONTHS_AGO"
+START_DATE: "3_MONTHS_AGO"
 END_DATE: "TODAY"
 
 ### Input Files
