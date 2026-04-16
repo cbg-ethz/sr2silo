@@ -50,17 +50,18 @@ eval "$(python "$PROJECT_ROOT/sr2silo/deployments/secrets.py")"
 
 # Extract resource requirements from config for next run
 CONFIG_FILE="$PROJECT_ROOT/sr2silo/deployments/$VIRUS/config.yaml"
-NEXT_CPUS=$(grep "^SLURM_CPUS:" "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo "20")
-NEXT_MEM=$(grep "^SLURM_MEM:" "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo "160G")
+# HACK parse configs with Gawk. Should switch to 'yq'
+NEXT_CPUS=$(gawk '/^SLURM_CPUS:/ {print gensub(/"/, "", "g", $2)}' "$CONFIG_FILE");	NEXT_CPUS=${NEXT_CPUS:-20}
+NEXT_MEM=$(gawk '/^SLURM_MEM:/ {print gensub(/"/, "", "g", $2)}' "$CONFIG_FILE");	NEXT_MEM=${NEXT_MEM:-160G}
 
 # Calculate mem-per-cpu for sbatch (total mem / cpus)
 # Handle G suffix
-if [[ "$NEXT_MEM" == *"G" ]]; then
-    TOTAL_MEM_GB=${NEXT_MEM%G}
+if [[ "$NEXT_MEM" =~ ^([[:digit:]]+)([MG]?)$ ]]; then
+    # If no suffix, handle appropriately: skip the suffix too (i.e.: "?")
+    TOTAL_MEM_GB=${BASH_REMATCH[1]}
     MEM_PER_CPU_GB=$(( TOTAL_MEM_GB / NEXT_CPUS ))
-    MEM_PER_CPU="${MEM_PER_CPU_GB}G"
+    MEM_PER_CPU="${MEM_PER_CPU_GB}${BASH_REMATCH[2]}"
 else
-    # Assume MB if no suffix, or handle appropriately. For now assume G if simple number
     # Fallback to safe default if parsing fails
     MEM_PER_CPU="8G"
 fi
