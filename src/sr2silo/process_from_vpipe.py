@@ -51,6 +51,7 @@ def nuc_align_to_silo_njson(
     version_info: str | None = None,
     organism: str = "covid",
     reference_accession: str | None = None,
+    config_path: Path | None = None,
 ) -> bool:
     """Process a given input file.
 
@@ -70,6 +71,8 @@ def nuc_align_to_silo_njson(
         reference_accession (str | None): Filter reads to only include those
                        aligned to this reference accession. Should match @SQ SN
                        field in BAM header. If None, all reads are processed.
+        config_path (Path | None): Optional path to an external timeline columns
+                       YAML file. If provided, used instead of the bundled one.
 
     Returns:
         bool: True if processing was performed, False if skipped (0 reads).
@@ -111,7 +114,7 @@ def nuc_align_to_silo_njson(
     logging.info(f"Processing file: {input_file}")
 
     ##### Get Sample and Batch metadata and write to a file #####
-    sample_to_process = Sample(sample_id, organism=organism)
+    sample_to_process = Sample(sample_id, organism=organism, config_path=config_path)
     sample_to_process.enrich_metadata(timeline_file)
     metadata = sample_to_process.get_metadata()
 

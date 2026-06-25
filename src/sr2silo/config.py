@@ -259,25 +259,29 @@ def get_aa_ref(default: Path | None = None) -> Path | None:
     return Path(aa_ref) if aa_ref else default
 
 
-def get_timeline_column_mappings(organism: str) -> dict[str, str]:
+def get_timeline_column_mappings(organism: str, config_path: Path | None = None) -> dict[str, str]:
     """Get timeline column name mappings for a specific organism.
 
-    Uses importlib.resources to load config from package data.
-    Falls back to default mappings if config not found.
+        Uses importlib.resources to load config from package data.
+        Falls back to default mappings if config not found.
+        If config_path is provided, reads from that file instead of the bundled one.
 
-    Args:
-        organism: The organism identifier (e.g., 'covid', 'rsva')
+        Args:
+            organism: The organism identifier (e.g., 'covid', 'rsva')
+            config_path: Optional path to an external timeline columns YAML file.
+                         If provided, this file is used instead of the bundled one.
 
-    Returns:
-        dict[str, str]: Mapping from internal names to timeline column names.
-                       Default mappings are used if organism config not found.
+        Returns:
+            dict[str, str]: Mapping from internal names to timeline column names.
+                           Default mappings are used if organism config not found.
 
-    Examples:
-        >>> mappings = get_timeline_column_mappings('covid')
-        >>> mappings['sample_id']  # Returns 'sample'
-        >>> mappings = get_timeline_column_mappings('rsva')
-        >>> mappings['sample_id']  # Returns 'submissionId'
-    """
+        Examples:
+            >>> mappings = get_timeline_column_mappings('covid')
+            >>> mappings['sample_id']  # Returns 'sample'
+            >>> mappings = get_timeline_column_mappings('rsva')
+            >>> mappings['sample_id']  # Returns 'submissionId'
+        """
+
     # Default mappings (backward compatible with COVID timeline format)
     default_mappings = {
         "sample_id": "sample",
@@ -288,9 +292,28 @@ def get_timeline_column_mappings(organism: str) -> dict[str, str]:
         "sampling_date": "date",
         "location_name": "location",
     }
+    # If an external config file is provided, use it exclusively
+    if config_path is not None:
+        if not config_path.exists():
+            raise FileNotFoundError(
+                f"Timeline config file not found: {config_path}"
+            )
 
+        config_text = config_path.read_text()
+        config = yaml.safe_load(config_text)
+        if config and "organisms" in config and organism in config["organisms"]:
+            mappings = config["organisms"][organism]
+            logging.debug(f"Loaded timeline column mappings for {organism} from {config_path}: {mappings}")
+            return mappings
+        else:
+            raise ValueError(
+                f"No timeline column mappings found for organism '{organism}' "
+                f"in {config_path}. Available organisms: "
+                f"{list(config.get('organisms', {}).keys())}"
+            )
+
+    # otherwise use the bundled package file (existing behavior)
     try:
-        # Use importlib.resources for proper package resource access
         from importlib.resources import files
 
         config_file = files("sr2silo.data").joinpath("timeline_columns.yml")

@@ -35,8 +35,7 @@ def convert_to_iso_date(date: str) -> str:
 
 
 def get_metadata_from_timeline(
-    sample_id: str, timeline: Path, organism: str = "covid"
-) -> dict[str, str] | None:
+    sample_id: str, timeline: Path, organism: str = "covid", config_path: Path | None = None) -> dict[str, str] | None:
     """Get metadata from the timeline file.
 
     Args:
@@ -44,6 +43,8 @@ def get_metadata_from_timeline(
         timeline (Path): The timeline file to search in.
         organism (str): The organism identifier (e.g., 'covid', 'rsva').
                        Used to determine timeline column name mappings.
+        config_path (Path | None): Optional path to an external timeline columns
+                       YAML file. If provided, used instead of the bundled one.
 
     Returns:
         dict[str, str] | None: The metadata if found, None otherwise.
@@ -58,7 +59,7 @@ def get_metadata_from_timeline(
         raise FileNotFoundError(f"Timeline file not found or is not a file: {timeline}")
 
     # Get organism-specific column mappings
-    col_map = get_timeline_column_mappings(organism)
+    col_map = get_timeline_column_mappings(organism, config_path)
     logging.debug(f"Using timeline column mappings for {organism}: {col_map}")
 
     with timeline.open() as f:
@@ -134,7 +135,7 @@ def get_metadata_from_timeline(
 
 
 def get_metadata(
-    sample_id: str, timeline: Path, organism: str = "covid"
+    sample_id: str, timeline: Path, organism: str = "covid", config_path: Path | None = None
 ) -> dict[str, str]:
     """
     Get metadata for a given sample from timeline file only.
@@ -144,6 +145,8 @@ def get_metadata(
         timeline (Path): The timeline file to cross-reference the metadata.
         organism (str): The organism identifier (e.g., 'covid', 'rsva').
                        Used to determine timeline column name mappings.
+        config_path (Path | None): Optional path to an external timeline columns
+                       YAML file. If provided, used instead of the bundled one.
 
     Returns:
         dict: A dictionary containing the metadata, or empty dict if not found.
@@ -156,7 +159,7 @@ def get_metadata(
     if not sample_id or not sample_id.strip():
         raise ValueError("Sample ID cannot be empty")
 
-    metadata = get_metadata_from_timeline(sample_id, timeline, organism)
+    metadata = get_metadata_from_timeline(sample_id, timeline, organism, config_path)
 
     if metadata is None:
         # Return basic metadata structure if not found in timeline

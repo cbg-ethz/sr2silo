@@ -36,20 +36,20 @@ conda install -c bioconda sr2silo
 
 Processing BAM data:
 
+```=bash
+span
+```
+
+Submitting to Loculus:
+
 ```bash
 sr2silo process-from-vpipe \
     --input-file input.bam \
     --sample-id SAMPLE_001 \
     --timeline-file timeline.tsv \
     --organism covid \
-    --output-fp output.ndjson.zst
-```
-
-Submitting to Loculus:
-
-```bash
-sr2silo submit-to-loculus \
-    --processed-file output.ndjson.zst
+    --output-fp output.ndjson.zst \
+    --timeline-config /path/to/timeline_columns.yml  # optional, overrides bundled column mappings
 ```
 
 ## Documentation

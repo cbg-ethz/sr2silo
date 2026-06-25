@@ -210,6 +210,15 @@ def process_from_vpipe(
             "If not specified, all reads are processed.",
         ),
     ] = None,
+    timeline_config: Annotated[
+        Path | None,
+        typer.Option(
+            "--timeline-config",
+            help="Path to and external timeline columns YAML file. "
+                 "If provided, used instead of the bundled one. "
+                 "Useful for adding new organisms without a new release.",
+        ),
+    ] = None,
 ) -> None:
     """
     V-PIPE to SILO conversion with amino acids and special metadata.
@@ -280,6 +289,7 @@ def process_from_vpipe(
         version_info=version_info,
         organism=organism,
         reference_accession=reference_accession,
+        config_path=timeline_config
     )
 
 

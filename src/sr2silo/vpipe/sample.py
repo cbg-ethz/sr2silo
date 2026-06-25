@@ -14,11 +14,14 @@ class Sample:
         sample_id (str): The sample ID.
         organism (str): The organism identifier (e.g., 'covid', 'rsva').
                        Optional, defaults to 'covid' for backward compatibility.
+        config_path (Path | None): Optional path to an external timeline columns
+                           YAML file. If provided, used instead of the bundled one.
     """
 
-    def __init__(self, sample_id: str, organism: str = "covid") -> None:
+    def __init__(self, sample_id: str, organism: str = "covid", config_path: Path | None = None) -> None:
         self.sample_id = sample_id
         self.organism = organism
+        self.config_path = config_path
         self.metadata: dict[str, str] | None = None
         self.timeline: Path | None = None
 
@@ -42,6 +45,7 @@ class Sample:
             sample_id=self.sample_id,
             timeline=self.timeline,
             organism=self.organism,
+            config_path=self.config_path,
         )
 
     def get_metadata(self) -> dict[str, str]:

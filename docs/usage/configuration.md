@@ -17,15 +17,17 @@ Environment variables provide configuration defaults. CLI arguments override env
 
 ### Processing Configuration (process-from-vpipe)
 
-| Variable | Purpose | Default | Example |
-|----------|---------|---------|---------|
-| `ORGANISM` | Organism identifier | None (required) | `covid`, `rsva` |
-| `TIMELINE_FILE` | Metadata timeline file | None (required) | `/path/to/timeline.tsv` |
-| `LAPIS_URL` | LAPIS instance URL (optional) | None | `https://lapis.example.com` |
-| `NUC_REF` | Nucleotide reference FASTA | None | `/path/to/nuc_ref.fasta` |
-| `AA_REF` | Amino acid reference FASTA | None | `/path/to/aa_ref.fasta` |
-| `REFERENCE_ACCESSION` | Filter reads by reference accession | `""` (all reads) | `EPI_ISL_412866` |
-| `XDG_CACHE_HOME` | Override cache location | `~/.cache` | `/scratch/.cache` |
+
+| Variable              | Purpose                             | Default             | Example                           |
+| --------------------- | ----------------------------------- | ------------------- | --------------------------------- |
+| `ORGANISM`            | Organism identifier                 | None (required)     | `covid`, `rsva`                   |
+| `TIMELINE_FILE`       | Metadata timeline file              | None (required)     | `/path/to/timeline.tsv            |
+| `TIMELINE_CONFIG`    | External timeline columns YAML file | None (uses bundled) | \`/path/to/timeline\_columns.yml` |
+| `LAPIS_URL`           | LAPIS instance URL (optional)       | None                | `https://lapis.example.com`       |
+| `NUC_REF`             | Nucleotide reference FASTA          | None                | `/path/to/nuc_ref.fasta`          |
+| `AA_REF`              | Amino acid reference FASTA          | None                | `/path/to/aa_ref.fasta`           |
+| `REFERENCE_ACCESSION` | Filter reads by reference accession | `""` (all reads)    | `EPI_ISL_412866`                  |
+| `XDG_CACHE_HOME`      | Override cache location             | `~/.cache`          | `/scratch/.cache`                 |
 
 #### Reference Files
 
@@ -86,17 +88,46 @@ samtools view -H file.bam | grep @SQ
 
 If filtering results in zero reads, processing terminates with a `ZeroFilteredReadsError`.
 
+#### Timeline Column Mappings
+
+By default, sr2silo uses a bundled `timeline_columns.yml` to map internal field names to timeline TSV column names for each organism. To use a custom mapping file instead (e.g. for a new organism without cutting a release):
+
+```bash
+sr2silo process-from-vpipe \
+  --input-file alignments.bam \
+  --timeline-config /path/to/timeline_columns.yml \
+  --organism rsvb \
+  ...
+```
+
+The file must follow this format:
+
+```yaml
+organisms:
+  rsvb:
+    sample_id: submissionId
+    batch_id: batch
+    read_length: reads
+    primer_protocol: primerProtocol
+    location_code: location_code
+    sampling_date: date
+    location_name: location
+```
+
+Can also be set via the `TIMELINE_CONFIG` environment variable.
+
 ### Submission Configuration (submit-to-loculus)
 
-| Variable | Purpose | Default | Example |
-|----------|---------|---------|---------|
-| `ORGANISM` | Organism identifier | None (required) | `covid`, `rsva` |
-| `KEYCLOAK_TOKEN_URL` | Authentication endpoint | None (required) | `https://auth.example.com/token` |
-| `BACKEND_URL` | SILO backend API endpoint | None (required) | `https://api.example.com/api` |
-| `GROUP_ID` | Loculus group ID | None (required) | `1`, `42` |
-| `USERNAME` | Submission username | None (required) | Your username |
-| `PASSWORD` | Submission password | None (required) | Your password |
-| `AUTO_RELEASE` | Auto-approve sequences after submission | `false` | `true` |
+
+| Variable             | Purpose                                 | Default         | Example                          |
+| -------------------- | --------------------------------------- | --------------- | -------------------------------- |
+| `ORGANISM`           | Organism identifier                     | None (required) | `covid`, `rsva`                  |
+| `KEYCLOAK_TOKEN_URL` | Authentication endpoint                 | None (required) | `https://auth.example.com/token` |
+| `BACKEND_URL`        | SILO backend API endpoint               | None (required) | `https://api.example.com/api`    |
+| `GROUP_ID`           | Loculus group ID                        | None (required) | `1`, `42`                        |
+| `USERNAME`           | Submission username                     | None (required) | Your username                    |
+| `PASSWORD`           | Submission password                     | None (required) | Your password                    |
+| `AUTO_RELEASE`       | Auto-approve sequences after submission | `false`         | `true`                           |
 
 #### Auto-Release
 
@@ -126,6 +157,7 @@ The `--release-delay` option (default 180s) allows backend processing time befor
 ## Snakemake Workflow
 
 Configure in `workflow/config.yaml`:
+
 ```yaml
 ORGANISM: "covid"
 REFERENCE_ACCESSION: ""  # Filter reads by reference (use for RSV-A/B)

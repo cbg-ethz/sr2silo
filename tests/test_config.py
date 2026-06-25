@@ -7,6 +7,9 @@ import importlib.metadata
 import os
 from pathlib import Path
 from unittest.mock import patch
+import yaml
+import pytest
+
 
 from sr2silo.config import (
     get_backend_url,
@@ -224,3 +227,45 @@ def test_get_timeline_column_mappings_has_required_fields():
             f"Organism {organism} is missing required fields. "
             f"Expected: {required_fields}, Got: {set(mappings.keys())}"
         )
+
+
+def test_get_timeline_column_mappings_external_file(tmp_path):
+    """Test get_timeline_column_mappings with an external config file."""
+    # Create a temporary YAML file with rsvb
+    config = {
+        "organisms": {
+            "rsvb": {
+                "sample_id": "submissionId",
+                "batch_id": "batch",
+                "read_length": "reads",
+                "primer_protocol": "primerProtocol",
+                "location_code": "location_code",
+                "sampling_date": "date",
+                "location_name": "location",
+            }
+        }
+    }
+    config_file = tmp_path / "timeline_columns.yml"
+    config_file.write_text(yaml.dump(config))
+
+    mappings = get_timeline_column_mappings("rsvb", config_path=config_file)
+    assert mappings["sample_id"] == "submissionId"
+    assert mappings["primer_protocol"] == "primerProtocol"
+
+def test_get_timeline_column_mappings_external_file_organism_not_found(tmp_path):
+    """Test that ValueError is raised when organism not found in external file."""
+    config = {"organisms": {"covid": {"sample_id": "sample"}}}
+    config_file = tmp_path / "timeline_columns.yml"
+    config_file.write_text(yaml.dump(config))
+
+    with pytest.raises(ValueError, match="rsvb"):
+        get_timeline_column_mappings("rsvb", config_path=config_file)
+
+
+def test_get_timeline_column_mappings_external_file_not_found(tmp_path):
+    """Test that FileNotFoundError is raised when external file does not exist."""
+    non_existent = tmp_path / "does_not_exist.yml"
+
+    with pytest.raises(FileNotFoundError):
+        get_timeline_column_mappings("rsvb", config_path=non_existent)
+
