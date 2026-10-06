@@ -134,7 +134,11 @@ LAPIS_URL: "https://lapis.wasap.genspectrum.org/"
 KEYCLOAK_TOKEN_URL: "https://auth.db.wasap.genspectrum.org/..."
 BACKEND_URL: "https://api.db.wasap.genspectrum.org/..."
 GROUP_ID: 1
+ENABLE_SUBSAMPLING: true
+SUBSAMPLE_MAX_READS: 4500000  # BAM records, see Read Processing
 ```
+
+See [Read Processing](read-processing.md) for how subsampling and read merging work.
 
 ## Best Practices
 

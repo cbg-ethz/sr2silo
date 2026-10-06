@@ -46,5 +46,5 @@ organisms:
           header: srSILO info
           hideOnSequenceDetailsPage: true
           hideInSearchResultsTable: true
-          definition: "Number of reads subsampled srSILO alignments"
+          definition: "Number of reads in srSILO, after subsampling and merging read pairs"
           displayName: srSILO Read Count
