@@ -45,6 +45,7 @@ nav:
   - Usage:
       - Configuration: usage/configuration.md
       - Multi-Organism Support: usage/organisms.md
+      - Read Processing: usage/read-processing.md
       - Deployment: usage/deployment.md
       - Resource Requirements: usage/resource_requirements.md
   - API Reference:

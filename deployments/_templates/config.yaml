@@ -73,4 +73,4 @@ RELEASE_DELAY: 180                          # Seconds to wait before releasing (
 ## Subsampling 1) by fraction 2) by max reads or 3) by fraction, but max max_reads
 ENABLE_SUBSAMPLING: true
 # SUBSAMPLE_FRACTION: 0.5
-SUBSAMPLE_MAX_READS: 4500000                # keep at most 4.5 Mio Reads
+SUBSAMPLE_MAX_READS: 4500000                # keep at most 4.5 Mio BAM records (mates counted separately)
