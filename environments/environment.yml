@@ -2,7 +2,6 @@ name: sr2silo
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
   - python>=3.11
   - poetry>=1.8.3
