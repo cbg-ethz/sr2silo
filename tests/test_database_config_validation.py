@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Dict, Set
 
 import yaml
 
@@ -19,7 +18,7 @@ logging.basicConfig(
 )
 
 
-def load_database_config(config_path: Path) -> Dict:
+def load_database_config(config_path: Path) -> dict:
     """Load the SILO database configuration from YAML file.
 
     Args:
@@ -32,7 +31,7 @@ def load_database_config(config_path: Path) -> Dict:
         return yaml.safe_load(f)
 
 
-def get_metadata_field_names_from_config(config: Dict) -> Set[str]:
+def get_metadata_field_names_from_config(config: dict) -> set[str]:
     """Extract metadata field names from database config.
 
     Args:
@@ -45,7 +44,7 @@ def get_metadata_field_names_from_config(config: Dict) -> Set[str]:
     return {field["name"] for field in metadata_fields}
 
 
-def get_schema_aliases() -> Dict[str, str]:
+def get_schema_aliases() -> dict[str, str]:
     """Get field aliases from ReadMetadata schema using Pydantic's model_fields.
 
     Returns:

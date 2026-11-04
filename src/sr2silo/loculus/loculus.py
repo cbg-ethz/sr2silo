@@ -8,7 +8,7 @@ import logging
 import uuid
 from datetime import date
 from pathlib import Path
-from typing import Dict, List, TypedDict
+from typing import TypedDict
 
 import requests
 import zstandard as zstd
@@ -62,7 +62,7 @@ class LoculusClient:
         if self.is_ci_environment is True:
             logging.info("CI environment detected. Using dummy token.")
             self.token = "dummy_token"
-            return None
+            return
 
         response = requests.post(
             self.token_url,
@@ -77,7 +77,7 @@ class LoculusClient:
 
         if response.status_code == 200:
             self.token = response.json().get("access_token")
-            return None
+            return
         else:
             raise Exception(
                 f"Error: Unable to authenticate. Status code: {response.status_code},"
@@ -335,7 +335,7 @@ class LoculusClient:
 
     def request_upload(
         self, group_id: int, numberFiles: int
-    ) -> List[RequestUploadResponse]:
+    ) -> list[RequestUploadResponse]:
         """Request S3 pre-signed URLs to upload files.
 
         Args:
@@ -534,7 +534,7 @@ class Submission:
         return metadata_fp, submission_id
 
     @staticmethod
-    def parse_metadata(silo_input: Path) -> Dict:
+    def parse_metadata(silo_input: Path) -> dict:
         """Parses the metadata from a silo input .ndjson.zstd or .ndjson
         returning all metadata fields but readId as a dictionary with keys
         in snake_case format for internal Python use.
@@ -645,7 +645,7 @@ class Submission:
                 return count
 
 
-def released_samples(client: LoculusClient) -> List[str]:
+def released_samples(client: LoculusClient) -> list[str]:
     """Fetch the list of released sample IDs from the Loculus API.
 
     Args:

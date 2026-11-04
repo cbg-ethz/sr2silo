@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import importlib.metadata
 
-import sr2silo.vpipe as vpipe
+from sr2silo import vpipe
 
 __version__ = importlib.metadata.version("sr2silo")
 

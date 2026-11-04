@@ -7,14 +7,14 @@ import logging
 import os
 import subprocess
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Dict
 
 import zstandard as zstd
 from tqdm import tqdm
 
-import sr2silo.process.convert as convert
 from sr2silo.logger import suppress_info_and_below
+from sr2silo.process import convert
 from sr2silo.process.interface import (
     AAInsertion,
     AAInsertionSet,
@@ -163,12 +163,10 @@ def nuc_to_aa_alignment(
             if fasta_nuc_for_aa_alignment.exists():
                 fasta_nuc_for_aa_alignment.unlink()
 
-    return None
-
 
 def make_read_with_nuc_seq(
     fastq_nuc_alignment_file: Path, gene_set: GeneSet
-) -> Dict[str, AlignedRead]:
+) -> dict[str, AlignedRead]:
     """Makes aligned reads from a FASTQ file, with alignment info, with indels.
 
     Args:
@@ -232,7 +230,7 @@ def make_read_with_nuc_seq(
 
 def enrich_read_with_nuc_ins(
     aligned_reads: dict[str, AlignedRead], fasta_nuc_insertions_file: Path
-) -> Dict[str, AlignedRead]:
+) -> dict[str, AlignedRead]:
     """Read in nucleotide insertions from a FASTA file and update the reads."""
 
     with open(fasta_nuc_insertions_file, "r") as f:
@@ -251,10 +249,10 @@ def enrich_read_with_nuc_ins(
 
 
 def enrich_read_with_aa_seq(
-    aligned_reads: Dict[str, AlignedRead],
+    aligned_reads: dict[str, AlignedRead],
     fasta_aa_alignment_file: Path,
     gene_set: GeneSet,
-) -> Dict[str, AlignedRead]:
+) -> dict[str, AlignedRead]:
     """Read in amino acid sequences and insertions from a FASTA file.
 
     Note: Reads in the AA alignment file that are not in aligned_reads
@@ -319,7 +317,7 @@ def parse_translate_align(
     nuc_alignment_fp: Path,
     aa_db_fp: Path,
     target_reference: str | None = None,
-) -> Dict[str, AlignedRead]:
+) -> dict[str, AlignedRead]:
     """Parse nucleotides, translate and align amino acids the input files.
 
     Args:
@@ -505,47 +503,46 @@ def parse_translate_align_in_batches(
 
     output_fp.parent.mkdir(parents=True, exist_ok=True)
 
-    with suppress_info_and_below():
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_dir_path = Path(temp_dir)
+    with suppress_info_and_below(), tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir_path = Path(temp_dir)
 
-            # Create Diamond DB once
-            aa_db_fp = temp_dir_path / "diamond_db.dmnd"
-            _make_diamond_db(aa_reference_fp, aa_db_fp)
+        # Create Diamond DB once
+        aa_db_fp = temp_dir_path / "diamond_db.dmnd"
+        _make_diamond_db(aa_reference_fp, aa_db_fp)
 
-            bam_splits_fps = convert.split_bam(
-                input_bam=nuc_alignment_fp, out_dir=temp_dir_path, chunk_size=chunk_size
-            )
-            logging.info(f"Number of splits: {len(bam_splits_fps)}")
-            logging.info(f"Size of each split: {chunk_size}")
-            for fp in bam_splits_fps:
-                file_size_mb = os.path.getsize(fp) / (1024 * 1024)
-                logging.info(f"Size of {fp.name}: {file_size_mb:.2f} MB")
+        bam_splits_fps = convert.split_bam(
+            input_bam=nuc_alignment_fp, out_dir=temp_dir_path, chunk_size=chunk_size
+        )
+        logging.info(f"Number of splits: {len(bam_splits_fps)}")
+        logging.info(f"Size of each split: {chunk_size}")
+        for fp in bam_splits_fps:
+            file_size_mb = os.path.getsize(fp) / (1024 * 1024)
+            logging.info(f"Size of {fp.name}: {file_size_mb:.2f} MB")
 
-            # process each batch and write to a ndjson file
-            with tqdm(total=len(bam_splits_fps), desc="Processing batches") as pbar:
-                cctx = zstd.ZstdCompressor()
-                with open(output_fp, "wb") as f, cctx.stream_writer(f) as compressor:
-                    buffer = []
-                    for json_str in process_bam_files(
-                        bam_splits_fps,
-                        nuc_reference_fp,
-                        aa_reference_fp,
-                        aa_db_fp,
-                        metadata_fp,
-                        target_reference=target_reference,
-                    ):
-                        buffer.append(json_str)
-                        if len(buffer) >= write_chunk_size:
-                            data = ("\n".join(buffer) + "\n").encode("utf-8")
-                            compressor.write(data)
-                            buffer = []
-                            pbar.update(write_chunk_size)  # Update progress per batch
-
-                    # Write any remaining lines
-                    if buffer:
+        # process each batch and write to a ndjson file
+        with tqdm(total=len(bam_splits_fps), desc="Processing batches") as pbar:
+            cctx = zstd.ZstdCompressor()
+            with open(output_fp, "wb") as f, cctx.stream_writer(f) as compressor:
+                buffer = []
+                for json_str in process_bam_files(
+                    bam_splits_fps,
+                    nuc_reference_fp,
+                    aa_reference_fp,
+                    aa_db_fp,
+                    metadata_fp,
+                    target_reference=target_reference,
+                ):
+                    buffer.append(json_str)
+                    if len(buffer) >= write_chunk_size:
                         data = ("\n".join(buffer) + "\n").encode("utf-8")
                         compressor.write(data)
-                        pbar.update(len(buffer))
+                        buffer = []
+                        pbar.update(write_chunk_size)  # Update progress per batch
+
+                # Write any remaining lines
+                if buffer:
+                    data = ("\n".join(buffer) + "\n").encode("utf-8")
+                    compressor.write(data)
+                    pbar.update(len(buffer))
 
     return output_fp

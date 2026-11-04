@@ -2,9 +2,9 @@
 Common code for unit testing of rules generated with Snakemake 8.18.2.
 """
 
-from pathlib import Path
-import subprocess as sp
 import os
+import subprocess as sp
+from pathlib import Path
 
 
 class OutputChecker:

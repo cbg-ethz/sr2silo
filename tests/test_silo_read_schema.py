@@ -121,8 +121,8 @@ def test_valid_aligned_read_schema():
     assert hasattr(aligned_read, "S")
     assert hasattr(aligned_read, "ORF1a")
     # Verify metadata fields are accessible
-    assert getattr(aligned_read, "read_id") == "read123"
-    assert getattr(aligned_read, "sample_id") == "A1_05_2024_10_08"
+    assert aligned_read.read_id == "read123"
+    assert aligned_read.sample_id == "A1_05_2024_10_08"
 
 
 def test_aligned_read_schema_without_metadata():

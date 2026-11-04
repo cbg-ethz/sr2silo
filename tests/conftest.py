@@ -134,7 +134,6 @@ class DummyAlignmentFile:
 
     def __init__(self, *args, **kwargs):
         """Do nothing."""
-        pass
 
     def __enter__(self):
         """Return a DummyBam object."""

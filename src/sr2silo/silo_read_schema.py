@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Dict, List, Optional
 
 from pydantic import (
     BaseModel,
@@ -58,11 +57,11 @@ class AlignedNucleotideSequences(BaseModel):
 class NucleotideInsertions(BaseModel):
     """SILO-specific pydantic schema for NucleotideInsertions JSON format."""
 
-    main: List[str]
+    main: list[str]
 
     @field_validator("main")
     @classmethod
-    def validate_nuc_insertions_format(cls, v: List[str]) -> List[str]:
+    def validate_nuc_insertions_format(cls, v: list[str]) -> list[str]:
         """Validate that nucleotide insertions have the format 'position:sequence'."""
         pattern = r"^\d+:[ACGTN]+$"
         for insertion in v:
@@ -78,16 +77,16 @@ class NucleotideInsertions(BaseModel):
 class AminoAcidSequences(RootModel):
     """SILO-specific pydantic schema for AminoAcidSequences JSON format."""
 
-    root: Dict[str, Optional[str]]
+    root: dict[str, str | None]
 
 
 class AminoAcidInsertions(RootModel):
     """SILO-specific pydantic schema for AminoAcidInsertions JSON format."""
 
-    root: Dict[str, List[str]]
+    root: dict[str, list[str]]
 
     @model_validator(mode="after")
-    def validate_aa_insertions_format(self) -> "AminoAcidInsertions":
+    def validate_aa_insertions_format(self) -> AminoAcidInsertions:
         """Validate that amino acid insertions have the format 'position:sequence'."""
         # Validate each amino acid insertion using one-letter codes only
         pattern = r"^\d+:[A-Z*\-]+$"
@@ -106,7 +105,7 @@ class NucleotideSegment(BaseModel):
     """Schema for a nucleotide genomic segment (e.g., main nucleotide sequence)."""
 
     sequence: str
-    insertions: List[str]
+    insertions: list[str]
     offset: int
 
     @field_validator("sequence")
@@ -124,7 +123,7 @@ class NucleotideSegment(BaseModel):
 
     @field_validator("insertions")
     @classmethod
-    def validate_nucleotide_insertions(cls, v: List[str]) -> List[str]:
+    def validate_nucleotide_insertions(cls, v: list[str]) -> list[str]:
         """Validate that nucleotide insertions have the format 'position:sequence'."""
         pattern = r"^\d+:[ACGTN]+$"
         for insertion in v:
@@ -149,7 +148,7 @@ class AminoAcidSegment(BaseModel):
     """Schema for an amino acid genomic segment (e.g., gene sequences)."""
 
     sequence: str
-    insertions: List[str]
+    insertions: list[str]
     offset: int
 
     @field_validator("sequence")
@@ -167,7 +166,7 @@ class AminoAcidSegment(BaseModel):
 
     @field_validator("insertions")
     @classmethod
-    def validate_amino_acid_insertions(cls, v: List[str]) -> List[str]:
+    def validate_amino_acid_insertions(cls, v: list[str]) -> list[str]:
         """Validate that amino acid insertions have the format 'position:sequence'."""
         pattern = r"^\d+:[A-Z*\-]+$"
         for insertion in v:
@@ -216,7 +215,7 @@ class AlignedReadSchema(BaseModel):
     main: NucleotideSegment
 
     @model_validator(mode="after")
-    def validate_dynamic_fields(self) -> "AlignedReadSchema":
+    def validate_dynamic_fields(self) -> AlignedReadSchema:
         """Validate gene segments, unaligned sequences, and metadata fields."""
         # Get ReadMetadata field names (snake_case)
         # and aliases (camelCase) for validation

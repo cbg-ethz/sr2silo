@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -48,27 +48,23 @@ class Insertion:
 class NucInsertion(Insertion):
     """A nuclotide insertion."""
 
-    pass
-
 
 class AAInsertion(Insertion):
     """An amino acid insertion."""
-
-    pass
 
 
 class AlignedRead:
     """Class to represent an aligned read."""
 
     __slots__ = [
-        "read_id",
-        "unaligned_nucleotide_sequence",
+        "aligned_amino_acid_sequences",
         "aligned_nucleotide_sequence",
         "aligned_nucleotide_sequence_offset",
-        "nucleotide_insertions",
         "amino_acid_insertions",
-        "aligned_amino_acid_sequences",
         "metadata",
+        "nucleotide_insertions",
+        "read_id",
+        "unaligned_nucleotide_sequence",
     ]
 
     def __init__(
@@ -77,10 +73,10 @@ class AlignedRead:
         unaligned_nucleotide_sequence: str,
         aligned_nucleotide_sequence: str,
         aligned_nucleotide_sequence_offset: int,
-        nucleotide_insertions: List[NucInsertion],
+        nucleotide_insertions: list[NucInsertion],
         amino_acid_insertions: AAInsertionSet,
         aligned_amino_acid_sequences: AASequenceSet,
-        metadata: Optional[Union[Dict[str, str], ReadMetadata]] = None,
+        metadata: dict[str, str] | ReadMetadata | None = None,
     ):
         """Initialize with a AlignedRead object."""
         self.read_id = read_id
@@ -140,12 +136,12 @@ class AlignedRead:
         """Return the amino acid insertions."""
         return self.amino_acid_insertions
 
-    def set_metadata(self, metadata: Union[Dict[str, str], BaseModel]):
+    def set_metadata(self, metadata: dict[str, str] | BaseModel):
         """Set the metadata. Keep as ReadMetadata object to preserve alias information."""
         # Store as-is to preserve Pydantic model with aliases
         self.metadata = metadata
 
-    def get_metadata(self) -> Optional[Union[Dict[str, str], ReadMetadata]]:
+    def get_metadata(self) -> dict[str, str] | ReadMetadata | None:
         """Return the metadata."""
         if self.metadata:
             if isinstance(self.metadata, dict):
@@ -154,7 +150,7 @@ class AlignedRead:
                 return self.metadata.dict()
         return None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Return a dictionary / json representation of the object.
 
         Uses camelCase field names (via Pydantic aliases) for metadata fields
@@ -281,7 +277,7 @@ class Gene:
         self.name = gene_name
         self.gene_length = gene_length
 
-    def to_dict(self) -> Dict[str, GeneName | int]:
+    def to_dict(self) -> dict[str, GeneName | int]:
         """Return a dictionary with gene name and gene length."""
         return {
             "gene_name": self.name,
@@ -296,7 +292,7 @@ class Gene:
 class GeneSet:
     """Class to represent a set of genes for a pathogen"""
 
-    def __init__(self, genes: List[Gene]):
+    def __init__(self, genes: list[Gene]):
         """Initialize with a list of genes."""
         self.genes = {}
         for gene in genes:
@@ -314,11 +310,11 @@ class GeneSet:
         """Return the length of a gene."""
         return self.genes[str(gene_name)].gene_length
 
-    def get_gene_name_list(self) -> List[GeneName]:
+    def get_gene_name_list(self) -> list[GeneName]:
         """Return a list of genes."""
         return list(self.genes.keys())
 
-    def to_dict(self) -> Dict[str, Dict[str, Any]]:
+    def to_dict(self) -> dict[str, dict[str, Any]]:
         """Return a dictionary with gene names as keys and gene
         length as values."""
         return {
@@ -333,12 +329,12 @@ class GeneSet:
 class AAInsertionSet:
     """Class to represent the set of amino acid insertions for a full set of genes."""
 
-    def __init__(self, genes: List[GeneName]):
+    def __init__(self, genes: list[GeneName]):
         """Initialize with an empty set of insertions for each gene."""
         self.aa_insertions = {gene: [] for gene in genes}
 
     def set_insertions_for_gene(
-        self, gene_name: GeneName, aa_insertions: List[AAInsertion]
+        self, gene_name: GeneName, aa_insertions: list[AAInsertion]
     ):
         """Set the amino acid insertions for a particular gene."""
         self.aa_insertions[gene_name] = aa_insertions
@@ -378,7 +374,7 @@ class AAInsertionSet:
         return True
 
     @staticmethod
-    def from_dict(data: Dict) -> AAInsertionSet:
+    def from_dict(data: dict) -> AAInsertionSet:
         """Create an AAInsertionSet object from a dictionary."""
         aa_insertions = AAInsertionSet([])
         for gene_name, ins_list in data.items():
@@ -392,7 +388,7 @@ class AAInsertionSet:
 class AASequenceSet:
     """Class to represent the set of amino acid sequences for a full set of genes."""
 
-    def __init__(self, genes: List[GeneName]):
+    def __init__(self, genes: list[GeneName]):
         """Initialize with an empty sequence for each gene"""
         self.sequences = {gene: "" for gene in genes}
         self.offsets = {gene: 0 for gene in genes}
@@ -427,7 +423,7 @@ class AlignedGene:
         gene_name: GeneName,
         sequence: str,
         offset: int,
-        insertions: List[AAInsertion],
+        insertions: list[AAInsertion],
     ):
         """Initialize with gene name, sequence, offset, and insertions."""
         self.gene_name = gene_name
@@ -458,7 +454,7 @@ class AlignedGene:
 def aa_sequence_set_and_insertions_to_aligned_genes(
     aa_sequence_set: AASequenceSet,
     aa_insertion_set: AAInsertionSet,
-) -> List[AlignedGene]:
+) -> list[AlignedGene]:
     """
     Convert an AASequenceSet and AAInsertionSet to a list of AlignedGene objects.
 

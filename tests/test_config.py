@@ -7,9 +7,9 @@ import importlib.metadata
 import os
 from pathlib import Path
 from unittest.mock import patch
-import yaml
-import pytest
 
+import pytest
+import yaml
 
 from sr2silo.config import (
     get_backend_url,
@@ -132,10 +132,9 @@ def test_get_keycloak_token_url():
         assert result == "https://default.auth.com"
 
     # Test with environment variable not set, no default - should exit
-    with patch.dict(os.environ, {}, clear=True):
-        with patch("sys.exit") as mock_exit:
-            get_keycloak_token_url()
-            mock_exit.assert_called_once_with(1)
+    with patch.dict(os.environ, {}, clear=True), patch("sys.exit") as mock_exit:
+        get_keycloak_token_url()
+        mock_exit.assert_called_once_with(1)
 
 
 def test_get_backend_url():
@@ -151,10 +150,9 @@ def test_get_backend_url():
         assert result == "https://default.submit.com"
 
     # Test with environment variable not set, no default - should exit
-    with patch.dict(os.environ, {}, clear=True):
-        with patch("sys.exit") as mock_exit:
-            get_backend_url()
-            mock_exit.assert_called_once_with(1)
+    with patch.dict(os.environ, {}, clear=True), patch("sys.exit") as mock_exit:
+        get_backend_url()
+        mock_exit.assert_called_once_with(1)
 
 
 def test_get_timeline_column_mappings_covid():
@@ -252,6 +250,7 @@ def test_get_timeline_column_mappings_external_file(tmp_path):
     assert mappings["sample_id"] == "submissionId"
     assert mappings["primer_protocol"] == "primerProtocol"
 
+
 def test_get_timeline_column_mappings_external_file_organism_not_found(tmp_path):
     """Test that ValueError is raised when organism not found in external file."""
     config = {"organisms": {"covid": {"sample_id": "sample"}}}
@@ -268,4 +267,3 @@ def test_get_timeline_column_mappings_external_file_not_found(tmp_path):
 
     with pytest.raises(FileNotFoundError):
         get_timeline_column_mappings("rsvb", config_path=non_existent)
-

@@ -13,8 +13,8 @@ Usage:
 import os
 import subprocess
 import sys
-from pathlib import Path
 from getpass import getpass
+from pathlib import Path
 
 
 def get_passphrase() -> str:

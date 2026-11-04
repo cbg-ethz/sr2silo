@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import List, Tuple
 
 import pysam
 
@@ -20,8 +19,6 @@ class ZeroFilteredReadsError(Exception):
     means the wrong reference was specified or the data doesn't contain
     reads for the expected reference.
     """
-
-    pass
 
 
 logging.basicConfig(
@@ -371,7 +368,7 @@ def bam_to_fastq_handle_indels(
             )
 
 
-def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
+def parse_cigar(cigar: str) -> list[tuple[int, str]]:
     """Parse the CIGAR string into a list of tuples."""
     return [
         (int(length), op) for length, op in re.findall(r"(\d+)([MIDNSHP=X])", cigar)
@@ -380,7 +377,7 @@ def parse_cigar(cigar: str) -> List[Tuple[int, str]]:
 
 def sam_to_seq_and_indels(
     seq: str, cigar: str, deletion_char: str = "-", skipped_char: str = "N"
-) -> Tuple[str, List[Insertion]]:
+) -> tuple[str, list[Insertion]]:
     """
     Processes a SAM file-style sequence (nuclitide / amino acids) and a CIGAR
     string to return the cleartext sequence, along with detailed information
@@ -446,9 +443,9 @@ def sam_to_seq_and_indels(
             ref_position += length
         elif op == "S":  # Soft clipping (clipped sequences present in SEQ)
             seq_index += length
-        elif op == "H":  # Hard clipping (clipped sequences NOT present in SEQ)
-            pass
-        elif op == "P":  # Padding (silent deletion from padded reference)
+        elif (
+            op == "H" or op == "P"
+        ):  # Hard clipping (clipped sequences NOT present in SEQ)
             pass
 
     insertions = [
@@ -531,8 +528,6 @@ def _sort_and_index_bam(input_bam_fp: Path, output_bam_fp: Path) -> None:
     logging.info("Creating index for the sorted BAM file")
     create_index(output_bam_fp)
 
-    return None
-
 
 def is_bam_sorted(bam_file):
     """Checks if a BAM file is sorted by genomic coordinates using pysam.
@@ -585,7 +580,7 @@ def is_bam_indexed(bam_file):
 
 def split_bam(
     input_bam: Path, out_dir: Path, chunk_size: int, prefix="split_"
-) -> List[Path]:
+) -> list[Path]:
     """
     Split a BAM file into smaller BAM files, each containing up to chunk_size reads.
 

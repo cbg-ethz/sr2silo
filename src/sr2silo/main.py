@@ -215,8 +215,8 @@ def process_from_vpipe(
         typer.Option(
             "--timeline-config",
             help="Path to and external timeline columns YAML file. "
-                 "If provided, used instead of the bundled one. "
-                 "Useful for adding new organisms without a new release.",
+            "If provided, used instead of the bundled one. "
+            "Useful for adding new organisms without a new release.",
         ),
     ] = None,
 ) -> None:
@@ -289,7 +289,7 @@ def process_from_vpipe(
         version_info=version_info,
         organism=organism,
         reference_accession=reference_accession,
-        config_path=timeline_config
+        config_path=timeline_config,
     )
 
 

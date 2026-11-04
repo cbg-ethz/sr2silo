@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import sr2silo.process.translate_align as translate_align
+from sr2silo.process import translate_align
 from sr2silo.process.interface import (
     AAInsertion,
     AAInsertionSet,
@@ -207,9 +207,11 @@ def test_make_diamond_db_exception(tmp_path):
     out_db = tmp_path / "db.dmnd"
     in_aa_ref.touch()
 
-    with patch(
-        "sr2silo.process.translate_align.subprocess.run",
-        side_effect=OSError("Command not found"),
+    with (
+        patch(
+            "sr2silo.process.translate_align.subprocess.run",
+            side_effect=OSError("Command not found"),
+        ),
+        pytest.raises(OSError, match="Command not found"),
     ):
-        with pytest.raises(OSError, match="Command not found"):
-            translate_align._make_diamond_db(in_aa_ref, out_db)
+        translate_align._make_diamond_db(in_aa_ref, out_db)

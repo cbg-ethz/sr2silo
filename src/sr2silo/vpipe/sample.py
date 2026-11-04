@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import sr2silo.vpipe.metadata as metadata
+from sr2silo.vpipe import metadata
 
 
 class Sample:
@@ -18,7 +18,9 @@ class Sample:
                            YAML file. If provided, used instead of the bundled one.
     """
 
-    def __init__(self, sample_id: str, organism: str = "covid", config_path: Path | None = None) -> None:
+    def __init__(
+        self, sample_id: str, organism: str = "covid", config_path: Path | None = None
+    ) -> None:
         self.sample_id = sample_id
         self.organism = organism
         self.config_path = config_path

@@ -35,7 +35,11 @@ def convert_to_iso_date(date: str) -> str:
 
 
 def get_metadata_from_timeline(
-    sample_id: str, timeline: Path, organism: str = "covid", config_path: Path | None = None) -> dict[str, str] | None:
+    sample_id: str,
+    timeline: Path,
+    organism: str = "covid",
+    config_path: Path | None = None,
+) -> dict[str, str] | None:
     """Get metadata from the timeline file.
 
     Args:
@@ -135,7 +139,10 @@ def get_metadata_from_timeline(
 
 
 def get_metadata(
-    sample_id: str, timeline: Path, organism: str = "covid", config_path: Path | None = None
+    sample_id: str,
+    timeline: Path,
+    organism: str = "covid",
+    config_path: Path | None = None,
 ) -> dict[str, str]:
     """
     Get metadata for a given sample from timeline file only.

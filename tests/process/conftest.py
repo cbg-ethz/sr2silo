@@ -7,16 +7,15 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from typing import Dict
 
 import pytest
 
-import sr2silo.process.translate_align as translate_align
+from sr2silo.process import translate_align
 from sr2silo.process.interface import AlignedRead
 
 
 @pytest.fixture
-def aligned_reads(aa_ref_sarscov2_fp, nuc_ref_sarscov2_fp) -> Dict[str, AlignedRead]:
+def aligned_reads(aa_ref_sarscov2_fp, nuc_ref_sarscov2_fp) -> dict[str, AlignedRead]:
     """
     Small mock data with 42 real reads from the combined.bam file.
 
